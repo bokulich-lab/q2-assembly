@@ -8,16 +8,17 @@
 
 from qiime2.plugin import (Plugin, Citations)
 
-from q2_plugin_name import __version__
+from q2_assembly import __version__
 
-citations = Citations.load('citations.bib', package='q2_plugin_name')
+citations = Citations.load('citations.bib', package='q2_assembly')
 
 plugin = Plugin(
-    name='plugin-name',
+    name='assembly',
     version=__version__,
-    website="https://github.com/bokulich-lab/q2-plugin-name",
-    package='q2_plugin_name',
+    website="https://github.com/bokulich-lab/q2-assembly",
+    package='q2_assembly',
     description=(
-        'This is a template for building a new QIIME 2 plugin.'),
-    short_description=(''),
+        'QIIME 2 plugin for (meta)genome assembly and '
+        'quality control thereof.'),
+    short_description='QIIME 2 plugin for (meta)genome assembly.',
 )
