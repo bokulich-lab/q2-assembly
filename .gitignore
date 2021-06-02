@@ -130,3 +130,5 @@ dmypy.json
 
 # PyCharm configuration
 .idea/
+
+.DS_Store

@@ -18,7 +18,9 @@ requirements:
     - setuptools
 
   run:
+    - megahit ==1.2.9
     - qiime2 {{ release }}.*
+    - q2-types-genomics {{ release }}.*
 
 test:
   imports:
