@@ -6,11 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .megahit import megahit
-from .spades import spades
+from .spades import assemble_spades
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
-
-__all__ = ['megahit', 'spades']
+__all__ = ['assemble_spades']

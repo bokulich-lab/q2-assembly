@@ -5,12 +5,3 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
-from .megahit import megahit
-from .spades import spades
-
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
-
-__all__ = ['megahit', 'spades']
