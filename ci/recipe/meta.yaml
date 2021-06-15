@@ -20,6 +20,7 @@ requirements:
   run:
     - megahit ==1.2.9
     - spades ==3.15.2
+    - beautifulsoup4
     - qiime2 {{ release }}.*
     - q2-types-genomics {{ release }}.*
 

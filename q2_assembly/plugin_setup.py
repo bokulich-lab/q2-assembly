@@ -176,3 +176,29 @@ plugin.methods.register_function(
                 'single-end NGS reads into contigs.',
     citations=[citations['Clark2021']]
 )
+
+plugin.visualizers.register_function(
+    function=q2_assembly.quast.evaluate_contigs,
+    inputs={
+        'contigs': SampleData[Contigs],
+        'reads': SampleData[SequencesWithQuality |
+                            PairedEndSequencesWithQuality]
+    },
+    parameters={
+        'min_contig': Int % Range(1, None),
+        'threads': Int % Range(1, None)
+    },
+    input_descriptions={
+        'contigs': 'Assembled contigs to be analyzed.',
+        'reads': 'Original single- or paired-end reads.'
+    },
+    parameter_descriptions={
+        'min_contig': 'Lower threshold for contig length. Default: 500.',
+        'threads': 'Maximum number of threads. Default: 25% of CPUs.'
+    },
+    name='Evaluate quality of the assembled contigs.',
+    description='This method uses QUAST to assess the quality of '
+                'assembled (meta)genomes.',
+    citations=[citations['Mikheenko2016'],
+               citations['Mikheenko2018']]
+)

@@ -6,12 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .megahit import megahit
-from .quast import quast
-from .spades import spades
+from .quast import evaluate_contigs
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
-
-__all__ = ['megahit', 'quast', 'spades']
+__all__ = ['evaluate_contigs']
