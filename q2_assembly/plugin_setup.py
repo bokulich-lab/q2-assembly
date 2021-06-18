@@ -10,7 +10,7 @@ from q2_types.per_sample_sequences import (SequencesWithQuality,
                                            PairedEndSequencesWithQuality)
 from q2_types.sample_data import SampleData
 from q2_types_genomics.per_sample_data import Contigs
-from qiime2.core.type import Str, Int, List, Range, Bool, Float
+from qiime2.core.type import Str, Int, List, Range, Bool, Float, Choices
 from qiime2.plugin import (Plugin, Citations)
 
 import q2_assembly
@@ -59,8 +59,9 @@ plugin.methods.register_function(
         'min_contig_len': Int
     },
     outputs=[('contigs', SampleData[Contigs])],
-    input_descriptions={'seqs': 'The paired- or single-end sequences '
-                                'to be assembled.'},
+    input_descriptions={
+        'seqs': 'The paired- or single-end sequences to be assembled.'
+    },
     parameter_descriptions={
         'presets': 'Override a group of parameters. Possible values: '
                    '"meta-sensitive", "meta-large".',
@@ -109,4 +110,69 @@ plugin.methods.register_function(
     citations=[
         citations['Li2015'],
         citations['Li2016']]
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.spades.assemble_spades,
+    inputs={
+        'seqs': SampleData[SequencesWithQuality |
+                           PairedEndSequencesWithQuality]
+    },
+    parameters={
+        'isolate': Bool,
+        'sc': Bool,
+        'meta': Bool,
+        'bio': Bool,
+        'corona': Bool,
+        'plasmid': Bool,
+        'metaviral': Bool,
+        'metaplasmid': Bool,
+        'only_assembler': Bool,
+        'careful': Bool,
+        'disable_rr': Bool,
+        'threads': Int % Range(1, None),
+        'memory': Int % Range(1, None),
+        'k': List[Int % Range(1, 128, inclusive_end=False)],
+        'cov_cutoff':
+            Float % Range(0, 1, inclusive_start=False) |
+            Str % Choices(['auto', 'off']),
+        'phred_offset': Int,
+        'debug': Bool
+    },
+    outputs=[('contigs', SampleData[Contigs])],
+    input_descriptions={
+        'seqs': 'The paired- or single-end sequences to be assembled.'
+    },
+    parameter_descriptions={
+        'isolate': 'This flag is highly recommended for high-coverage '
+                   'isolate and multi-cell data.',
+        'sc': 'This flag is required for MDA (single-cell) data.',
+        'meta': 'This flag is required for metagenomic data.',
+        'bio': 'This flag is required for biosyntheticSPAdes mode.',
+        'corona': 'This flag is required for coronaSPAdes mode.',
+        'plasmid': 'Runs plasmidSPAdes pipeline for plasmid detection.',
+        'metaviral': 'Runs metaviralSPAdes pipeline for virus detection.',
+        'metaplasmid': 'Runs metaplasmidSPAdes pipeline for plasmid detection '
+                       'in metagenomic datasets (equivalent for '
+                       '--meta --plasmid).',
+        'only_assembler': 'Runs only assembling (without read '
+                          'error correction).',
+        'careful': 'Tries to reduce number of mismatches and short indels.',
+        'disable_rr': 'Disables repeat resolution stage of assembling.',
+        'threads': 'Number of threads. Default: 16.',
+        'memory': 'RAM limit for SPAdes in Gb (terminates if exceeded). '
+                  'Default: 250.',
+        'k': 'List of k-mer sizes (must be odd and less than 128). '
+             'Default: "auto".',
+        'cov_cutoff': 'Coverage cutoff value (a positive float number, '
+                      'or "auto", or "off"). Default: "off".',
+        'phred_offset': 'PHRED quality offset in the input reads (33 or 64). '
+                        'Default: auto-detect.',
+        'debug': 'Runs SPAdes in debug mode.'
+    },
+    output_descriptions={'contigs': 'The resulting assembled contigs.'},
+    name='Assemble contigs using SPAdes.',
+    description='This method uses SPAdes to assemble provided paired- or '
+                'single-end NGS reads into contigs.',
+    citations=[citations['Clark2021']]
 )

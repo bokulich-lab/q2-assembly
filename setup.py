@@ -28,7 +28,7 @@ setup(
         'q2_assembly': [
             'citations.bib'
         ],
-        'q2_assembly.megahit.tests': [
+        'q2_assembly.tests': [
             'data/*', 'data/reads/paired-end/*', 'data/reads/single-end/*'
         ]
     },
