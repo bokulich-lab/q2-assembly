@@ -5,9 +5,11 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
+import os
 import subprocess
 from typing import List
+
+from bs4 import BeautifulSoup as BS
 
 
 def run_command(cmd, verbose=True):
@@ -57,3 +59,48 @@ def _process_common_input_params(processing_func, **kwargs) -> List[str]:
         else:
             processed_args.extend(processing_func(arg_key, arg_val))
     return processed_args
+
+
+def _remove_html_element(fp: str, tag: str, elem_id: str):
+    """Removes an HTML tag and its contents.
+
+    Uses BeautifulSoup to open an HTML file, find an element by tag and
+    its id and remove it, if found. The original file will be overwritten
+    by its modified version.
+
+    Args:
+         fp (str): Path to the original HTML file.
+         tag (str): Type of the tag to be removed.
+         elem_id (str): ID of the element (tag) to be removed.
+    """
+    with open(fp, 'r') as r:
+        soup = BS(r.read(), 'html.parser')
+        element = soup.find(tag, id=elem_id)
+        if element:
+            element.decompose()
+    os.remove(fp)
+
+    with open(fp, 'w') as r:
+        r.write(str(soup))
+
+
+def _modify_links(fp: str):
+    """Modifies all "a" tags to automatically open in a new tab rather
+        than the original iFrame.
+
+    Uses BeautifulSoup to open an HTML file, find all "a" tags and
+    add a "target" property. The original file will be overwritten
+    by its modified version.
+
+    Args:
+         fp (str): Path to the original HTML file.
+    """
+    with open(fp, 'r') as r:
+        soup = BS(r.read(), 'html.parser')
+        links = soup.find_all('a')
+        for line in links:
+            line['target'] = '_blank'
+    os.remove(fp)
+
+    with open(fp, 'w') as r:
+        r.write(str(soup))

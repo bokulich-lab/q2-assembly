@@ -17,60 +17,14 @@ from typing import List, Union
 import pandas as pd
 import pkg_resources
 import q2templates
-from bs4 import BeautifulSoup as BS
 from q2_types.per_sample_sequences import \
     (SingleLanePerSamplePairedEndFastqDirFmt,
      SingleLanePerSampleSingleEndFastqDirFmt)
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
-from q2_assembly._utils import run_command
+from .._utils import run_command, _remove_html_element, _modify_links
 
 TEMPLATES = pkg_resources.resource_filename('q2_assembly', 'assets')
-
-
-def _remove_html_element(fp: str, tag: str, elem_id: str):
-    """Removes an HTML tag and its contents.
-
-    Uses BeautifulSoup to open an HTML file, find an element by tag and
-    its id and remove it, if found. The original file will be overwritten
-    by its modified version.
-
-    Args:
-         fp (str): Path to the original HTML file.
-         tag (str): Type of the tag to be removed.
-         elem_id (str): ID of the element (tag) to be removed.
-    """
-    with open(fp, 'r') as r:
-        soup = BS(r.read(), 'html.parser')
-        element = soup.find(tag, id=elem_id)
-        if element:
-            element.decompose()
-    os.remove(fp)
-
-    with open(fp, 'w') as r:
-        r.write(str(soup))
-
-
-def _modify_links(fp: str):
-    """Modifies all "a" tags to automatically open in a new tab rather
-        than the original iFrame.
-
-    Uses BeautifulSoup to open an HTML file, find all "a" tags and
-    add a "target" property. The original file will be overwritten
-    by its modified version.
-
-    Args:
-         fp (str): Path to the original HTML file.
-    """
-    with open(fp, 'r') as r:
-        soup = BS(r.read(), 'html.parser')
-        links = soup.find_all('a')
-        for line in links:
-            line['target'] = '_blank'
-    os.remove(fp)
-
-    with open(fp, 'w') as r:
-        r.write(str(soup))
 
 
 def _get_sample_from_path(fp):
@@ -79,7 +33,8 @@ def _get_sample_from_path(fp):
 
 
 def _evaluate_contigs(
-        results_dir, contigs, reads, paired, min_contig, threads
+        results_dir: str, contigs: ContigSequencesDirFmt, reads: dict,
+        paired: bool, min_contig: int, threads: int
 ) -> List[str]:
     # TODO: this will probably get replaced by "quast.py" once we
     #  want to extend the support beyond metagenomes
@@ -137,6 +92,23 @@ def _evaluate_contigs(
     return samples
 
 
+def _fix_html_reports(results_dp: str):
+    # remove link to icarus browser from report.html
+    # (otherwise, the visualisation can get messed up once clicked)
+    report_fp = os.path.join(results_dp, 'report.html')
+    _remove_html_element(report_fp, 'p', elem_id='icarus')
+
+    # remove "Main menu" button from contig browser
+    # (otherwise, the visualisation can get messed up once clicked)
+    contig_browser_fp = os.path.join(
+        results_dp, 'icarus_viewers', 'contig_size_viewer.html')
+    _remove_html_element(
+        contig_browser_fp, 'div', elem_id='to_main_menu_button')
+
+    # make all the external links open in a new tab
+    _modify_links(report_fp)
+
+
 def evaluate_contigs(
         # TODO: expose more parameters
         output_dir: str,
@@ -164,20 +136,8 @@ def evaluate_contigs(
         samples = _evaluate_contigs(
             results_dir, contigs, reads_fps, paired, min_contig, threads)
 
-        # remove link to icarus browser from report.html
-        # (otherwise, the visualisation can get messed up once clicked)
-        report_fp = os.path.join(results_dir, 'report.html')
-        _remove_html_element(report_fp, 'p', elem_id='icarus')
-
-        # remove "Main menu" button from contig browser
-        # (otherwise, the visualisation can get messed up once clicked)
-        contig_browser_fp = os.path.join(
-            results_dir, 'icarus_viewers', 'contig_size_viewer.html')
-        _remove_html_element(
-            contig_browser_fp, 'div', elem_id='to_main_menu_button')
-
-        # make all the external links open in a new tab
-        _modify_links(report_fp)
+        # fix/remove some URLs
+        _fix_html_reports(results_dir)
 
         copy_tree(os.path.join(TEMPLATES, 'quast'), output_dir)
         copy_tree(results_dir, os.path.join(output_dir, 'quast_data'))

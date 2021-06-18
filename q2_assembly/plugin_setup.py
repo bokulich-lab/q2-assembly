@@ -194,11 +194,12 @@ plugin.visualizers.register_function(
     },
     parameter_descriptions={
         'min_contig': 'Lower threshold for contig length. Default: 500.',
-        'threads': 'Maximum number of threads. Default: 25% of CPUs.'
+        'threads': 'Maximum number of parallel jobs. Default: 25% of CPUs.'
+                   'Currently disabled - only 1 CPU is supported.'
     },
     name='Evaluate quality of the assembled contigs.',
-    description='This method uses QUAST to assess the quality of '
-                'assembled (meta)genomes.',
+    description='This method uses metaQUAST to assess the quality of '
+                'assembled metagenomes.',
     citations=[citations['Mikheenko2016'],
                citations['Mikheenko2018']]
 )
