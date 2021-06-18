@@ -12,7 +12,7 @@ test: all
 	py.test
 
 test-cov: all
-	py.test --cov=q2_fondue
+	py.test --cov=q2_assembly
 
 install: all
 	$(PYTHON) setup.py install
