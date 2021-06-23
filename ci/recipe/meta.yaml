@@ -21,6 +21,7 @@ requirements:
     - megahit ==1.2.9
     - spades ==3.15.2
     - beautifulsoup4
+    # TODO: add quast here once it works on python 3.8
     - qiime2 {{ release }}.*
     - q2-types-genomics {{ release }}.*
 
