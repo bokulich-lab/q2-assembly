@@ -30,7 +30,7 @@ def _construct_param(arg_name):
     return f'--{arg_name.replace("_", "-")}'
 
 
-def _process_common_input_params(processing_func, **kwargs) -> List[str]:
+def _process_common_input_params(processing_func, params: dict) -> List[str]:
     """Converts provided arguments and their values.
 
     Conversion is entirely dependent on the passed 'processing_func'
@@ -45,13 +45,14 @@ def _process_common_input_params(processing_func, **kwargs) -> List[str]:
 
     Args:
         processing_func: Function to be used for formatting a single argument.
+        params (dict): Dictionary of parameter: value pairs to be processed.
 
     Returns:
         processed_args (list): List of processed arguments and their values.
 
     """
     processed_args = []
-    for arg_key, arg_val in kwargs.items():
+    for arg_key, arg_val in params.items():
         if not arg_val:
             continue
         if isinstance(arg_val, bool) and arg_val:

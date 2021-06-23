@@ -79,33 +79,21 @@ def _process_sample(sample, fwd, rev, common_args, out):
                     os.path.join(str(out), f'{sample}_contigs.fa'))
 
 
-def _assemble_megahit(
-        seqs, presets, min_count, k_list, k_min, k_max, k_step, no_mercy,
-        bubble_level, prune_level, prune_depth, disconnect_ratio,
-        low_local_ratio, max_tip_len, cleaning_rounds, no_local, kmin_1pass,
-        memory, mem_flag, num_cpu_threads, no_hw_accel, min_contig_len
-) -> ContigSequencesDirFmt:
+def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
     Both, paired- and single-end reads can be processed - the output will
     be adjusted accordingly.
 
+    Args:
+        seqs: Sequences to be processed.
+        common_args: List of common flags and their values for
+            the MEGAHIT command.
+
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
 
     """
-    common_args = _process_common_input_params(
-        processing_func=_process_megahit_arg,
-        presets=presets, min_count=min_count, k_list=k_list,
-        k_min=k_min, k_max=k_max, k_step=k_step, no_mercy=no_mercy,
-        bubble_level=bubble_level, prune_level=prune_level,
-        prune_depth=prune_depth, disconnect_ratio=disconnect_ratio,
-        low_local_ratio=low_local_ratio, max_tip_len=max_tip_len,
-        cleaning_rounds=cleaning_rounds, no_local=no_local,
-        kmin_1pass=kmin_1pass, memory=memory, mem_flag=mem_flag,
-        num_cpu_threads=num_cpu_threads, no_hw_accel=no_hw_accel,
-        min_contig_len=min_contig_len
-    )
 
     paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
     manifest = seqs.manifest.view(pd.DataFrame)
@@ -145,13 +133,9 @@ def assemble_megahit(
         min_contig_len: int = None
 ) -> ContigSequencesDirFmt:
 
-    return _assemble_megahit(
-        seqs=seqs, presets=presets, min_count=min_count, k_list=k_list,
-        k_min=k_min, k_max=k_max, k_step=k_step, no_mercy=no_mercy,
-        bubble_level=bubble_level, prune_level=prune_level,
-        prune_depth=prune_depth, disconnect_ratio=disconnect_ratio,
-        low_local_ratio=low_local_ratio, max_tip_len=max_tip_len,
-        cleaning_rounds=cleaning_rounds, no_local=no_local,
-        kmin_1pass=kmin_1pass, memory=memory, mem_flag=mem_flag,
-        num_cpu_threads=num_cpu_threads, no_hw_accel=no_hw_accel,
-        min_contig_len=min_contig_len)
+    kwargs = {k: v for k, v in locals().items() if k not in ['seqs']}
+    common_args = _process_common_input_params(
+        processing_func=_process_megahit_arg, params=kwargs
+    )
+
+    return _assemble_megahit(seqs=seqs, common_args=common_args)

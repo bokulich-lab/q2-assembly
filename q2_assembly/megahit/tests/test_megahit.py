@@ -8,19 +8,19 @@
 
 import os
 import shutil
-from subprocess import CalledProcessError
 import tempfile
 import unittest
+from subprocess import CalledProcessError
 from unittest.mock import patch, ANY, call
 
 from q2_types.per_sample_sequences import \
     (SingleLanePerSampleSingleEndFastqDirFmt,
      SingleLanePerSamplePairedEndFastqDirFmt)
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
+from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.megahit.megahit import (_process_megahit_arg, _process_sample,
-                                         _assemble_megahit)
-from qiime2.plugin.testing import TestPluginBase
+                                         _assemble_megahit, assemble_megahit)
 
 
 class MockTempDir(tempfile.TemporaryDirectory):
@@ -148,7 +148,7 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path('reads/paired-end')
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode='r')
 
-        obs = _assemble_megahit(seqs=input, **self.test_params_dict)
+        obs = _assemble_megahit(seqs=input, common_args=self.test_params_list)
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind='paired')
 
         p.assert_has_calls(exp_calls, any_order=False)
@@ -159,11 +159,23 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path('reads/single-end')
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode='r')
 
-        obs = _assemble_megahit(seqs=input, **self.test_params_dict)
+        obs = _assemble_megahit(seqs=input, common_args=self.test_params_list)
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind='single')
 
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
+
+    @patch('q2_assembly.megahit._assemble_megahit')
+    def test_assemble_megahit_process_params(self, p):
+        input_files = self.get_data_path('reads/single-end')
+        input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode='r')
+
+        _ = assemble_megahit(
+            seqs=input, presets='meta-sensitive', bubble_level=1,
+            k_list=[1, 2], no_mercy=True)
+        exp_args = ['--presets', 'meta-sensitive', '--k-list', '1,2',
+                    '--no-mercy', '--bubble-level', '1']
+        p.assert_called_with(seqs=input, common_args=exp_args)
 
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
+
 import contextlib
 import os
 import shutil
@@ -57,19 +58,19 @@ class TestUtils(TestPluginBase):
 
     def test_process_common_inputs_bools(self):
         kwargs = {'arg1': False, 'arg2': True}
-        obs = _process_common_input_params(fake_processing_func, **kwargs)
+        obs = _process_common_input_params(fake_processing_func, kwargs)
         exp = ['--arg2']
         self.assertListEqual(obs, exp)
 
     def test_process_common_inputs_nones(self):
         kwargs = {'arg1': 'some-value', 'arg2': None}
-        obs = _process_common_input_params(fake_processing_func, **kwargs)
+        obs = _process_common_input_params(fake_processing_func, kwargs)
         exp = ['--arg1', 'some-value']
         self.assertListEqual(obs, exp)
 
     def test_process_common_inputs_with_values(self):
         kwargs = {'arg1': 'value1', 'arg2': 'value2'}
-        obs = _process_common_input_params(fake_processing_func, **kwargs)
+        obs = _process_common_input_params(fake_processing_func, kwargs)
         exp = ['--arg1', 'value1', '--arg2', 'value2']
         self.assertListEqual(obs, exp)
 
@@ -77,7 +78,7 @@ class TestUtils(TestPluginBase):
         kwargs = {
             'arg1': None, 'arg2': 'some-value', 'arg3': False, 'arg4': True
         }
-        obs = _process_common_input_params(fake_processing_func, **kwargs)
+        obs = _process_common_input_params(fake_processing_func, kwargs)
         exp = ['--arg2', 'some-value', '--arg4']
         self.assertListEqual(obs, exp)
 
