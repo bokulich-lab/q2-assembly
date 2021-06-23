@@ -22,7 +22,8 @@ from q2_types.per_sample_sequences import \
      SingleLanePerSampleSingleEndFastqDirFmt)
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
-from .._utils import run_command, _remove_html_element, _modify_links
+from .._utils import (run_command, _remove_html_element, _modify_links,
+                      _construct_param, _process_common_input_params)
 
 TEMPLATES = pkg_resources.resource_filename('q2_assembly', 'assets')
 
@@ -32,23 +33,44 @@ def _get_sample_from_path(fp):
     return os.path.basename(fp).split('_', maxsplit=1)[0]
 
 
+def _process_quast_arg(arg_key, arg_val):
+    """Creates a list with argument and its value.
+
+    Argument values represented by a list will be converted to a single
+    string joined by commas, e.g.: [1, 2, 3] -> '1,2,3'.
+    Argument names will be converted to command line parameters by
+    appending a '--' prefix and replacing all '_' with '-',
+    e.g.: 'some_parameter' -> '--some-parameter'.
+
+    Args:
+        arg_key (str): Argument name.
+        arg_val: Argument value.
+
+    Returns:
+        (converted_arg, arg_value): Tuple containing a prepared command line
+            parameter and its value.
+    """
+    if arg_key == 'threads' and (not arg_val or arg_val > 1):
+        # TODO: this needs to be fixed (to allow multiprocessing)
+        print('Multiprocessing is currently not supported. Resetting '
+              'number of threads to 1.')
+        arg_value = '1'
+    elif not isinstance(arg_val, list):
+        arg_value = str(arg_val)
+    else:
+        arg_value = ','.join(str(x) for x in arg_val)
+    return _construct_param(arg_key), arg_value
+
+
 def _evaluate_contigs(
         results_dir: str, contigs: ContigSequencesDirFmt, reads: dict,
-        paired: bool, min_contig: int, threads: int
+        paired: bool, common_args: list
 ) -> List[str]:
     # TODO: this will probably get replaced by "quast.py" once we
     #  want to extend the support beyond metagenomes
     cmd = ['metaquast.py', '-o', results_dir]
+    cmd.extend(common_args)
     samples = []
-
-    if min_contig:
-        cmd.extend(['-m', str(min_contig)])
-
-    if not threads or threads > 1:
-        # TODO: this needs to be fixed (to allow multiprocessing)
-        print('Multiprocessing is currently not supported. Resetting '
-              'number of threads to 1.')
-    cmd.extend(['-t', str(1)])
 
     for fp in sorted(glob.glob(os.path.join(str(contigs), '*_contigs.fa'))):
         cmd.append(fp)
@@ -116,8 +138,20 @@ def evaluate_contigs(
         reads: Union[SingleLanePerSamplePairedEndFastqDirFmt,
                      SingleLanePerSampleSingleEndFastqDirFmt] = None,
         min_contig: int = None,
-        threads: int = None
+        threads: int = None,
+        k_mer_stats: bool = False,
+        k_mer_size: int = None,
+        contig_thresholds: List[int] = None,
+        x_for_Nx: int = None
 ):
+
+    common_args = _process_common_input_params(
+        processing_func=_process_quast_arg,
+        min_contig=min_contig, threads=threads, k_mer_stats=k_mer_stats,
+        k_mer_size=k_mer_size, contig_thresholds=contig_thresholds,
+        x_for_Nx=x_for_Nx
+    )
+
     reads_fps = {}
     paired = False
     if reads:
@@ -134,7 +168,7 @@ def evaluate_contigs(
 
         # run quast
         samples = _evaluate_contigs(
-            results_dir, contigs, reads_fps, paired, min_contig, threads)
+            results_dir, contigs, reads_fps, paired, common_args)
 
         # fix/remove some URLs
         _fix_html_reports(results_dir)

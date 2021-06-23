@@ -20,7 +20,7 @@ from q2_types.per_sample_sequences import \
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
-from ..quast import _evaluate_contigs, evaluate_contigs
+from ..quast import _evaluate_contigs, evaluate_contigs, _process_quast_arg
 
 
 class MockTempDir(tempfile.TemporaryDirectory):
@@ -36,12 +36,37 @@ class TestQuast(TestPluginBase):
             self._tmp = stack.enter_context(tempfile.TemporaryDirectory())
             self.addCleanup(stack.pop_all().close)
 
+    def test_process_quast_arg_simple1(self):
+        obs = _process_quast_arg('not_k_list', 123)
+        exp = ('--not-k-list', '123')
+        self.assertTupleEqual(obs, exp)
+
+    def test_process_quast_arg_simple2(self):
+        obs = _process_quast_arg('k_list', [1, 2, 3])
+        exp = ('--k-list', '1,2,3')
+        self.assertTupleEqual(obs, exp)
+
+    def test_process_quast_arg_threads_not_set(self):
+        obs = _process_quast_arg('threads', None)
+        exp = ('--threads', '1')
+        self.assertTupleEqual(obs, exp)
+
+    def test_process_quast_arg_threads_too_many(self):
+        obs = _process_quast_arg('threads', 6)
+        exp = ('--threads', '1')
+        self.assertTupleEqual(obs, exp)
+
+    def test_process_quast_arg_threads_correct(self):
+        obs = _process_quast_arg('threads', 1)
+        exp = ('--threads', '1')
+        self.assertTupleEqual(obs, exp)
+
     @patch('subprocess.run')
     def test_evaluate_contigs_minimal(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path('contigs'), 'r')
         obs_samples = _evaluate_contigs(
             results_dir='some/dir', contigs=contigs, reads={},
-            paired=False, min_contig=None, threads=None)
+            paired=False, common_args=['-t', '1'])
 
         exp_command = ['metaquast.py', '-o', 'some/dir', '-t', '1',
                        os.path.join(str(contigs), 'sample1_contigs.fa'),
@@ -54,7 +79,7 @@ class TestQuast(TestPluginBase):
         contigs = ContigSequencesDirFmt(self.get_data_path('contigs'), 'r')
         obs_samples = _evaluate_contigs(
             results_dir='some/dir', contigs=contigs, reads={},
-            paired=False, min_contig=10, threads=3)
+            paired=False, common_args=['-m', '10', '-t', '1'])
 
         exp_command = ['metaquast.py', '-o', 'some/dir', '-m', '10', '-t', '1',
                        os.path.join(str(contigs), 'sample1_contigs.fa'),
@@ -71,7 +96,7 @@ class TestQuast(TestPluginBase):
         }
         obs_samples = _evaluate_contigs(
             results_dir='some/dir', contigs=contigs, reads=reads,
-            paired=False, min_contig=10, threads=3)
+            paired=False, common_args=['-m', '10', '-t', '1'])
 
         exp_command = ['metaquast.py', '-o', 'some/dir', '-m', '10', '-t', '1',
                        os.path.join(str(contigs), 'sample1_contigs.fa'),
@@ -90,7 +115,7 @@ class TestQuast(TestPluginBase):
         }
         obs_samples = _evaluate_contigs(
             results_dir='some/dir', contigs=contigs, reads=reads,
-            paired=True, min_contig=10, threads=3)
+            paired=True, common_args=['-m', '10', '-t', '1'])
 
         exp_command = ['metaquast.py', '-o', 'some/dir', '-m', '10', '-t',
                        '1',
@@ -111,7 +136,7 @@ class TestQuast(TestPluginBase):
                 r'.*reverse reads \(1\) does not match.*contig files \(2\).*'):
             _ = _evaluate_contigs(
                 results_dir='some/dir', contigs=contigs, reads=reads,
-                paired=True, min_contig=10, threads=3)
+                paired=True, common_args=['-m', '10', '-t', '1'])
 
     def test_evaluate_contigs_non_matching_samples(self):
         contigs = ContigSequencesDirFmt(self.get_data_path('contigs'), 'r')
@@ -123,7 +148,7 @@ class TestQuast(TestPluginBase):
                 Exception, 'Some samples are missing from the reads file.'):
             _ = _evaluate_contigs(
                 results_dir='some/dir', contigs=contigs, reads=reads,
-                paired=True, min_contig=10, threads=3)
+                paired=True, common_args=['-m', '10', '-t', '1'])
 
     @patch('subprocess.run',
            side_effect=CalledProcessError(returncode=123, cmd="some cmd"))
@@ -137,7 +162,7 @@ class TestQuast(TestPluginBase):
                 Exception, r'An error.*while running QUAST.*code 123'):
             _ = _evaluate_contigs(
                 results_dir='some/dir', contigs=contigs, reads=reads,
-                paired=True, min_contig=10, threads=3)
+                paired=True, common_args=['-m', '10', '-t', '1'])
 
     @patch('q2_assembly.quast._evaluate_contigs',
            return_value=['sample1', 'sample2'])
@@ -151,11 +176,12 @@ class TestQuast(TestPluginBase):
         contigs = ContigSequencesDirFmt(self.get_data_path('contigs'), 'r')
 
         evaluate_contigs(output_dir=self._tmp, contigs=contigs, reads=None,
-                         min_contig=150, threads=1)
+                         min_contig=150, threads=5, contig_thresholds=[10, 20])
 
         p4.assert_called_once_with(
-            os.path.join(test_temp_dir.name, 'results'),
-            contigs, {}, False, 150, 1)
+            os.path.join(test_temp_dir.name, 'results'), contigs, {}, False,
+            ['--min-contig', '150', '--threads', '1',
+             '--contig-thresholds', '10,20'])
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, 'results'))
 
         exp_context = {
@@ -195,8 +221,8 @@ class TestQuast(TestPluginBase):
             }
         }
         p4.assert_called_once_with(
-            os.path.join(test_temp_dir.name, 'results'),
-            contigs, exp_reads_dict, False, 150, 1)
+            os.path.join(test_temp_dir.name, 'results'), contigs,
+            exp_reads_dict, False, ['--min-contig', '150', '--threads', '1'])
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, 'results'))
 
         exp_context = {
@@ -238,8 +264,8 @@ class TestQuast(TestPluginBase):
             }
         }
         p4.assert_called_once_with(
-            os.path.join(test_temp_dir.name, 'results'),
-            contigs, exp_reads_dict, True, 150, 1)
+            os.path.join(test_temp_dir.name, 'results'), contigs,
+            exp_reads_dict, True, ['--min-contig', '150', '--threads', '1'])
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, 'results'))
 
         exp_context = {
