@@ -6,11 +6,13 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import (SequencesWithQuality,
                                            PairedEndSequencesWithQuality)
 from q2_types.sample_data import SampleData
-from q2_types_genomics.per_sample_data import Contigs
-from qiime2.core.type import Str, Int, List, Range, Bool, Float, Choices
+from q2_types_genomics.per_sample_data import Contigs, MultiBowtie2Index, MAGs
+from qiime2.core.type import (Str, Int, List, Range, Bool, Float, Choices,
+                              SemanticType)
 from qiime2.plugin import (Plugin, Citations)
 
 import q2_assembly
@@ -213,4 +215,81 @@ plugin.visualizers.register_function(
                 'assembled metagenomes.',
     citations=[citations['Mikheenko2016'],
                citations['Mikheenko2018']]
+)
+
+########################################
+SimpleBowtie2Index = SemanticType(
+    'SimpleBowtie2Index', variant_of=SampleData.field['type'])
+
+plugin.register_semantic_types(SimpleBowtie2Index)
+
+plugin.register_semantic_type_to_format(
+    SampleData[SimpleBowtie2Index],
+    artifact_format=Bowtie2IndexDirFmt
+)
+########################################
+bowtie2_indexing_params = {
+    'large_index': Bool,
+    'debug': Bool,
+    'sanitized': Bool,
+    'verbose': Bool,
+    'noauto': Bool,
+    'packed': Bool,
+    'bmax': Int % Range(1, None),
+    'bmaxdivn': Int % Range(1, None),
+    'dcv': Int % Range(1, None),
+    'nodc': Bool,
+    'offrate': Int % Range(0, None),
+    'ftabchars': Int % Range(1, None),
+    'threads': Int % Range(1, None),
+    'seed': Int % Range(1, None)
+}
+bowtie2_indexing_param_descriptions = {
+    'large_index': 'Force generated index to be "large", even if '
+                   'ref has fewer than 4 billion nucleotides.',
+    'debug': 'Use the debug binary; slower, assertions enabled.',
+    'sanitized': 'Use sanitized binary; slower, uses ASan and/or UBSan.',
+    'verbose': 'Log the issued command.',
+    'noauto': ' Disable automatic -p/--bmax/--dcv memory-fitting.',
+    'packed': 'Use packed strings internally; slower, less memory.',
+    'bmax': 'Max bucket sz for blockwise suffix-array builder.',
+    'bmaxdivn': 'Max bucket sz as divisor of ref len. Default: 4.',
+    'dcv': 'Diff-cover period for blockwise. Default: 1024.',
+    'nodc': 'Disable diff-cover (algorithm becomes quadratic).',
+    'offrate': 'SA is sampled every 2^<int> BWT chars. Default: 5.',
+    'ftabchars': '# of chars consumed in initial lookup. Default: 10.',
+    'threads': '# of CPUs.',
+    'seed': 'Seed for random number generator.'
+}
+
+plugin.methods.register_function(
+    function=q2_assembly.bowtie2.index_contigs,
+    inputs={'contigs': SampleData[Contigs]},
+    parameters=bowtie2_indexing_params,
+    outputs=[('index', SampleData[SimpleBowtie2Index])],
+    input_descriptions={'contigs': 'Contigs to be indexed.'},
+    parameter_descriptions=bowtie2_indexing_param_descriptions,
+    output_descriptions={
+        'index': 'Bowtie2 indices generated for input sequences.'
+    },
+    name='Index contigs using Bowtie2.',
+    description='This method uses Bowtie2 to generate indices of '
+                'provided contigs.',
+    citations=[citations['Langmead2012']]
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.bowtie2.index_mags,
+    inputs={'mags': SampleData[MAGs]},
+    parameters=bowtie2_indexing_params,
+    outputs=[('index', SampleData[MultiBowtie2Index])],
+    input_descriptions={'mags': 'MAGs to be indexed.'},
+    parameter_descriptions=bowtie2_indexing_param_descriptions,
+    output_descriptions={
+        'index': 'Bowtie2 indices generated for input sequences.'
+    },
+    name='Index MAGs using Bowtie2.',
+    description='This method uses Bowtie2 to generate indices of '
+                'provided MAGs.',
+    citations=[citations['Langmead2012']]
 )
