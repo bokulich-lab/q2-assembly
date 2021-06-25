@@ -7,6 +7,8 @@
 # ----------------------------------------------------------------------------
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.feature_data import FeatureData, Sequence
+from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.per_sample_sequences import (SequencesWithQuality,
                                            PairedEndSequencesWithQuality)
 from q2_types.sample_data import SampleData
@@ -292,4 +294,62 @@ plugin.methods.register_function(
     description='This method uses Bowtie2 to generate indices of '
                 'provided MAGs.',
     citations=[citations['Langmead2012']]
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.iss.generate_reads,
+    inputs={},
+    parameters={
+        'sample_names': List[Str],
+        'ncbi': List[Str % Choices(['bacteria', 'viruses', 'archaea'])],
+        'n_genomes_ncbi': List[Int % Range(1, None)],
+        'abundance': Str % Choices(
+            ['uniform', 'halfnormal', 'exponential',
+             'lognormal', 'zero-inflated-lognormal']),
+        'coverage': Str % Choices(
+            ['halfnormal', 'exponential',
+             'lognormal', 'zero-inflated-lognormal']),
+        'model': Str % Choices(['HiSeq', 'NovaSeq', 'MiSeq']),
+        'n_reads': Int % Range(1, None),
+        'mode': Str % Choices(['kde', 'basic', 'perfect']),
+        'gc_bias': Bool,
+        'cpus': Int % Range(1, None),
+        'debug': Bool,
+        'seed': Int % Range(1, None)
+    },
+    outputs=[('reads', SampleData[PairedEndSequencesWithQuality]),
+             ('genomes', FeatureData[Sequence]),
+             ('abundances', FeatureTable[Frequency])],
+    input_descriptions={},
+    parameter_descriptions={
+        'sample_names': 'List of sample names that should be generated. ',
+        'ncbi': 'Download input genomes from NCBI. Can be bacteria, viruses, '
+                'archaea or a combination of the three.',
+        'n_genomes_ncbi': 'How many genomes will be downloaded from NCBI. '
+                          'If more than one kingdom is set with --ncbi, '
+                          'multiple values are necessary.',
+        'abundance': 'Abundance distribution. Default: lognormal.',
+        'coverage': 'Coverage distribution.',
+        'model': 'Error model. Use either of the precomputed models when '
+                 '--mode set to "kde". Default: HiSeq.',
+        'n_reads': 'Number of reads to generate. Default: 1000000.',
+        'mode': 'Error model. If not specified, using kernel '
+                'density estimation. Default: kde.',
+        'gc_bias': 'If set, may fail to sequence reads with '
+                   'abnormal GC content.',
+        'cpus': 'Number of cpus to use. Default: 2.',
+        'debug': ' Enable debug logging.',
+        'seed': 'Seed for all the random number generators.'
+    },
+    output_descriptions={
+        'reads': 'Simulated paired-end reads.',
+        'genomes': 'Genome sequences from which the reads were generated.',
+        'abundances': 'Abundances of genomes from which reads were generated. '
+                      'If "coverage" parameter was set, this table becomes '
+                      'coverage distribution per sample.'
+    },
+    name='Simulate NGS reads using InSilicoSeq.',
+    description='This method uses InSilicoSeq to generate reads simulated '
+                'from given genomes for an indicated number of samples.',
+    citations=[citations['Gourle2019']]
 )
