@@ -38,28 +38,33 @@ class TestQuast(TestPluginBase):
 
     def test_process_quast_arg_simple1(self):
         obs = _process_quast_arg('not_k_list', 123)
-        exp = ('--not-k-list', '123')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--not-k-list', '123']
+        self.assertListEqual(obs, exp)
 
     def test_process_quast_arg_simple2(self):
         obs = _process_quast_arg('k_list', [1, 2, 3])
-        exp = ('--k-list', '1,2,3')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--k-list', '1,2,3']
+        self.assertListEqual(obs, exp)
 
     def test_process_quast_arg_threads_not_set(self):
         obs = _process_quast_arg('threads', None)
-        exp = ('--threads', '1')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--threads', '1']
+        self.assertListEqual(obs, exp)
 
     def test_process_quast_arg_threads_too_many(self):
         obs = _process_quast_arg('threads', 6)
-        exp = ('--threads', '1')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--threads', '1']
+        self.assertListEqual(obs, exp)
 
     def test_process_quast_arg_threads_correct(self):
         obs = _process_quast_arg('threads', 1)
-        exp = ('--threads', '1')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--threads', '1']
+        self.assertListEqual(obs, exp)
+
+    def test_process_quast_arg_bool(self):
+        obs = _process_quast_arg('k_bool', True)
+        exp = ['--k-bool']
+        self.assertListEqual(obs, exp)
 
     def test_process_quast_arg_threads_none(self):
         obs = _process_quast_arg('threads', None)

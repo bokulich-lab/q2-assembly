@@ -55,8 +55,6 @@ def _process_common_input_params(processing_func, params: dict) -> List[str]:
     for arg_key, arg_val in params.items():
         if not arg_val:
             continue
-        if isinstance(arg_val, bool) and arg_val:
-            processed_args.append(_construct_param(arg_key))
         else:
             processed_args.extend(processing_func(arg_key, arg_val))
     return processed_args

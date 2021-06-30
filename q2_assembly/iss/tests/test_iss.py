@@ -71,6 +71,11 @@ class TestISS(TestPluginBase):
         exp = ['--k_list', '1', '2', '3']
         self.assertListEqual(obs, exp)
 
+    def test_process_iss_arg_bool(self):
+        obs = _process_iss_arg('k_bool', True)
+        exp = ['--k_bool']
+        self.assertListEqual(obs, exp)
+
     @patch('os.rename')
     def test_rename_reads(self, p):
         fp = self.get_data_path('reads')

@@ -36,16 +36,18 @@ def _process_spades_arg(arg_key, arg_val):
         arg_val: Argument value.
 
     Returns:
-        (converted_arg, arg_value): Tuple containing a prepared command line
+        [converted_arg, arg_value]: List containing a prepared command line
             parameter and its value.
     """
-    if not isinstance(arg_val, list):
-        arg_value = str(arg_val)
+    if isinstance(arg_val, bool) and arg_val:
+        return [_construct_param(arg_key)]
+    elif not isinstance(arg_val, list):
+        return [_construct_param(arg_key), str(arg_val)]
     elif arg_key == 'k':
-        return '-k', ','.join(str(x) for x in arg_val)
+        return ['-k', ','.join(str(x) for x in arg_val)]
     else:
         arg_value = ','.join(str(x) for x in arg_val)
-    return _construct_param(arg_key), arg_value
+        return [_construct_param(arg_key), arg_value]
 
 
 def _process_sample(sample, fwd, rev, common_args, out):

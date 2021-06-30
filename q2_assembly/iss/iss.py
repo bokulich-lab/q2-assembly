@@ -40,7 +40,9 @@ def _process_iss_arg(arg_key, arg_val):
         [converted_arg, arg_value, ...]: List containing a prepared command
             line parameter and its value(s).
     """
-    if not isinstance(arg_val, list):
+    if isinstance(arg_val, bool) and arg_val:
+        return [f'--{arg_key}']
+    elif not isinstance(arg_val, list):
         return [f'--{arg_key}', str(arg_val)]
     else:
         flags = [f'--{arg_key}']

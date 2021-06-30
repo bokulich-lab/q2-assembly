@@ -20,6 +20,30 @@ from .._utils import (run_command, _construct_param,
                       _process_common_input_params)
 
 
+def _process_bowtie2_arg(arg_key, arg_val):
+    """Creates a list with argument and its value.
+
+    Argument names will be converted to command line parameters by
+    appending a '--' prefix and replacing all '_' with '-',
+    e.g.: 'some_parameter' -> '--some-parameter'.
+
+    Args:
+        arg_key (str): Argument name.
+        arg_val: Argument value.
+
+    Returns:
+        [converted_arg, arg_value]: List containing a prepared command line
+            parameter and its value.
+    """
+    if isinstance(arg_val, bool) and arg_val:
+        return [_construct_param(arg_key)]
+    elif not isinstance(arg_val, list):
+        return [_construct_param(arg_key), str(arg_val)]
+    else:
+        raise NotImplementedError(
+            f'Parsing arguments of type "{type(arg_val)}" is not supported.')
+
+
 def _get_subdir_from_path(fp: str, input_type: str = 'contigs'):
     """Constructs subdir to be created dependent on the input.
 
@@ -95,8 +119,7 @@ def index_contigs(
 ) -> Bowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ['contigs']}
     common_args = _process_common_input_params(
-        processing_func=lambda k, v: (_construct_param(k), str(v)),
-        params=kwargs
+        processing_func=_process_bowtie2_arg, params=kwargs
     )
     result = Bowtie2IndexDirFmt()
 
@@ -125,8 +148,7 @@ def index_mags(
 ) -> MultiBowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ['mags']}
     common_args = _process_common_input_params(
-        processing_func=lambda k, v: (_construct_param(k), str(v)),
-        params=kwargs
+        processing_func=_process_bowtie2_arg, params=kwargs
     )
 
     result = MultiBowtie2IndexDirFmt()

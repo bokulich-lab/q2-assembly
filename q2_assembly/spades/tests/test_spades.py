@@ -65,18 +65,23 @@ class TestSpades(TestPluginBase):
 
     def test_process_spades_arg_simple1(self):
         obs = _process_spades_arg('not_k_list', 123)
-        exp = ('--not-k-list', '123')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--not-k-list', '123']
+        self.assertListEqual(obs, exp)
 
     def test_process_spades_arg_simple2(self):
         obs = _process_spades_arg('k_list', [1, 2, 3])
-        exp = ('--k-list', '1,2,3')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--k-list', '1,2,3']
+        self.assertListEqual(obs, exp)
 
     def test_process_spades_arg_k(self):
         obs = _process_spades_arg('k', [1, 2, 3])
-        exp = ('-k', '1,2,3')
-        self.assertTupleEqual(obs, exp)
+        exp = ['-k', '1,2,3']
+        self.assertListEqual(obs, exp)
+
+    def test_process_spades_arg_bool(self):
+        obs = _process_spades_arg('k_bool', True)
+        exp = ['--k-bool']
+        self.assertListEqual(obs, exp)
 
     @patch('subprocess.run')
     @patch('tempfile.TemporaryDirectory')
