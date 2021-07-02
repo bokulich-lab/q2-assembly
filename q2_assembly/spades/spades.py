@@ -81,27 +81,22 @@ def _process_sample(sample, fwd, rev, common_args, out):
                     os.path.join(str(out), f'{sample}_contigs.fa'))
 
 
-def _assemble_spades(
-        seqs, isolate, sc, meta, bio, corona, plasmid, metaviral, metaplasmid,
-        only_assembler, careful, disable_rr, threads, memory, k, cov_cutoff,
-        phred_offset, debug) -> ContigSequencesDirFmt:
+def _assemble_spades(seqs, meta, common_args) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
     Both, paired- and single-end reads can be processed - the output will
     be adjusted accordingly.
 
+    Args:
+        seqs: Sequences to be processed.
+        meta: True if it is a metagenomic assembly.
+        common_args: List of common flags and their values for
+            the metaSPAdes command.
+
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
 
     """
-    common_args = _process_common_input_params(
-        processing_func=_process_spades_arg,
-        isolate=isolate, sc=sc, meta=meta, bio=bio, corona=corona,
-        plasmid=plasmid, metaviral=metaviral, metaplasmid=metaplasmid,
-        only_assembler=only_assembler, careful=careful, disable_rr=disable_rr,
-        threads=threads, memory=memory, k=k, cov_cutoff=cov_cutoff,
-        phred_offset=phred_offset, debug=debug
-    )
 
     paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
     if not paired and meta:
@@ -134,17 +129,17 @@ def assemble_spades(
         only_assembler: bool = False,
         careful: bool = False,
         disable_rr: bool = False,
-        threads: int = 16,
-        memory: int = 250,
+        threads: int = None,
+        memory: int = None,
         k: List[int] = None,
         cov_cutoff: Union[float, str] = 'off',
         phred_offset: int = None,
         debug: bool = False
 ) -> ContigSequencesDirFmt:
 
-    return _assemble_spades(
-        seqs=seqs, isolate=isolate, sc=sc, meta=meta, bio=bio, corona=corona,
-        plasmid=plasmid, metaviral=metaviral, metaplasmid=metaplasmid,
-        only_assembler=only_assembler, careful=careful, disable_rr=disable_rr,
-        threads=threads, memory=memory, k=k, cov_cutoff=cov_cutoff,
-        phred_offset=phred_offset, debug=debug)
+    kwargs = {k: v for k, v in locals().items() if k not in ['seqs']}
+    common_args = _process_common_input_params(
+        processing_func=_process_spades_arg, params=kwargs
+    )
+
+    return _assemble_spades(seqs=seqs, meta=meta, common_args=common_args)

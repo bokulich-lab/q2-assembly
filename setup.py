@@ -26,7 +26,7 @@ setup(
     },
     package_data={
         'q2_assembly': [
-            'citations.bib'
+            'citations.bib', 'assets/quast/*'
         ],
         'q2_assembly.tests': [
             'data/*', 'data/reads/paired-end/*', 'data/reads/single-end/*'

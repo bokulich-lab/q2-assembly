@@ -176,3 +176,44 @@ plugin.methods.register_function(
                 'single-end NGS reads into contigs.',
     citations=[citations['Clark2021']]
 )
+
+plugin.visualizers.register_function(
+    function=q2_assembly.quast.evaluate_contigs,
+    inputs={
+        'contigs': SampleData[Contigs],
+        'reads': SampleData[SequencesWithQuality |
+                            PairedEndSequencesWithQuality]
+    },
+    parameters={
+        # TODO: add eukaryote, fungal and large when alignment
+        #  to reference is supported
+        'min_contig': Int % Range(1, None),
+        'threads': Int % Range(1, None),
+        'k_mer_stats': Bool,
+        'k_mer_size': Int % Range(1, None),
+        'contig_thresholds': List[Int % Range(0, None)],
+        'x_for_Nx': Int % Range(0, 100),
+    },
+    input_descriptions={
+        'contigs': 'Assembled contigs to be analyzed.',
+        'reads': 'Original single- or paired-end reads.'
+    },
+    parameter_descriptions={
+        'min_contig': 'Lower threshold for contig length. Default: 500.',
+        'threads': 'Maximum number of parallel jobs. Default: 25% of CPUs.'
+                   'Currently disabled - only 1 CPU is supported.',
+        'k_mer_stats': 'Compute k-mer-based quality metrics (recommended for '
+                       'large genomes). This may significantly increase '
+                       'memory and time consumption on large genomes.',
+        'k_mer_size': 'Size of k used in k-mer-stats. Default: 101.',
+        'contig_thresholds': 'List of contig length thresholds. '
+                             'Default: 0,1000,5000,10000,25000,50000.',
+        'x_for_Nx': 'Value of "x" for Nx, Lx, etc. metrics reported '
+                    'in addition to N50, L50, etc. Default: 90.',
+    },
+    name='Evaluate quality of the assembled contigs using metaQUAST.',
+    description='This method uses metaQUAST to assess the quality of '
+                'assembled metagenomes.',
+    citations=[citations['Mikheenko2016'],
+               citations['Mikheenko2018']]
+)

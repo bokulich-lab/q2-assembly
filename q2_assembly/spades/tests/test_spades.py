@@ -8,19 +8,19 @@
 
 import os
 import shutil
-from subprocess import CalledProcessError
 import tempfile
 import unittest
+from subprocess import CalledProcessError
 from unittest.mock import patch, ANY, call
 
-from q2_assembly.spades.spades import (
-    _process_spades_arg, _process_sample, _assemble_spades)
 from q2_types.per_sample_sequences import \
     (SingleLanePerSampleSingleEndFastqDirFmt,
      SingleLanePerSamplePairedEndFastqDirFmt)
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
-
 from qiime2.plugin.testing import TestPluginBase
+
+from q2_assembly.spades.spades import (
+    _process_spades_arg, _process_sample, _assemble_spades, assemble_spades)
 
 
 class MockTempDir(tempfile.TemporaryDirectory):
@@ -147,7 +147,8 @@ class TestSpades(TestPluginBase):
         input = SingleLanePerSamplePairedEndFastqDirFmt(
                   input_files, mode='r')
 
-        obs = _assemble_spades(seqs=input, **self.test_params_dict)
+        obs = _assemble_spades(
+            seqs=input, meta=False, common_args=self.test_params_list)
         exp_calls = self.generate_exp_calls(
                   sample_ids=(1, 2), kind='paired')
 
@@ -162,7 +163,19 @@ class TestSpades(TestPluginBase):
 
         with self.assertRaisesRegex(
                 NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'):
-            _assemble_spades(seqs=input, **self.test_params_dict)
+            _assemble_spades(
+                seqs=input, meta=True, common_args=self.test_params_list)
+
+    @patch('q2_assembly.spades._assemble_spades')
+    def test_assemble_spades_process_params(self, p):
+        input_files = self.get_data_path('reads/single-end')
+        input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode='r')
+
+        _ = assemble_spades(
+            seqs=input, meta=True, threads=14, k=[1, 2], cov_cutoff='off')
+        exp_args = [
+            '--meta', '--threads', '14', '-k', '1,2', '--cov-cutoff', 'off']
+        p.assert_called_with(seqs=input, meta=True, common_args=exp_args)
 
 
 if __name__ == '__main__':
