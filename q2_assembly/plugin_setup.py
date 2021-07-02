@@ -211,7 +211,7 @@ plugin.visualizers.register_function(
         'x_for_Nx': 'Value of "x" for Nx, Lx, etc. metrics reported '
                     'in addition to N50, L50, etc. Default: 90.',
     },
-    name='Evaluate quality of the assembled contigs.',
+    name='Evaluate quality of the assembled contigs using metaQUAST.',
     description='This method uses metaQUAST to assess the quality of '
                 'assembled metagenomes.',
     citations=[citations['Mikheenko2016'],
