@@ -6,15 +6,17 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.per_sample_sequences import (SequencesWithQuality,
                                            PairedEndSequencesWithQuality)
 from q2_types.sample_data import SampleData
-from q2_types_genomics.per_sample_data import Contigs, MultiBowtie2Index, MAGs
-from qiime2.core.type import (Str, Int, List, Range, Bool, Float, Choices,
-                              SemanticType)
+from q2_types_genomics.per_sample_data import (Contigs, MultiBowtie2Index,
+                                               MAGs,
+                                               SingleBowtie2Index)
+from qiime2.core.type import (
+    Str, Int, List, Range, Bool, Float, Choices,
+)
 from qiime2.plugin import (Plugin, Citations)
 
 import q2_assembly
@@ -219,17 +221,6 @@ plugin.visualizers.register_function(
                citations['Mikheenko2018']]
 )
 
-########################################
-SimpleBowtie2Index = SemanticType(
-    'SimpleBowtie2Index', variant_of=SampleData.field['type'])
-
-plugin.register_semantic_types(SimpleBowtie2Index)
-
-plugin.register_semantic_type_to_format(
-    SampleData[SimpleBowtie2Index],
-    artifact_format=Bowtie2IndexDirFmt
-)
-########################################
 bowtie2_indexing_params = {
     'large_index': Bool,
     'debug': Bool,
@@ -268,7 +259,7 @@ plugin.methods.register_function(
     function=q2_assembly.bowtie2.index_contigs,
     inputs={'contigs': SampleData[Contigs]},
     parameters=bowtie2_indexing_params,
-    outputs=[('index', SampleData[SimpleBowtie2Index])],
+    outputs=[('index', SampleData[SingleBowtie2Index])],
     input_descriptions={'contigs': 'Contigs to be indexed.'},
     parameter_descriptions=bowtie2_indexing_param_descriptions,
     output_descriptions={
