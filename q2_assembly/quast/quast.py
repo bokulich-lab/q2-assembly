@@ -169,8 +169,7 @@ def evaluate_contigs(
         threads: int = None,
         k_mer_stats: bool = False,
         k_mer_size: int = None,
-        contig_thresholds: List[int] = None,
-        x_for_Nx: int = None
+        contig_thresholds: List[int] = None
 ):
 
     kwargs = {k: v for k, v in locals().items() if

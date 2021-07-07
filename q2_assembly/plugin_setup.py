@@ -191,8 +191,7 @@ plugin.visualizers.register_function(
         'threads': Int % Range(1, None),
         'k_mer_stats': Bool,
         'k_mer_size': Int % Range(1, None),
-        'contig_thresholds': List[Int % Range(0, None)],
-        'x_for_Nx': Int % Range(0, 100),
+        'contig_thresholds': List[Int % Range(0, None)]
     },
     input_descriptions={
         'contigs': 'Assembled contigs to be analyzed.',
@@ -207,9 +206,7 @@ plugin.visualizers.register_function(
                        'memory and time consumption on large genomes.',
         'k_mer_size': 'Size of k used in k-mer-stats. Default: 101.',
         'contig_thresholds': 'List of contig length thresholds. '
-                             'Default: 0,1000,5000,10000,25000,50000.',
-        'x_for_Nx': 'Value of "x" for Nx, Lx, etc. metrics reported '
-                    'in addition to N50, L50, etc. Default: 90.',
+                             'Default: 0,1000,5000,10000,25000,50000.'
     },
     name='Evaluate quality of the assembled contigs using metaQUAST.',
     description='This method uses metaQUAST to assess the quality of '
