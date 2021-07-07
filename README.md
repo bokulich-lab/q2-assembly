@@ -7,10 +7,11 @@ QIIME 2 plugin for (meta)genome assembly.
 Before _q2-assembly_ is available from conda, follow the installation steps described below.
 
 ```shell
-conda create -yn q2-shotgun-env \
+conda create -yn q2-shotgun \
   -c https://packages.qiime2.org/qiime2/2021.8/staged -c bioconda \
   -c conda-forge -c default \
-  q2cli q2-types q2templates "megahit==1.2.9" beautifulsoup4 "spades==3.15.2" "bowtie2==2.4.4"
+  q2cli q2-types q2templates "megahit==1.2.9" beautifulsoup4 "spades==3.15.2" \
+  "bowtie2==2.4.4" insilicoseq "biopython<=1.78"
 conda activate q2-shotgun-env
 ```
 

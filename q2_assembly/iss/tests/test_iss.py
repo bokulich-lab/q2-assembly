@@ -37,12 +37,13 @@ class TestISS(TestPluginBase):
         super().setUp()
         self.fake_common_args = ['--presets', 'meta-fake', '--k-min', '39']
         self.test_params_dict = {
-            'ncbi': ['bacteria', 'archaea'], 'n_genomes_ncbi': [3, 2],
-            'abundance': 'halfnormal', 'debug': True
+            'n_genomes': 10, 'ncbi': ['bacteria', 'archaea'],
+            'n_genomes_ncbi': [3, 2], 'abundance': 'halfnormal', 'debug': True
         }
         self.test_params_list = [
-            '--ncbi', 'bacteria', 'archaea', '--n_genomes_ncbi', '3', '2',
-            '--abundance', 'halfnormal', '--model', 'HiSeq', '--debug',
+            '--n_genomes', '10', '--ncbi', 'bacteria', 'archaea',
+            '--n_genomes_ncbi', '3', '2', '--abundance', 'halfnormal',
+            '--model', 'HiSeq', '--debug'
         ]
 
     def generate_exp_calls(self, samples, dest):
@@ -131,9 +132,8 @@ class TestISS(TestPluginBase):
     @patch('shutil.move')
     @patch('q2_assembly.iss._generate_reads')
     @patch('tempfile.TemporaryDirectory')
-    def test_generate_reads_x(self, p1, p2, p3):
+    def test_generate_reads_action(self, p1, p2, p3):
         test_temp_dir = MockTempDir()
-        # os.mkdir(test_temp_dir.name)
         p1.return_value = test_temp_dir
         for x, y in [
             ('reads', '*.gz'), ('genomes', '*.fasta'), ('abundances', '*.txt')

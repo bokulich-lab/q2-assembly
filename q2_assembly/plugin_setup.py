@@ -298,9 +298,10 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
     function=q2_assembly.iss.generate_reads,
-    inputs={},
+    inputs={'genomes': FeatureData[Sequence]},
     parameters={
         'sample_names': List[Str],
+        'n_genomes': Int % Range(1, None),
         'ncbi': List[Str % Choices(['bacteria', 'viruses', 'archaea'])],
         'n_genomes_ncbi': List[Int % Range(1, None)],
         'abundance': Str % Choices(
@@ -318,11 +319,19 @@ plugin.methods.register_function(
         'seed': Int % Range(1, None)
     },
     outputs=[('reads', SampleData[PairedEndSequencesWithQuality]),
-             ('genomes', FeatureData[Sequence]),
+             ('template_genomes', FeatureData[Sequence]),
              ('abundances', FeatureTable[Frequency])],
-    input_descriptions={},
+    input_descriptions={
+        'genomes': 'Input genome(s) from which the reads will '
+                   'originate. If the genomes are not provided, '
+                   'they will be fetched from NCBI based on the '
+                   '"ncbi" and "n-genomes-ncbi" parameters.'
+    },
     parameter_descriptions={
         'sample_names': 'List of sample names that should be generated. ',
+        'n_genomes': 'How many genomes will be used for the simulation. '
+                     'Only required when genome sequences are provided. '
+                     'Default: 10.',
         'ncbi': 'Download input genomes from NCBI. Can be bacteria, viruses, '
                 'archaea or a combination of the three.',
         'n_genomes_ncbi': 'How many genomes will be downloaded from NCBI. '
@@ -343,10 +352,11 @@ plugin.methods.register_function(
     },
     output_descriptions={
         'reads': 'Simulated paired-end reads.',
-        'genomes': 'Genome sequences from which the reads were generated.',
-        'abundances': 'Abundances of genomes from which reads were generated. '
-                      'If "coverage" parameter was set, this table becomes '
-                      'coverage distribution per sample.'
+        'template_genomes': 'Genome sequences from which the reads '
+                            'were generated.',
+        'abundances': 'Abundances of genomes from which thereads were '
+                      'generated. If "coverage" parameter was set, this table '
+                      'becomes coverage distribution per sample.'
     },
     name='Simulate NGS reads using InSilicoSeq.',
     description='This method uses InSilicoSeq to generate reads simulated '

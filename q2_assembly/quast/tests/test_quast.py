@@ -68,8 +68,8 @@ class TestQuast(TestPluginBase):
 
     def test_process_quast_arg_threads_none(self):
         obs = _process_quast_arg('threads', None)
-        exp = ('--threads', '1')
-        self.assertTupleEqual(obs, exp)
+        exp = ['--threads', '1']
+        self.assertListEqual(obs, exp)
 
     @patch('subprocess.run')
     def test_evaluate_contigs_minimal(self, p):

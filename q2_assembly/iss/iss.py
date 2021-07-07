@@ -17,7 +17,7 @@ from typing import List
 import biom
 import pandas as pd
 import skbio
-from q2_types.feature_data import DNAFASTAFormat
+from q2_types.feature_data import DNAFASTAFormat, DNAIterator
 from q2_types.per_sample_sequences import \
     (CasavaOneEightSingleLanePerSampleDirFmt)
 
@@ -93,7 +93,9 @@ def _abundances_to_biom(abundance_fps):
 
 # TODO: allow to input custom genomes and sample from those
 def generate_reads(
+        genomes: DNAFASTAFormat = None,
         sample_names: List[str] = None,
+        n_genomes: int = 10,
         ncbi: List[str] = None,
         n_genomes_ncbi: List[int] = None,
         abundance: str = None,
@@ -107,19 +109,35 @@ def generate_reads(
         seed: int = None
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, DNAFASTAFormat, biom.Table):
 
-    if n_genomes_ncbi and ncbi and (len(n_genomes_ncbi) != len(ncbi)):
+    _locals = locals().copy()
+    available_genomes = 0
+    if genomes:
+        if n_genomes_ncbi or ncbi:
+            print('Template genome sequences were provided - "n-genomes-ncbi" '
+                  'and "ncbi" parameters will be ignored.')
+            _locals['n_genomes_ncbi'], _locals['ncbi'] = None, None
+        for _ in genomes.view(DNAIterator):
+            available_genomes += 1
+    elif n_genomes_ncbi and ncbi and (len(n_genomes_ncbi) != len(ncbi)):
         raise Exception('Genome counts (--n_genomes_ncbi) need to correspond'
                         'to the kingdoms names (--ncbi). You provided '
                         f'{len(ncbi)} kingdom(s) but {len(n_genomes_ncbi)} '
                         f'corresponding genome counts were found. Please '
                         f'correct your input.')
 
+    if genomes and (n_genomes >= available_genomes):
+        print(f'The number of available genomes ({available_genomes}) is '
+              f'smaller than the requested number of genomes per sample '
+              f'({n_genomes}). The number of requested genomes will be '
+              f'reduced to {available_genomes - 1}.')
+        _locals['n_genomes'] = available_genomes - 1
+
     if len(set(sample_names)) < len(sample_names):
         dupl = set([str(x) for x in sample_names if sample_names.count(x) > 1])
         raise Exception('Sample names need to be unique. Found duplicated '
                         f'names: {", ".join(sorted(dupl))}')
 
-    kwargs = {k: v for k, v in locals().items() if k not in ['sample_names']}
+    kwargs = {k: v for k, v in _locals.items() if k not in ['sample_names']}
     args = _process_common_input_params(
         processing_func=_process_iss_arg, params=kwargs
     )
@@ -135,11 +153,15 @@ def generate_reads(
         for f in glob.glob(os.path.join(tmp, '*.fastq.gz')):
             shutil.move(f, str(result_reads))
 
-        # move original genomes into DNAFASTAFmt
+        # move original genomes into DNAFASTAFmt if found
+        # otherwise return empty file
+        genome_ids = []
         with result_genomes.open() as fout:
             for f in sorted(glob.glob(os.path.join(tmp, '*.fasta'))):
                 for seq in skbio.read(f, format='fasta'):
-                    seq.write(fout)
+                    if seq.metadata['id'] not in genome_ids:
+                        genome_ids.append(seq.metadata['id'])
+                        seq.write(fout)
 
         # convert abundances to a biom table
         abund_suffix = 'coverage' if coverage else 'abundance'
