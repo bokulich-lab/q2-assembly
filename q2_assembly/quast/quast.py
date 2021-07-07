@@ -164,7 +164,7 @@ def evaluate_contigs(
         reads: Union[SingleLanePerSamplePairedEndFastqDirFmt,
                      SingleLanePerSampleSingleEndFastqDirFmt] = None,
         min_contig: int = None,
-        threads: int = None,
+        threads: int = 1,
         k_mer_stats: bool = False,
         k_mer_size: int = None,
         contig_thresholds: List[int] = None

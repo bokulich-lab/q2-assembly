@@ -12,7 +12,7 @@ conda create -yn q2-shotgun \
   -c conda-forge -c default \
   q2cli q2-types q2templates "megahit==1.2.9" beautifulsoup4 "spades==3.15.2" \
   "bowtie2==2.4.4" insilicoseq "biopython<=1.78"
-conda activate q2-shotgun-env
+conda activate q2-shotgun
 ```
 
 Some actions require updated qiime2 which you should install from the fork below before 
