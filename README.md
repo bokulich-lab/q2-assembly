@@ -10,7 +10,7 @@ Before _q2-assembly_ is available from conda, follow the installation steps desc
 conda create -yn q2-shotgun-env \
   -c https://packages.qiime2.org/qiime2/2021.8/staged -c bioconda \
   -c conda-forge -c default \
-  q2cli q2-types q2templates megahit beautifulsoup4 spades
+  q2cli q2-types q2templates "megahit==1.2.9" beautifulsoup4 "spades==3.15.2" "bowtie2==2.4.4"
 conda activate q2-shotgun-env
 ```
 

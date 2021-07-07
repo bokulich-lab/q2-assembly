@@ -23,14 +23,10 @@ from q2_types.per_sample_sequences import \
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
 from .._utils import (run_command, _remove_html_element, _modify_links,
-                      _construct_param, _process_common_input_params)
+                      _construct_param, _process_common_input_params,
+                      _get_sample_from_path)
 
 TEMPLATES = pkg_resources.resource_filename('q2_assembly', 'assets')
-
-
-def _get_sample_from_path(fp):
-    """Extracts sample name from a contig's file path."""
-    return os.path.basename(fp).split('_', maxsplit=1)[0]
 
 
 def _process_quast_arg(arg_key, arg_val):

@@ -105,3 +105,8 @@ def _modify_links(fp: str):
 
     with open(fp, 'w') as r:
         r.write(str(soup))
+
+
+def _get_sample_from_path(fp):
+    """Extracts sample name from a contig's file path."""
+    return os.path.basename(fp).split('_', maxsplit=1)[0]

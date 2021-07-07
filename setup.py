@@ -28,9 +28,11 @@ setup(
         'q2_assembly': [
             'citations.bib', 'assets/quast/*'
         ],
-        'q2_assembly.tests': [
-            'data/*', 'data/reads/paired-end/*', 'data/reads/single-end/*'
-        ]
+        'q2_assembly.tests.data': [
+            '*', 'reads/paired-end/*', 'reads/single-end/*'
+        ],
+        'q2_assembly.bowtie2.tests.data': [
+            '*', 'contigs/*', 'mags/sample1/*', 'mags/sample2']
     },
     zip_safe=False,
 )
