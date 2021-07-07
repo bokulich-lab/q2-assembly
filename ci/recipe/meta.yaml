@@ -23,6 +23,8 @@ requirements:
     - beautifulsoup4
     # TODO: add quast here once it works on python 3.8
     - bowtie2 ==2.4.4
+    - insilicoseq
+    - biopython <=1.78
     - qiime2 {{ release }}.*
     - q2-types-genomics {{ release }}.*
 

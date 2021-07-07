@@ -22,7 +22,12 @@ from .._utils import (_construct_param, _process_common_input_params,
 
 
 def fake_processing_func(key, val):
-    return [_construct_param(key), str(val)]
+    if not val:
+        return
+    elif isinstance(val, bool):
+        return [_construct_param(key)]
+    else:
+        return [_construct_param(key), str(val)]
 
 
 class TestUtils(TestPluginBase):

@@ -43,19 +43,21 @@ def _process_quast_arg(arg_key, arg_val):
         arg_val: Argument value.
 
     Returns:
-        (converted_arg, arg_value): Tuple containing a prepared command line
+        [converted_arg, arg_value]: List containing a prepared command line
             parameter and its value.
     """
-    if arg_key == 'threads' and (not arg_val or arg_val > 1):
+    if isinstance(arg_val, bool) and arg_val:
+        return [_construct_param(arg_key)]
+    elif arg_key == 'threads' and (not arg_val or arg_val > 1):
         # TODO: this needs to be fixed (to allow multiprocessing)
         print('Multiprocessing is currently not supported. Resetting '
               'number of threads to 1.')
-        arg_value = '1'
+        return [_construct_param(arg_key), '1']
     elif not isinstance(arg_val, list):
-        arg_value = str(arg_val)
+        return [_construct_param(arg_key), str(arg_val)]
     else:
         arg_value = ','.join(str(x) for x in arg_val)
-    return _construct_param(arg_key), arg_value
+        return [_construct_param(arg_key), arg_value]
 
 
 def _evaluate_contigs(
@@ -162,7 +164,7 @@ def evaluate_contigs(
         reads: Union[SingleLanePerSamplePairedEndFastqDirFmt,
                      SingleLanePerSampleSingleEndFastqDirFmt] = None,
         min_contig: int = None,
-        threads: int = None,
+        threads: int = 1,
         k_mer_stats: bool = False,
         k_mer_size: int = None,
         contig_thresholds: List[int] = None
