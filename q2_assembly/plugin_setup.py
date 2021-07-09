@@ -14,6 +14,7 @@ from q2_types.sample_data import SampleData
 from q2_types_genomics.per_sample_data import (Contigs, MultiBowtie2Index,
                                                MAGs,
                                                SingleBowtie2Index)
+from q2_types_genomics.per_sample_data._type import AlignmentMap
 from qiime2.core.type import (
     Str, Int, List, Range, Bool, Float, Choices,
 )
@@ -353,4 +354,27 @@ plugin.methods.register_function(
     description='This method uses InSilicoSeq to generate reads simulated '
                 'from given genomes for an indicated number of samples.',
     citations=[citations['Gourle2019']]
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.bowtie2.map_reads_to_contigs,
+    inputs={
+        'indexed_contigs': SampleData[SingleBowtie2Index],
+        'reads': SampleData[PairedEndSequencesWithQuality |
+                            SequencesWithQuality]
+    },
+    parameters={},
+    outputs=[('alignment_map', SampleData[AlignmentMap])],
+    input_descriptions={
+        'indexed_contigs': 'placeholder',
+        'reads': 'placeholder'
+    },
+    parameter_descriptions={},
+    output_descriptions={
+        'alignment_map': 'plaaceholder'
+    },
+    name='Index MAGs using Bowtie2.',
+    description='This method uses Bowtie2 to map provided reads to '
+                'respective contigs.',
+    citations=[citations['Langmead2012']]
 )

@@ -8,16 +8,24 @@
 
 import glob
 import os
+import shutil
 import subprocess
+import tempfile
 from copy import deepcopy
+from typing import Union
 
+import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types_genomics.per_sample_data import (ContigSequencesDirFmt,
-                                               MultiBowtie2IndexDirFmt,
-                                               MultiMAGSequencesDirFmt)
+from q2_types.per_sample_sequences import \
+    (SingleLanePerSamplePairedEndFastqDirFmt,
+     SingleLanePerSampleSingleEndFastqDirFmt)
+from q2_types_genomics.per_sample_data import (
+    ContigSequencesDirFmt, MultiBowtie2IndexDirFmt, MultiMAGSequencesDirFmt,
+    BAMDirFmt
+)
 
 from .._utils import (run_command, _construct_param,
-                      _process_common_input_params)
+                      _process_common_input_params, run_commands_with_pipe)
 
 
 def _process_bowtie2_arg(arg_key, arg_val):
@@ -155,5 +163,82 @@ def index_mags(
 
     mag_fps = sorted(glob.glob(os.path.join(str(mags), '*', '*.fa*')))
     _index_seqs(mag_fps, str(result), common_args, 'mags')
+
+    return result
+
+
+def _map_sample_reads(
+        common_args, paired, sample_name, sample_inputs, result_fp):
+    base_cmd = ['bowtie2']
+    base_cmd.extend(common_args)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        bam_result = os.path.join(tmp, 'alignment.bam')
+        cmd = deepcopy(base_cmd)
+        cmd.extend([
+            '-x', sample_inputs['index'],
+            '--met-file', os.path.join(tmp, 'stats.tsv')
+        ])
+
+        if paired:
+            cmd.extend(['-1', sample_inputs['fwd'],
+                        '-2', sample_inputs['rev']])
+        else:
+            cmd.extend(['-U', sample_inputs['fwd']])
+
+        try:
+            run_commands_with_pipe(
+                cmd1=cmd,
+                cmd2=['samtools', 'view', '-bS', '-o', bam_result],
+                verbose=True)
+        except subprocess.CalledProcessError as e:
+            raise Exception('An error was encountered while running Bowtie2, '
+                            f'(return code {e.returncode}), please inspect '
+                            'stdout and stderr to learn more.')
+
+        shutil.move(os.path.join(tmp, 'alignment.bam'),
+                    os.path.join(
+                        str(result_fp), f'{sample_name}_alignment.bam'))
+        # this needs to change
+        shutil.move(os.path.join(tmp, 'stats.tsv'),
+                    os.path.join(str(result_fp), f'{sample_name}_stats.tsv'))
+
+
+def _gather_sample_data(indexed_contigs, reads_manifest, paired):
+    full_set = {}
+    for samp in list(reads_manifest.index):
+        full_set[samp] = {
+            'fwd': reads_manifest.loc[samp, 'forward'],
+            'rev': reads_manifest.loc[samp, 'reverse'] if paired else None
+        }
+    for samp in full_set.keys():
+        indpath = os.path.join(str(indexed_contigs), samp)
+        if os.path.exists(indpath):
+            full_set[samp]['index'] = os.path.join(indpath, 'index')
+        else:
+            raise Exception(f'Sample {samp} is missing in the provided'
+                            f'reads. Please check your input.')
+    return full_set
+
+
+def map_reads_to_contigs(
+        indexed_contigs: Bowtie2IndexDirFmt,
+        reads: Union[SingleLanePerSamplePairedEndFastqDirFmt,
+                     SingleLanePerSampleSingleEndFastqDirFmt]
+) -> BAMDirFmt:
+    kwargs = {k: v for k, v in locals().items()
+              if k not in ['indexed_contigs', 'reads']}
+    common_args = _process_common_input_params(
+        processing_func=_process_bowtie2_arg, params=kwargs
+    )
+
+    paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
+    manifest = reads.manifest.view(pd.DataFrame)
+
+    full_sample_set = _gather_sample_data(indexed_contigs, manifest, paired)
+
+    result = BAMDirFmt()
+    for samp, props in full_sample_set.items():
+        _map_sample_reads(common_args, paired, samp, props, str(result))
 
     return result
