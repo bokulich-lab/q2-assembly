@@ -16,7 +16,7 @@ from q2_types_genomics.per_sample_data import (ContigSequencesDirFmt,
                                                MultiBowtie2IndexDirFmt)
 from q2_assembly._utils import (run_command,
                                 _process_common_input_params)
-from q2_assembly.bowtie2.utils import (_process_bowtie2_arg,
+from q2_assembly.bowtie2.utils import (_process_bowtie2build_arg,
                                        _get_subdir_from_path)
 
 
@@ -75,7 +75,7 @@ def index_contigs(
 ) -> Bowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ['contigs']}
     common_args = _process_common_input_params(
-        processing_func=_process_bowtie2_arg, params=kwargs
+        processing_func=_process_bowtie2build_arg, params=kwargs
     )
     result = Bowtie2IndexDirFmt()
 
@@ -104,7 +104,7 @@ def index_mags(
 ) -> MultiBowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ['mags']}
     common_args = _process_common_input_params(
-        processing_func=_process_bowtie2_arg, params=kwargs
+        processing_func=_process_bowtie2build_arg, params=kwargs
     )
 
     result = MultiBowtie2IndexDirFmt()

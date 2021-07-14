@@ -11,7 +11,7 @@ import os
 from q2_assembly._utils import _construct_param
 
 
-def _process_bowtie2_arg(arg_key, arg_val):
+def _process_bowtie2build_arg(arg_key, arg_val):
     """Creates a list with argument and its value.
 
     Argument names will be converted to command line parameters by
@@ -27,6 +27,70 @@ def _process_bowtie2_arg(arg_key, arg_val):
             parameter and its value.
     """
     if isinstance(arg_val, bool) and arg_val:
+        return [_construct_param(arg_key)]
+    elif not isinstance(arg_val, list):
+        return [_construct_param(arg_key), str(arg_val)]
+    else:
+        raise NotImplementedError(
+            f'Parsing arguments of type "{type(arg_val)}" is not supported.')
+
+
+def _construct_function_param_value(arg_key, arg_val):
+    param_split = [x.strip() for x in arg_val.split(',')]
+    if len(param_split) != 3:
+        raise Exception('Invalid number of elements in function definition '
+                        f'of "{arg_key}"')
+    elif param_split[0] not in 'CLSG':
+        raise Exception(f'Invalid function type in "{arg_key}": '
+                        f'{param_split[0]} was given but only "CLSG" '
+                        f'are allowed.')
+    return ",".join(param_split)
+
+
+def _construct_double_list_param_value(arg_key, arg_val):
+    param_split = [x.strip() for x in arg_val.split(',')]
+    if len(param_split) != 2:
+        raise Exception(f'Invalid number of elements for "{arg_key}"')
+    try:
+        return ",".join([str(int(x)) for x in param_split])
+    except ValueError:
+        raise Exception(f'Both values of "{arg_key}" parameter should be '
+                        f'integers. Provided values were: {arg_val}.')
+
+
+def _process_bowtie2_arg(arg_key, arg_val):
+    """Creates a list with argument and its value.
+
+    Argument names will be converted to command line parameters by
+    appending a '--' prefix and replacing all '_' with '-',
+    e.g.: 'some_parameter' -> '--some-parameter'.
+
+    Args:
+        arg_key (str): Argument name.
+        arg_val: Argument value.
+
+    Returns:
+        [converted_arg, arg_value]: List containing a prepared command line
+            parameter and its value.
+    """
+    if arg_key in 'drnk' and arg_val:
+        arg_key = arg_key if arg_key == 'k' else arg_key.capitalize()
+        return [f'-{arg_key}', str(arg_val)]
+    elif arg_key == 'len':
+        return ['-L', str(arg_val)]
+    elif arg_key == 'a':
+        return ['-a']
+    elif arg_key in ['mp', 'rdg', 'rfg']:
+        return [_construct_param(arg_key),
+                _construct_double_list_param_value(arg_key, arg_val)]
+    elif arg_key == 'i':
+        return['-i', _construct_function_param_value(arg_key, arg_val)]
+    elif arg_key in ['n_ceil', 'score_min']:
+        return [_construct_param(arg_key),
+                _construct_function_param_value(arg_key, arg_val)]
+    elif arg_key == 'valid_mate_orientations':
+        return [_construct_param(arg_val)]
+    elif isinstance(arg_val, bool) and arg_val:
         return [_construct_param(arg_key)]
     elif not isinstance(arg_val, list):
         return [_construct_param(arg_key), str(arg_val)]

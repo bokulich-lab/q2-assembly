@@ -10,7 +10,7 @@ import unittest
 
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.bowtie2.utils import (_process_bowtie2_arg,
+from q2_assembly.bowtie2.utils import (_process_bowtie2build_arg,
                                        _get_subdir_from_path)
 
 
@@ -37,17 +37,17 @@ class TestBowtie2Utils(TestPluginBase):
             _ = _get_subdir_from_path('/path/to/dir/mag1.fa', 'unicorn')
 
     def test_process_bowtie2_arg_simple1(self):
-        obs = _process_bowtie2_arg('not_k_list', 123)
+        obs = _process_bowtie2build_arg('not_k_list', 123)
         exp = ['--not-k-list', '123']
         self.assertListEqual(obs, exp)
 
     def test_process_bowtie2_arg_simple2(self):
         with self.assertRaisesRegex(
                 Exception, r'.*type "\<class \'list\'\>" is not supported\.'):
-            _process_bowtie2_arg('k_list', [1, 2, 3])
+            _process_bowtie2build_arg('k_list', [1, 2, 3])
 
     def test_process_bowtie2_arg_bool(self):
-        obs = _process_bowtie2_arg('k_bool', True)
+        obs = _process_bowtie2build_arg('k_bool', True)
         exp = ['--k-bool']
         self.assertListEqual(obs, exp)
 
