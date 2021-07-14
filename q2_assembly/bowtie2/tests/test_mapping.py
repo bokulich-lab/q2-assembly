@@ -6,14 +6,18 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .bowtie2 import indexing, mapping
-from .iss import iss
-from .megahit import megahit
-from .quast import quast
-from .spades import spades
+import unittest
 
-from ._version import get_versions
-__version__ = get_versions()['version']
-del get_versions
+from qiime2.plugin.testing import TestPluginBase
 
-__all__ = ['indexing', 'mapping', 'iss', 'megahit', 'quast', 'spades']
+
+class TestBowtie2Mapping(TestPluginBase):
+    package = 'q2_assembly.bowtie2.tests'
+
+    def setUp(self):
+        super().setUp()
+        self.test_params_list = ['--large-index', '--bmax', '11']
+
+
+if __name__ == '__main__':
+    unittest.main()

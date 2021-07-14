@@ -257,7 +257,7 @@ bowtie2_indexing_param_descriptions = {
 }
 
 plugin.methods.register_function(
-    function=q2_assembly.bowtie2.index_contigs,
+    function=q2_assembly.indexing.index_contigs,
     inputs={'contigs': SampleData[Contigs]},
     parameters=bowtie2_indexing_params,
     outputs=[('index', SampleData[SingleBowtie2Index])],
@@ -273,7 +273,7 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_assembly.bowtie2.index_mags,
+    function=q2_assembly.indexing.index_mags,
     inputs={'mags': SampleData[MAGs]},
     parameters=bowtie2_indexing_params,
     outputs=[('index', SampleData[MultiBowtie2Index])],
@@ -357,7 +357,7 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_assembly.bowtie2.map_reads_to_contigs,
+    function=q2_assembly.mapping.map_reads_to_contigs,
     inputs={
         'indexed_contigs': SampleData[SingleBowtie2Index],
         'reads': SampleData[PairedEndSequencesWithQuality |
