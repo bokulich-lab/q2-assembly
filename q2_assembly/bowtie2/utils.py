@@ -39,7 +39,7 @@ def _construct_function_param_value(arg_key, arg_val):
     param_split = [x.strip() for x in arg_val.split(',')]
     if len(param_split) != 3:
         raise Exception('Invalid number of elements in function definition '
-                        f'of "{arg_key}"')
+                        f'of "{arg_key}".')
     elif param_split[0] not in 'CLSG':
         raise Exception(f'Invalid function type in "{arg_key}": '
                         f'{param_split[0]} was given but only "CLSG" '
@@ -50,7 +50,7 @@ def _construct_function_param_value(arg_key, arg_val):
 def _construct_double_list_param_value(arg_key, arg_val):
     param_split = [x.strip() for x in arg_val.split(',')]
     if len(param_split) != 2:
-        raise Exception(f'Invalid number of elements for "{arg_key}"')
+        raise Exception(f'Invalid number of elements for "{arg_key}".')
     try:
         return ",".join([str(int(x)) for x in param_split])
     except ValueError:
@@ -78,8 +78,6 @@ def _process_bowtie2_arg(arg_key, arg_val):
         return [f'-{arg_key}', str(arg_val)]
     elif arg_key == 'len':
         return ['-L', str(arg_val)]
-    elif arg_key == 'a':
-        return ['-a']
     elif arg_key in ['mp', 'rdg', 'rfg']:
         return [_construct_param(arg_key),
                 _construct_double_list_param_value(arg_key, arg_val)]
@@ -91,9 +89,7 @@ def _process_bowtie2_arg(arg_key, arg_val):
     elif arg_key == 'valid_mate_orientations':
         return [_construct_param(arg_val)]
     elif isinstance(arg_val, bool) and arg_val:
-        return [_construct_param(arg_key)]
-    elif not isinstance(arg_val, list):
-        return [_construct_param(arg_key), str(arg_val)]
+        return ['-a'] if arg_key == 'a' else [_construct_param(arg_key)]
     else:
         raise NotImplementedError(
             f'Parsing arguments of type "{type(arg_val)}" is not supported.')
