@@ -15,9 +15,10 @@ from typing import Union
 
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types.per_sample_sequences import \
-    (SingleLanePerSamplePairedEndFastqDirFmt,
-     SingleLanePerSampleSingleEndFastqDirFmt)
+from q2_types.per_sample_sequences import (
+    SingleLanePerSamplePairedEndFastqDirFmt,
+    SingleLanePerSampleSingleEndFastqDirFmt
+)
 from q2_types_genomics.per_sample_data import (
     BAMDirFmt
 )
@@ -74,8 +75,8 @@ def _gather_sample_data(indexed_contigs, reads_manifest, paired):
         if os.path.exists(indpath):
             full_set[samp]['index'] = os.path.join(indpath, 'index')
         else:
-            raise Exception(f'Sample {samp} is missing in the provided'
-                            f'reads. Please check your input.')
+            raise Exception(f'Index files missing for sample {samp}. '
+                            f'Please check your input.')
     return full_set
 
 

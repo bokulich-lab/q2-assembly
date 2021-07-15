@@ -90,6 +90,8 @@ def _process_bowtie2_arg(arg_key, arg_val):
         return [_construct_param(arg_val)]
     elif isinstance(arg_val, bool) and arg_val:
         return ['-a'] if arg_key == 'a' else [_construct_param(arg_key)]
+    elif not isinstance(arg_val, list):
+        return [_construct_param(arg_key), str(arg_val)]
     else:
         raise NotImplementedError(
             f'Parsing arguments of type "{type(arg_val)}" is not supported.')
