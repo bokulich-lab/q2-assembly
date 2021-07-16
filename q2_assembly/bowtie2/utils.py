@@ -12,7 +12,8 @@ from q2_assembly._utils import _construct_param
 
 
 def _process_bowtie2build_arg(arg_key, arg_val):
-    """Creates a list with argument and its value.
+    """Creates a list with argument and its value to be consumed by
+        bowtie2-build script.
 
     Argument names will be converted to command line parameters by
     appending a '--' prefix and replacing all '_' with '-',
@@ -35,7 +36,20 @@ def _process_bowtie2build_arg(arg_key, arg_val):
             f'Parsing arguments of type "{type(arg_val)}" is not supported.')
 
 
-def _construct_function_param_value(arg_key, arg_val):
+def _construct_function_param_value(arg_key: str, arg_val: str):
+    """Validates and constructs the 'function' parameters
+        consumed by bowtie2.
+
+    Args:
+        arg_key (str): Argument name.
+        arg_val (str): Argument value. Should be a comma-separated list of
+            exactly 3 elements where first element indicates function
+            type and the other two stand for function parameters,
+            e.g.: "L,1,-0.5".
+
+    Returns:
+        validated_function (str): Validated function to be passed to bowtie2.
+    """
     param_split = [x.strip() for x in arg_val.split(',')]
     if len(param_split) != 3:
         raise Exception('Invalid number of elements in function definition '
@@ -48,6 +62,16 @@ def _construct_function_param_value(arg_key, arg_val):
 
 
 def _construct_double_list_param_value(arg_key, arg_val):
+    """Validates and constructs the two-integer parameters passed to bowtie2.
+
+    Args:
+        arg_key (str): Argument name.
+        arg_val (str): Argument value. Should be a comma-separated list of
+            exactly 2 elements both elements are integers, e.g.: "10,20".
+
+    Returns:
+        validated_function (str): Validated string to be passed to bowtie2.
+    """
     param_split = [x.strip() for x in arg_val.split(',')]
     if len(param_split) != 2:
         raise Exception(f'Invalid number of elements for "{arg_key}".')
@@ -59,11 +83,7 @@ def _construct_double_list_param_value(arg_key, arg_val):
 
 
 def _process_bowtie2_arg(arg_key, arg_val):
-    """Creates a list with argument and its value.
-
-    Argument names will be converted to command line parameters by
-    appending a '--' prefix and replacing all '_' with '-',
-    e.g.: 'some_parameter' -> '--some-parameter'.
+    """Creates a list with argument and its value to be consumed by bowtie2.
 
     Args:
         arg_key (str): Argument name.

@@ -21,16 +21,15 @@ EXTERNAL_CMD_WARNING = "Running external command line application(s). " \
 def run_command(cmd, verbose=True):
     if verbose:
         print(EXTERNAL_CMD_WARNING)
-    if verbose:
         print("\nCommand:", end=' ')
         print(" ".join(cmd), end='\n\n')
     subprocess.run(cmd, check=True)
 
 
 def run_commands_with_pipe(cmd1, cmd2, verbose=True):
+    """Runs two consecutive commands using a pipe"""
     if verbose:
         print(EXTERNAL_CMD_WARNING)
-    if verbose:
         print("\nCommand:", end=' ')
         print(f'{" ".join(cmd1)} | {" ".join(cmd2)}', end='\n\n')
     out1 = subprocess.run(cmd1, check=True, capture_output=True)
