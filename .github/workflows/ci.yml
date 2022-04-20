@@ -46,6 +46,5 @@ jobs:
       with:
         package-name: q2-assembly
         additional-tests: pytest --pyargs q2_assembly
-        # TODO: update this to `release` when tagging release
-        build-target: staged
+        build-target: dev
         library-token: ${{ secrets.LIBRARY_TOKEN }}
