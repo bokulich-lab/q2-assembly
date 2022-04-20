@@ -1,0 +1,10 @@
+beautifulsoup4
+biopython<=1.78
+bowtie2==2.4.4
+insilicoseq
+megahit==1.2.9
+q2-types
+q2cli
+q2templates
+samtools
+spades==3.15.2
