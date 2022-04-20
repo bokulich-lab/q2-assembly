@@ -15,7 +15,7 @@ test-cov: all
 	py.test --cov=q2_assembly
 
 install: all
-	pip install git+https://github.com/ablab/quast.git@bc4af762a7f53176d66bd5e6c5b7d28376d28e11
+	pip install git+https://github.com/ablab/quast.git@de7e1f4891a3487f3c0df6ae27cbfba38734d686
 	$(PYTHON) setup.py install
 
 dev: all
