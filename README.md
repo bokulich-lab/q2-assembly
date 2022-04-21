@@ -1,5 +1,6 @@
 # q2-assembly
 ![CI](https://github.com/bokulich-lab/q2-assembly/actions/workflows/ci.yml/badge.svg)
+[![codecov](https://codecov.io/gh/bokulich-lab/q2-assembly/branch/main/graph/badge.svg?token=THMBOFUZR0)](https://codecov.io/gh/bokulich-lab/q2-assembly)
 
 QIIME 2 plugin for (meta)genome assembly.
 
