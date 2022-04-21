@@ -29,8 +29,30 @@ jobs:
         pip install -q flake8
         flake8
 
-  build-and-test:
+  # this is temporary to run the tests
+  test:
     needs: lint
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash -l {0}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: conda-incubator/setup-miniconda@v2
+      with:
+        activate-environment: q2-shotgun-test
+        environment-file: temp-env.yml
+        channels: conda-forge,bioconda,https://packages.qiime2.org/qiime2/2022.4/tested,defaults
+        auto-activate-base: false
+    - name: Run tests
+      run: |
+        conda install -c https://packages.qiime2.org/qiime2/2022.4/tested -c conda-forge -c bioconda -c defaults -y --file requirements.txt
+        make dev
+        qiime dev refresh-cache
+        make test
+
+  build-and-test:
+    needs: test
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -46,6 +68,5 @@ jobs:
       with:
         package-name: q2-assembly
         additional-tests: pytest --pyargs q2_assembly
-        # TODO: update this to `release` when tagging release
-        build-target: staged
+        build-target: dev
         library-token: ${{ secrets.LIBRARY_TOKEN }}
