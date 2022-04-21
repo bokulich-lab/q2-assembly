@@ -44,9 +44,9 @@ jobs:
         environment-file: temp-env.yml
         channels: conda-forge,bioconda,https://packages.qiime2.org/qiime2/2022.4/tested,defaults
         auto-activate-base: false
-    - name: run tests
+    - name: Run tests
       run: |
-        conda install -c conda-forge -c bioconda -c defaults -y --file requirements.txt
+        conda install -c https://packages.qiime2.org/qiime2/2022.4/tested -c conda-forge -c bioconda -c defaults -y --file requirements.txt
         make dev
         qiime dev refresh-cache
         make test
