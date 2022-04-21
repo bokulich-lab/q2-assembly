@@ -31,7 +31,7 @@ setup(
         'q2_assembly.tests': [
             'data/*', 'data/reads/paired-end/*', 'data/reads/single-end/*',
             'data/html-files/*', 'data/html-files/fake-reports/*/*',
-            'data/contigs/*'
+            'data/html-files/fake-reports/*', 'data/contigs/*'
         ],
         'q2_assembly.bowtie2.tests': [
             'data/*', 'data/contigs/*', 'data/mags/sample1/*',
