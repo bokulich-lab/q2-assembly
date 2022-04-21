@@ -18,16 +18,18 @@ requirements:
     - setuptools
 
   run:
-    - megahit ==1.2.9
-    - spades ==3.15.2
-    - beautifulsoup4
     # TODO: add quast here once it works on python 3.8
+    - beautifulsoup4
+    - biopython <=1.78
     - bowtie2 ==2.4.4
     - samtools
     - insilicoseq
-    - biopython <=1.78
+    - megahit ==1.2.9
     - qiime2 {{ release }}.*
     - q2-types-genomics {{ release }}.*
+    - q2templates {{ release }}.*
+    - samtools
+    - spades ==3.15.2
 
 test:
   imports:
