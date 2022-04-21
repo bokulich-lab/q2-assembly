@@ -52,6 +52,10 @@ jobs:
         make dev
         qiime dev refresh-cache
         make test
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        fail_ci_if_error: true
 
   build-and-test:
     needs: test
