@@ -36,7 +36,8 @@ setup(
         'q2_assembly.bowtie2.tests': [
             'data/*', 'data/contigs/*', 'data/mags/sample1/*',
             'data/mags/sample2/*'
-        ]
+        ],
+        'q2_assembly.iss.tests': ['data/*', 'data/*/*']
     },
     zip_safe=False,
 )
