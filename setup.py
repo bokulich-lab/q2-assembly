@@ -35,7 +35,7 @@ setup(
         ],
         'q2_assembly.bowtie2.tests': [
             'data/*', 'data/contigs/*', 'data/mags/sample1/*',
-            'data/mags/sample2'
+            'data/mags/sample2/*'
         ]
     },
     zip_safe=False,

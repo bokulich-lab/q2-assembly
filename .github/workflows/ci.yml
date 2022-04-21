@@ -29,13 +29,9 @@ jobs:
         pip install -q flake8
         flake8
 
-  # this is temporary to run the tests
-  test:
+  coverage:
     needs: lint
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     defaults:
       run:
         shell: bash -l {0}
