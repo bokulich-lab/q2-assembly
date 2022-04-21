@@ -23,7 +23,6 @@ q2-types-genomics and q2-assembly itself:
 ```shell
 pip install \
   git+https://github.com/ablab/quast.git@de7e1f4891a3487f3c0df6ae27cbfba38734d686 \
-  git+https://github.com/bokulich-lab/q2-types-genomics.git \
   git+https://github.com/bokulich-lab/q2-assembly.git
 ```
 
