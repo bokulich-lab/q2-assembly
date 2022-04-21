@@ -46,12 +46,12 @@ jobs:
         activate-environment: q2-shotgun-test
         mamba-version: "*"
         channels: conda-forge
-    - name: Run tests
+    - name: Run tests with coverage
       run: |
         mamba install -c https://packages.qiime2.org/qiime2/2022.4/tested -c conda-forge -c bioconda -c defaults -y --file requirements.txt
         make dev
         qiime dev refresh-cache
-        make test
+        make test-cov
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v2
       with:
