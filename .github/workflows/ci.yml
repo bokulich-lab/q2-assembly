@@ -45,7 +45,7 @@ jobs:
       with:
         activate-environment: q2-shotgun-test
         mamba-version: "*"
-        auto-activate-base: false
+        channels: conda-forge
     - name: Run tests
       run: |
         mamba install -c https://packages.qiime2.org/qiime2/2022.4/tested -c conda-forge -c bioconda -c defaults -y --file requirements.txt
