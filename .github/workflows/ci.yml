@@ -54,7 +54,7 @@ jobs:
         fail_ci_if_error: true
 
   build-and-test:
-    needs: test
+    needs: coverage
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
