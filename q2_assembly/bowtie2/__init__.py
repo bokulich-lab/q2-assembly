@@ -6,6 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .bowtie2 import index_contigs, index_mags
+from .indexing import index_contigs, index_mags
 
 __all__ = ['index_contigs', 'index_mags']

@@ -11,18 +11,29 @@ from typing import List
 
 from bs4 import BeautifulSoup as BS
 
+EXTERNAL_CMD_WARNING = "Running external command line application(s). " \
+                       "This may print messages to stdout and/or stderr.\n" \
+                       "The command(s) being run are below. These commands " \
+                       "cannot be manually re-run as they will depend on " \
+                       "temporary files that no longer exist."
+
 
 def run_command(cmd, verbose=True):
     if verbose:
-        print("Running external command line application(s). This may print "
-              "messages to stdout and/or stderr.")
-        print("The command(s) being run are below. These commands cannot "
-              "be manually re-run as they will depend on temporary files that "
-              "no longer exist.")
-    if verbose:
+        print(EXTERNAL_CMD_WARNING)
         print("\nCommand:", end=' ')
         print(" ".join(cmd), end='\n\n')
     subprocess.run(cmd, check=True)
+
+
+def run_commands_with_pipe(cmd1, cmd2, verbose=True):
+    """Runs two consecutive commands using a pipe"""
+    if verbose:
+        print(EXTERNAL_CMD_WARNING)
+        print("\nCommand:", end=' ')
+        print(f'{" ".join(cmd1)} | {" ".join(cmd2)}', end='\n\n')
+    out1 = subprocess.run(cmd1, check=True, capture_output=True)
+    subprocess.run(cmd2, input=out1.stdout, check=True)
 
 
 def _construct_param(arg_name):

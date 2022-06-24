@@ -34,8 +34,8 @@ setup(
             'data/html-files/fake-reports/*', 'data/contigs/*'
         ],
         'q2_assembly.bowtie2.tests': [
-            'data/*', 'data/contigs/*', 'data/mags/sample1/*',
-            'data/mags/sample2/*'
+            'data/*', 'data/contigs/*', 'data/indices/*/*/*', 'data/mags/*/*',
+            'data/maps/*/*', 'data/reads/*/*'
         ],
         'q2_assembly.iss.tests': ['data/*', 'data/*/*']
     },
