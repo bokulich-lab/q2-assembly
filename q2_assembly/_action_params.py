@@ -223,14 +223,10 @@ bowtie2_mapping_params = {
     'trim_to': Str,
     'phred33': Bool,
     'phred64': Bool,
-    'very_fast': Bool,
-    'fast': Bool,
-    'sensitive': Bool,
-    'very_sensitive': Bool,
-    'very_fast_local': Bool,
-    'fast_local': Bool,
-    'sensitive_local': Bool,
-    'very_sensitive_local': Bool,
+    'mode': Str % Choices(['local', 'global']),
+    'sensitivity': Str % Choices([
+        'very-fast', 'fast', 'sensitive', 'very-sensitive'
+    ]),
     'n': Int % Range(0, 1, inclusive_end=True),
     'len': Int % Range(1, None),
     'i': Str,
@@ -290,24 +286,9 @@ bowtie2_mapping_param_descriptions = {
                'is used by the very latest Illumina pipelines.',
     'phred64': 'Input qualities are ASCII chars equal to the Phred quality '
                'plus 64. This is also called the "Phred+64" encoding.',
-    'very_fast': 'Preset option in --end-to-end mode. '
-                 'Same as: -D 5 -R 1 -N 0 -L 22 -i S,0,2.50',
-    'fast': 'Preset option in --end-to-end mode. '
-            'Same as: -D 10 -R 2 -N 0 -L 22 -i S,0,2.50',
-    'sensitive': 'Preset option in --end-to-end mode. '
-                 'Same as: -D 15 -R 2 -N 0 -L 22 -i S,1,1.15 '
-                 '(default in --end-to-end mode)',
-    'very_sensitive': 'Preset option in --end-to-end mode. '
-                      'Same as: -D 20 -R 3 -N 0 -L 20 -i S,1,0.50',
-    'very_fast_local': 'Preset option in --local mode. '
-                       'Same as: -D 5 -R 1 -N 0 -L 25 -i S,1,2.00',
-    'fast_local': 'Preset option in --local mode. '
-                  'Same as: -D 10 -R 2 -N 0 -L 22 -i S,1,1.75',
-    'sensitive_local': 'Preset option in --local mode. '
-                       'Same as: -D 15 -R 2 -N 0 -L 20 -i S,1,0.75 '
-                       '(default in --local mode)',
-    'very_sensitive_local': 'Preset option in --local mode. '
-                            'Same as: -D 20 -R 3 -N 0 -L 20 -i S,1,0.50',
+    'mode': 'Bowtie2 alignment settings. See bowtie2 manual for more details.',
+    'sensitivity': 'Bowtie2 alignment sensitivity. See bowtie2 manual for '
+                   'details.',
     'n': 'Sets the number of mismatches to allowed in a seed alignment '
          'during multiseed alignment. Setting this higher makes alignment '
          'slower (often much slower) but increases sensitivity. Default: 0.',

@@ -34,8 +34,8 @@ class TestBowtie2Mapping(TestPluginBase):
 
     def setUp(self):
         super().setUp()
-        self.test_params_list = ['--trim5', '10', '--very-fast', '-N', '1',
-                                 '-i', 'L,1,0.5', '--ff']
+        self.test_params_list = ['--trim5', '10', '-N', '1', '-i', 'L,1,0.5',
+                                 '--ff', '--very-fast']
         self.test_index = Bowtie2IndexDirFmt()
         self.test_result = BAMDirFmt()
         self.test_samples = {
@@ -179,8 +179,9 @@ class TestBowtie2Mapping(TestPluginBase):
         p1.return_value = self.test_samples
 
         map_reads_to_contigs(
-            indexed_contigs=index, reads=reads, trim5=10, very_fast=True,
-            n=1, i='L,1,0.5', valid_mate_orientations='ff'
+            indexed_contigs=index, reads=reads, trim5=10,
+            n=1, i='L,1,0.5', valid_mate_orientations='ff',
+            mode='global', sensitivity='very-fast'
         )
 
         p1.assert_called_with(index, ANY, True)
@@ -208,8 +209,9 @@ class TestBowtie2Mapping(TestPluginBase):
         p1.return_value = self.test_samples
 
         map_reads_to_contigs(
-            indexed_contigs=index, reads=reads, trim5=10, very_fast=True,
-            n=1, i='L,1,0.5', valid_mate_orientations='ff'
+            indexed_contigs=index, reads=reads, trim5=10,
+            n=1, i='L,1,0.5', valid_mate_orientations='ff',
+            mode='global', sensitivity='very-fast'
         )
 
         p1.assert_called_with(index, ANY, False)
@@ -219,6 +221,37 @@ class TestBowtie2Mapping(TestPluginBase):
         )
 
         exp_calls = []
+        for s, s_props in self.test_samples.items():
+            exp_calls.append(
+                call(self.test_params_list, False, s, s_props, ANY))
+        p2.assert_has_calls(exp_calls)
+
+    @patch('q2_assembly.bowtie2.mapping._map_sample_reads')
+    @patch('q2_assembly.bowtie2.mapping._gather_sample_data')
+    def test_map_reads_to_contigs_single_local(self, p1, p2):
+        input_reads = self.get_data_path('reads/single-end')
+        input_index = self.get_data_path('indices/from_contigs')
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode='r')
+        index = Bowtie2IndexDirFmt(input_index, mode='r')
+
+        for s in self.test_samples:
+            self.test_samples[s]['rev'] = None
+        p1.return_value = self.test_samples
+
+        map_reads_to_contigs(
+            indexed_contigs=index, reads=reads, trim5=10,
+            n=1, i='L,1,0.5', valid_mate_orientations='ff',
+            mode='local', sensitivity='very-fast'
+        )
+
+        p1.assert_called_with(index, ANY, False)
+        pd.testing.assert_frame_equal(
+            p1.call_args[0][1],
+            reads.manifest.view(pd.DataFrame)
+        )
+
+        exp_calls = []
+        self.test_params_list[-1] += '-local'
         for s, s_props in self.test_samples.items():
             exp_calls.append(
                 call(self.test_params_list, False, s, s_props, ANY))

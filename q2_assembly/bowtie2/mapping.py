@@ -111,17 +111,14 @@ def map_reads_to_contigs(
                      SingleLanePerSampleSingleEndFastqDirFmt],
         skip: int = None, qupto: int = None, trim5: int = None,
         trim3: int = None, trim_to: str = None, phred33: bool = False,
-        phred64: bool = False, very_fast: bool = False, fast: bool = False,
-        sensitive: bool = False, very_sensitive: bool = False,
-        very_fast_local: bool = False, fast_local: bool = False,
-        sensitive_local: bool = False, very_sensitive_local: bool = False,
-        n: int = None, len: int = None, i: str = None, n_ceil: str = None,
-        dpad: int = None, gbar: int = None, ignore_quals: bool = False,
-        nofw: bool = False, norc: bool = False, no_1mm_upfront: bool = False,
-        end_to_end: bool = False, local: bool = False, ma: int = None,
-        mp: str = None, np: int = None, rdg: str = None, rfg: str = None,
-        k: int = None, a: bool = False, d: int = None, r: int = None,
-        minins: int = None, maxins: int = None,
+        phred64: bool = False, mode: str = 'local',
+        sensitivity: str = 'sensitive', n: int = None, len: int = None,
+        i: str = None, n_ceil: str = None, dpad: int = None, gbar: int = None,
+        ignore_quals: bool = False, nofw: bool = False, norc: bool = False,
+        no_1mm_upfront: bool = False, end_to_end: bool = False,
+        local: bool = False, ma: int = None, mp: str = None, np: int = None,
+        rdg: str = None, rfg: str = None, k: int = None, a: bool = False,
+        d: int = None, r: int = None, minins: int = None, maxins: int = None,
         valid_mate_orientations: str = None, no_mixed: bool = False,
         no_discordant: bool = False, dovetail: bool = False,
         no_contain: bool = False, no_overlap: bool = False,
@@ -129,10 +126,14 @@ def map_reads_to_contigs(
         mm: bool = False, seed: int = None, non_deterministic: bool = False
 ) -> BAMDirFmt:
     kwargs = {k: v for k, v in locals().items()
-              if k not in ['indexed_contigs', 'reads']}
+              if k not in ['indexed_contigs', 'reads', 'sensitivity', 'mode']}
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2_arg, params=kwargs
     )
+    if mode == 'local':
+        common_args.append(f'--{sensitivity}-{mode}')
+    else:
+        common_args.append(f'--{sensitivity}')
 
     paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
     manifest = reads.manifest.view(pd.DataFrame)
