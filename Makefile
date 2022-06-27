@@ -19,7 +19,6 @@ install: all
 	$(PYTHON) setup.py install
 
 dev: all
-	pip install coverage
 	pip install -e .
 
 clean: distclean
