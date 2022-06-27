@@ -15,7 +15,6 @@ requirements:
   host:
     - python {{ python }}
     - setuptools
-
   run:
     - quast
     - beautifulsoup4
@@ -31,9 +30,14 @@ requirements:
     - spades ==3.15.2
 
 test:
+  requires:
+    - coverage
+    - pytest-cov
   imports:
     - q2_assembly
     - qiime2.plugins.assembly
+  commands:
+    - pytest --cov q2_assembly --pyargs q2_assembly
 
 about:
   home: https://github.com/bokulich-lab/q2-assembly
