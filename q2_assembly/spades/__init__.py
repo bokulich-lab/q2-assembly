@@ -8,4 +8,4 @@
 
 from .spades import assemble_spades
 
-__all__ = ['assemble_spades']
+__all__ = ["assemble_spades"]

@@ -19,7 +19,9 @@ install: all
 	$(PYTHON) setup.py install
 
 dev: all
+	pip install pre-commit
 	pip install -e .
+	pre-commit install
 
 clean: distclean
 

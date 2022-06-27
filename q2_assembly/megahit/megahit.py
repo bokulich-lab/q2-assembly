@@ -13,13 +13,13 @@ import tempfile
 from typing import List, Union
 
 import pandas as pd
-from q2_types.per_sample_sequences import \
-    (SingleLanePerSamplePairedEndFastqDirFmt,
-     SingleLanePerSampleSingleEndFastqDirFmt)
+from q2_types.per_sample_sequences import (
+    SingleLanePerSamplePairedEndFastqDirFmt,
+    SingleLanePerSampleSingleEndFastqDirFmt,
+)
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
-from .._utils import (run_command, _construct_param,
-                      _process_common_input_params)
+from .._utils import _construct_param, _process_common_input_params, run_command
 
 
 def _process_megahit_arg(arg_key, arg_val):
@@ -44,7 +44,7 @@ def _process_megahit_arg(arg_key, arg_val):
     elif not isinstance(arg_val, list):
         return [_construct_param(arg_key), str(arg_val)]
     else:
-        arg_value = ','.join(str(x) for x in arg_val)
+        arg_value = ",".join(str(x) for x in arg_val)
         return [_construct_param(arg_key), arg_value]
 
 
@@ -61,24 +61,28 @@ def _process_sample(sample, fwd, rev, common_args, out):
         out: output format
     """
     with tempfile.TemporaryDirectory() as tmp:
-        results_dir = os.path.join(tmp, 'results')
-        cmd = ['megahit']
+        results_dir = os.path.join(tmp, "results")
+        cmd = ["megahit"]
         if rev:
-            cmd.extend(['-1', fwd, '-2', rev])
+            cmd.extend(["-1", fwd, "-2", rev])
         else:
-            cmd.extend(['-r', fwd])
-        cmd.extend(['-o', results_dir])
+            cmd.extend(["-r", fwd])
+        cmd.extend(["-o", results_dir])
         cmd.extend(common_args)
 
         try:
             run_command(cmd, verbose=True)
         except subprocess.CalledProcessError as e:
-            raise Exception('An error was encountered while running MEGAHIT, '
-                            f'(return code {e.returncode}), please inspect '
-                            'stdout and stderr to learn more.')
+            raise Exception(
+                "An error was encountered while running MEGAHIT, "
+                f"(return code {e.returncode}), please inspect "
+                "stdout and stderr to learn more."
+            )
 
-        shutil.move(os.path.join(results_dir, 'final.contigs.fa'),
-                    os.path.join(str(out), f'{sample}_contigs.fa'))
+        shutil.move(
+            os.path.join(results_dir, "final.contigs.fa"),
+            os.path.join(str(out), f"{sample}_contigs.fa"),
+        )
 
 
 def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
@@ -102,40 +106,41 @@ def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
     result = ContigSequencesDirFmt()
 
     for samp in list(manifest.index):
-        fwd = manifest.loc[samp, 'forward']
-        rev = manifest.loc[samp, 'reverse'] if paired else None
+        fwd = manifest.loc[samp, "forward"]
+        rev = manifest.loc[samp, "reverse"] if paired else None
 
         _process_sample(samp, fwd, rev, common_args, result)
     return result
 
 
 def assemble_megahit(
-        seqs: Union[SingleLanePerSamplePairedEndFastqDirFmt,
-                    SingleLanePerSampleSingleEndFastqDirFmt],
-        presets: str = None,
-        min_count: int = None,
-        k_list: List[int] = None,
-        k_min: int = None,
-        k_max: int = None,
-        k_step: int = None,
-        no_mercy: bool = False,
-        bubble_level: int = None,
-        prune_level: int = None,
-        prune_depth: int = None,
-        disconnect_ratio: float = None,
-        low_local_ratio: float = None,
-        max_tip_len: int = None,
-        cleaning_rounds: int = None,
-        no_local: bool = False,
-        kmin_1pass: bool = False,
-        memory: float = None,
-        mem_flag: int = None,
-        num_cpu_threads: int = None,
-        no_hw_accel: bool = False,
-        min_contig_len: int = None
+    seqs: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ],
+    presets: str = None,
+    min_count: int = None,
+    k_list: List[int] = None,
+    k_min: int = None,
+    k_max: int = None,
+    k_step: int = None,
+    no_mercy: bool = False,
+    bubble_level: int = None,
+    prune_level: int = None,
+    prune_depth: int = None,
+    disconnect_ratio: float = None,
+    low_local_ratio: float = None,
+    max_tip_len: int = None,
+    cleaning_rounds: int = None,
+    no_local: bool = False,
+    kmin_1pass: bool = False,
+    memory: float = None,
+    mem_flag: int = None,
+    num_cpu_threads: int = None,
+    no_hw_accel: bool = False,
+    min_contig_len: int = None,
 ) -> ContigSequencesDirFmt:
 
-    kwargs = {k: v for k, v in locals().items() if k not in ['seqs']}
+    kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
     common_args = _process_common_input_params(
         processing_func=_process_megahit_arg, params=kwargs
     )
