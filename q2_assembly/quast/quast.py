@@ -17,16 +17,22 @@ from typing import List, Union
 import pandas as pd
 import pkg_resources
 import q2templates
-from q2_types.per_sample_sequences import \
-    (SingleLanePerSamplePairedEndFastqDirFmt,
-     SingleLanePerSampleSingleEndFastqDirFmt)
+from q2_types.per_sample_sequences import (
+    SingleLanePerSamplePairedEndFastqDirFmt,
+    SingleLanePerSampleSingleEndFastqDirFmt,
+)
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
-from .._utils import (run_command, _remove_html_element, _modify_links,
-                      _construct_param, _process_common_input_params,
-                      _get_sample_from_path)
+from .._utils import (
+    _construct_param,
+    _get_sample_from_path,
+    _modify_links,
+    _process_common_input_params,
+    _remove_html_element,
+    run_command,
+)
 
-TEMPLATES = pkg_resources.resource_filename('q2_assembly', 'assets')
+TEMPLATES = pkg_resources.resource_filename("q2_assembly", "assets")
 
 
 def _process_quast_arg(arg_key, arg_val):
@@ -48,21 +54,26 @@ def _process_quast_arg(arg_key, arg_val):
     """
     if isinstance(arg_val, bool) and arg_val:
         return [_construct_param(arg_key)]
-    elif arg_key == 'threads' and (not arg_val or arg_val > 1):
+    elif arg_key == "threads" and (not arg_val or arg_val > 1):
         # TODO: this needs to be fixed (to allow multiprocessing)
-        print('Multiprocessing is currently not supported. Resetting '
-              'number of threads to 1.')
-        return [_construct_param(arg_key), '1']
+        print(
+            "Multiprocessing is currently not supported. Resetting "
+            "number of threads to 1."
+        )
+        return [_construct_param(arg_key), "1"]
     elif not isinstance(arg_val, list):
         return [_construct_param(arg_key), str(arg_val)]
     else:
-        arg_value = ','.join(str(x) for x in arg_val)
+        arg_value = ",".join(str(x) for x in arg_val)
         return [_construct_param(arg_key), arg_value]
 
 
 def _evaluate_contigs(
-        results_dir: str, contigs: ContigSequencesDirFmt, reads: dict,
-        paired: bool, common_args: list
+    results_dir: str,
+    contigs: ContigSequencesDirFmt,
+    reads: dict,
+    paired: bool,
+    common_args: list,
 ) -> List[str]:
     """Runs the contig assembly QC using QUAST.
 
@@ -83,48 +94,46 @@ def _evaluate_contigs(
 
     # TODO: this will probably get replaced by "quast.py" once we
     #  want to extend the support beyond metagenomes
-    cmd = ['metaquast.py', '-o', results_dir]
+    cmd = ["metaquast.py", "-o", results_dir]
     cmd.extend(common_args)
     samples = []
 
-    for fp in sorted(glob.glob(os.path.join(str(contigs), '*_contigs.fa'))):
+    for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
         cmd.append(fp)
         samples.append(_get_sample_from_path(fp))
 
     if reads:
-        rev_count = sum(
-            [True if x['rev'] else False for _, x in reads.items()]
-        )
+        rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
         if (rev_count < len(samples) > rev_count) and paired:
             raise Exception(
-                f'Number of reverse reads ({rev_count}) does not match '
-                f'the number of provided contig files ({len(samples)}). '
-                f'Please check your input files.')
+                f"Number of reverse reads ({rev_count}) does not match "
+                f"the number of provided contig files ({len(samples)}). "
+                f"Please check your input files."
+            )
 
         for s in samples:
             try:
                 if paired:
                     cmd.extend(
-                        ['--pe1', reads[s].get('fwd'),
-                         '--pe2', reads[s].get('rev')]
+                        ["--pe1", reads[s].get("fwd"), "--pe2", reads[s].get("rev")]
                     )
                 else:
-                    cmd.extend(
-                        ['--single', reads[s].get('fwd')]
-                    )
+                    cmd.extend(["--single", reads[s].get("fwd")])
             except KeyError:
                 # TODO: improve this msg by adding name of the missing sample
                 raise Exception(
-                    'Some samples are missing from the reads file. '
-                    'Please check your input files.'
+                    "Some samples are missing from the reads file. "
+                    "Please check your input files."
                 )
 
     try:
         run_command(cmd, verbose=True)
     except subprocess.CalledProcessError as e:
-        raise Exception('An error was encountered while running '
-                        f'QUAST, (return code {e.returncode}), '
-                        'please inspect stdout and stderr to learn more.')
+        raise Exception(
+            "An error was encountered while running "
+            f"QUAST, (return code {e.returncode}), "
+            "please inspect stdout and stderr to learn more."
+        )
 
     return samples
 
@@ -143,35 +152,37 @@ def _fix_html_reports(results_dp: str):
 
     # remove link to icarus browser from report.html
     # (otherwise, the visualisation can get messed up once clicked)
-    report_fp = os.path.join(results_dp, 'report.html')
-    _remove_html_element(report_fp, 'p', elem_id='icarus')
+    report_fp = os.path.join(results_dp, "report.html")
+    _remove_html_element(report_fp, "p", elem_id="icarus")
 
     # remove "Main menu" button from contig browser
     # (otherwise, the visualisation can get messed up once clicked)
     contig_browser_fp = os.path.join(
-        results_dp, 'icarus_viewers', 'contig_size_viewer.html')
-    _remove_html_element(
-        contig_browser_fp, 'div', elem_id='to_main_menu_button')
+        results_dp, "icarus_viewers", "contig_size_viewer.html"
+    )
+    _remove_html_element(contig_browser_fp, "div", elem_id="to_main_menu_button")
 
     # make all the external links open in a new tab
     _modify_links(report_fp)
 
 
 def evaluate_contigs(
-        # TODO: expose more parameters
-        output_dir: str,
-        contigs: ContigSequencesDirFmt,
-        reads: Union[SingleLanePerSamplePairedEndFastqDirFmt,
-                     SingleLanePerSampleSingleEndFastqDirFmt] = None,
-        min_contig: int = None,
-        threads: int = 1,
-        k_mer_stats: bool = False,
-        k_mer_size: int = None,
-        contig_thresholds: List[int] = None
+    # TODO: expose more parameters
+    output_dir: str,
+    contigs: ContigSequencesDirFmt,
+    reads: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ] = None,
+    min_contig: int = None,
+    threads: int = 1,
+    k_mer_stats: bool = False,
+    k_mer_size: int = None,
+    contig_thresholds: List[int] = None,
 ):
 
-    kwargs = {k: v for k, v in locals().items() if
-              k not in ['output_dir', 'contigs', 'reads']}
+    kwargs = {
+        k: v for k, v in locals().items() if k not in ["output_dir", "contigs", "reads"]
+    }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
     )
@@ -183,40 +194,34 @@ def evaluate_contigs(
         manifest = reads.manifest.view(pd.DataFrame)
         for samp in list(manifest.index):
             reads_fps[samp] = {
-                'fwd': manifest.loc[samp, 'forward'],
-                'rev': manifest.loc[samp, 'reverse'] if paired else None
+                "fwd": manifest.loc[samp, "forward"],
+                "rev": manifest.loc[samp, "reverse"] if paired else None,
             }
 
     with tempfile.TemporaryDirectory() as tmp:
-        results_dir = os.path.join(tmp, 'results')
+        results_dir = os.path.join(tmp, "results")
 
         # run quast
         samples = _evaluate_contigs(
-            results_dir, contigs, reads_fps, paired, common_args)
+            results_dir, contigs, reads_fps, paired, common_args
+        )
 
         # fix/remove some URLs
         _fix_html_reports(results_dir)
 
-        copy_tree(os.path.join(TEMPLATES, 'quast'), output_dir)
-        copy_tree(results_dir, os.path.join(output_dir, 'quast_data'))
+        copy_tree(os.path.join(TEMPLATES, "quast"), output_dir)
+        copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
 
         context = {
-            'tabs': [
-                {
-                    'title': 'QC report',
-                    'url': 'index.html'
-                },
-                {
-                    'title': 'Contig browser',
-                    'url': 'q2_icarus.html'
-
-                },
+            "tabs": [
+                {"title": "QC report", "url": "index.html"},
+                {"title": "Contig browser", "url": "q2_icarus.html"},
             ],
-            'samples': json.dumps(samples)
+            "samples": json.dumps(samples),
         }
 
-        index = os.path.join(TEMPLATES, 'quast', 'index.html')
-        icarus = os.path.join(TEMPLATES, 'quast', 'q2_icarus.html')
+        index = os.path.join(TEMPLATES, "quast", "index.html")
+        icarus = os.path.join(TEMPLATES, "quast", "q2_icarus.html")
 
         templates = [index, icarus]
         q2templates.render(templates, output_dir, context=context)

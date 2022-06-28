@@ -11,18 +11,20 @@ from typing import List
 
 from bs4 import BeautifulSoup as BS
 
-EXTERNAL_CMD_WARNING = "Running external command line application(s). " \
-                       "This may print messages to stdout and/or stderr.\n" \
-                       "The command(s) being run are below. These commands " \
-                       "cannot be manually re-run as they will depend on " \
-                       "temporary files that no longer exist."
+EXTERNAL_CMD_WARNING = (
+    "Running external command line application(s). "
+    "This may print messages to stdout and/or stderr.\n"
+    "The command(s) being run are below. These commands "
+    "cannot be manually re-run as they will depend on "
+    "temporary files that no longer exist."
+)
 
 
 def run_command(cmd, verbose=True):
     if verbose:
         print(EXTERNAL_CMD_WARNING)
-        print("\nCommand:", end=' ')
-        print(" ".join(cmd), end='\n\n')
+        print("\nCommand:", end=" ")
+        print(" ".join(cmd), end="\n\n")
     subprocess.run(cmd, check=True)
 
 
@@ -30,8 +32,8 @@ def run_commands_with_pipe(cmd1, cmd2, verbose=True):
     """Runs two consecutive commands using a pipe"""
     if verbose:
         print(EXTERNAL_CMD_WARNING)
-        print("\nCommand:", end=' ')
-        print(f'{" ".join(cmd1)} | {" ".join(cmd2)}', end='\n\n')
+        print("\nCommand:", end=" ")
+        print(f'{" ".join(cmd1)} | {" ".join(cmd2)}', end="\n\n")
     out1 = subprocess.run(cmd1, check=True, capture_output=True)
     subprocess.run(cmd2, input=out1.stdout, check=True)
 
@@ -83,14 +85,14 @@ def _remove_html_element(fp: str, tag: str, elem_id: str):
          tag (str): Type of the tag to be removed.
          elem_id (str): ID of the element (tag) to be removed.
     """
-    with open(fp, 'r') as r:
-        soup = BS(r.read(), 'html.parser')
+    with open(fp, "r") as r:
+        soup = BS(r.read(), "html.parser")
         element = soup.find(tag, id=elem_id)
         if element:
             element.decompose()
     os.remove(fp)
 
-    with open(fp, 'w') as r:
+    with open(fp, "w") as r:
         r.write(str(soup))
 
 
@@ -105,17 +107,17 @@ def _modify_links(fp: str):
     Args:
          fp (str): Path to the original HTML file.
     """
-    with open(fp, 'r') as r:
-        soup = BS(r.read(), 'html.parser')
-        links = soup.find_all('a')
+    with open(fp, "r") as r:
+        soup = BS(r.read(), "html.parser")
+        links = soup.find_all("a")
         for line in links:
-            line['target'] = '_blank'
+            line["target"] = "_blank"
     os.remove(fp)
 
-    with open(fp, 'w') as r:
+    with open(fp, "w") as r:
         r.write(str(soup))
 
 
 def _get_sample_from_path(fp):
     """Extracts sample name from a contig's file path."""
-    return os.path.basename(fp).split('_', maxsplit=1)[0]
+    return os.path.basename(fp).split("_", maxsplit=1)[0]

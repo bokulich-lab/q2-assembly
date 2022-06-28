@@ -8,4 +8,4 @@
 
 from .megahit import assemble_megahit
 
-__all__ = ['assemble_megahit']
+__all__ = ["assemble_megahit"]

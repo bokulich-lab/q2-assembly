@@ -8,4 +8,4 @@
 
 from .quast import evaluate_contigs
 
-__all__ = ['evaluate_contigs']
+__all__ = ["evaluate_contigs"]

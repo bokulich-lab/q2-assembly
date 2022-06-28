@@ -8,4 +8,4 @@
 
 from .iss import generate_reads
 
-__all__ = ['generate_reads']
+__all__ = ["generate_reads"]

@@ -13,13 +13,13 @@ import tempfile
 from typing import List, Union
 
 import pandas as pd
-from q2_types.per_sample_sequences import \
-    (SingleLanePerSamplePairedEndFastqDirFmt,
-     SingleLanePerSampleSingleEndFastqDirFmt)
+from q2_types.per_sample_sequences import (
+    SingleLanePerSamplePairedEndFastqDirFmt,
+    SingleLanePerSampleSingleEndFastqDirFmt,
+)
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
-from .._utils import (run_command, _construct_param,
-                      _process_common_input_params)
+from .._utils import _construct_param, _process_common_input_params, run_command
 
 
 def _process_spades_arg(arg_key, arg_val):
@@ -43,10 +43,10 @@ def _process_spades_arg(arg_key, arg_val):
         return [_construct_param(arg_key)]
     elif not isinstance(arg_val, list):
         return [_construct_param(arg_key), str(arg_val)]
-    elif arg_key == 'k':
-        return ['-k', ','.join(str(x) for x in arg_val)]
+    elif arg_key == "k":
+        return ["-k", ",".join(str(x) for x in arg_val)]
     else:
-        arg_value = ','.join(str(x) for x in arg_val)
+        arg_value = ",".join(str(x) for x in arg_val)
         return [_construct_param(arg_key), arg_value]
 
 
@@ -63,24 +63,28 @@ def _process_sample(sample, fwd, rev, common_args, out):
         out: output format
     """
     with tempfile.TemporaryDirectory() as tmp:
-        results_dir = os.path.join(tmp, 'results')
-        cmd = ['spades.py']
+        results_dir = os.path.join(tmp, "results")
+        cmd = ["spades.py"]
         if rev:
-            cmd.extend(['-1', fwd, '-2', rev])
+            cmd.extend(["-1", fwd, "-2", rev])
         else:
-            cmd.extend(['-s', fwd])
-        cmd.extend(['-o', results_dir])
+            cmd.extend(["-s", fwd])
+        cmd.extend(["-o", results_dir])
         cmd.extend(common_args)
 
         try:
             run_command(cmd, verbose=True)
         except subprocess.CalledProcessError as e:
-            raise Exception('An error was encountered while running '
-                            f'SPAdes, (return code {e.returncode}), '
-                            'please inspect stdout and stderr to learn more.')
+            raise Exception(
+                "An error was encountered while running "
+                f"SPAdes, (return code {e.returncode}), "
+                "please inspect stdout and stderr to learn more."
+            )
 
-        shutil.move(os.path.join(results_dir, 'contigs.fasta'),
-                    os.path.join(str(out), f'{sample}_contigs.fa'))
+        shutil.move(
+            os.path.join(results_dir, "contigs.fasta"),
+            os.path.join(str(out), f"{sample}_contigs.fa"),
+        )
 
 
 def _assemble_spades(seqs, meta, common_args) -> ContigSequencesDirFmt:
@@ -103,43 +107,43 @@ def _assemble_spades(seqs, meta, common_args) -> ContigSequencesDirFmt:
     paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
     if not paired and meta:
         raise NotImplementedError(
-            'SPAdes v3.15.2 in "meta" mode supports only '
-            'paired-end reads.'
+            'SPAdes v3.15.2 in "meta" mode supports only ' "paired-end reads."
         )
     manifest = seqs.manifest.view(pd.DataFrame)
     result = ContigSequencesDirFmt()
 
     for samp in list(manifest.index):
-        fwd = manifest.loc[samp, 'forward']
-        rev = manifest.loc[samp, 'reverse'] if paired else None
+        fwd = manifest.loc[samp, "forward"]
+        rev = manifest.loc[samp, "reverse"] if paired else None
 
         _process_sample(samp, fwd, rev, common_args, result)
     return result
 
 
 def assemble_spades(
-        seqs: Union[SingleLanePerSamplePairedEndFastqDirFmt,
-                    SingleLanePerSampleSingleEndFastqDirFmt],
-        isolate: bool = False,
-        sc: bool = False,
-        meta: bool = False,
-        bio: bool = False,
-        corona: bool = False,
-        plasmid: bool = False,
-        metaviral: bool = False,
-        metaplasmid: bool = False,
-        only_assembler: bool = False,
-        careful: bool = False,
-        disable_rr: bool = False,
-        threads: int = None,
-        memory: int = None,
-        k: List[int] = None,
-        cov_cutoff: Union[float, str] = 'off',
-        phred_offset: int = None,
-        debug: bool = False
+    seqs: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ],
+    isolate: bool = False,
+    sc: bool = False,
+    meta: bool = False,
+    bio: bool = False,
+    corona: bool = False,
+    plasmid: bool = False,
+    metaviral: bool = False,
+    metaplasmid: bool = False,
+    only_assembler: bool = False,
+    careful: bool = False,
+    disable_rr: bool = False,
+    threads: int = None,
+    memory: int = None,
+    k: List[int] = None,
+    cov_cutoff: Union[float, str] = "off",
+    phred_offset: int = None,
+    debug: bool = False,
 ) -> ContigSequencesDirFmt:
 
-    kwargs = {k: v for k, v in locals().items() if k not in ['seqs']}
+    kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
     common_args = _process_common_input_params(
         processing_func=_process_spades_arg, params=kwargs
     )

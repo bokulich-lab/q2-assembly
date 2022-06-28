@@ -8,4 +8,4 @@
 
 from .indexing import index_contigs, index_mags
 
-__all__ = ['index_contigs', 'index_mags']
+__all__ = ["index_contigs", "index_mags"]
