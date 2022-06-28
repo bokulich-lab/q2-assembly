@@ -32,14 +32,6 @@ repos:
         files: ^(.+)(?<!\_version)\.py$
   - repo: local
     hooks:
-      - id: pytest
-        name: pytest
-        language: python
-        pass_filenames: false
-        entry: make test-cov
-        stages: [ push ]
-        additional_dependencies:
-          - coverage
       - id: q2lint
         name: q2lint
         language: python
