@@ -10,7 +10,7 @@ To install _q2-assembly_, follow the installation steps described below.
 
 ```shell
 mamba create -yn q2-shotgun \
-  -c https://packages.qiime2.org/qiime2/2022.4/tested \
+  -c https://packages.qiime2.org/qiime2/2022.8/tested \
   -c bioconda -c conda-forge -c default q2-assembly q2cli
 
 conda activate q2-shotgun
