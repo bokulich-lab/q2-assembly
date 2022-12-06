@@ -154,7 +154,7 @@ def map_reads_to_contigs(
     no_contain: bool = False,
     no_overlap: bool = False,
     offrate: int = None,
-    threads: int = None,
+    threads: int = 1,
     reorder: bool = False,
     mm: bool = False,
     seed: int = None,

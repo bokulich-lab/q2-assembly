@@ -45,6 +45,8 @@ class TestBowtie2Mapping(TestPluginBase):
             "-i",
             "L,1,0.5",
             "--ff",
+            "--threads",
+            "1",
             "--very-fast",
         ]
         self.test_index = Bowtie2IndexDirFmt()

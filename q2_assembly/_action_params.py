@@ -61,7 +61,7 @@ megahit_param_descriptions = {
               "fraction of the machine's total memory). Default: 0.9.",
     "mem_flag": "SdBG builder memory mode. 0: minimum; 1: moderate; "
     "others: use all memory specified by '-m/--memory'. Default: 1.",
-    "num_cpu_threads": "Number of CPU threads. Default: # of logical processors.",
+    "num_cpu_threads": "Number of CPU threads. Default: 1.",
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
     "min_contig_len": "Minimum length of contigs to output. Default: 200.",
 }
@@ -101,7 +101,7 @@ spades_param_descriptions = {
     "only_assembler": "Runs only assembling (without read error correction).",
     "careful": "Tries to reduce number of mismatches and short indels.",
     "disable_rr": "Disables repeat resolution stage of assembling.",
-    "threads": "Number of threads. Default: 16.",
+    "threads": "Number of threads. Default: 1.",
     "memory": "RAM limit for SPAdes in Gb (terminates if exceeded). Default: 250.",
     "k": "List of k-mer sizes (must be odd and less than 128). Default: 'auto'.",
     "cov_cutoff": "Coverage cutoff value (a positive float number, or 'auto', or "
@@ -123,7 +123,7 @@ quast_params = {
 # fmt: off
 quast_param_descriptions = {
     "min_contig": "Lower threshold for contig length. Default: 500.",
-    "threads": "Maximum number of parallel jobs. Default: 25% of CPUs. "
+    "threads": "Maximum number of parallel jobs. Default: 1. "
                "Currently disabled - only 1 CPU is supported.",
     "k_mer_stats": "Compute k-mer-based quality metrics (recommended for large "
                    "genomes). This may significantly increase memory and time "
@@ -169,7 +169,7 @@ iss_param_descriptions = {
     "mode": "Error model. If not specified, using kernel density estimation. "
             "Default: kde.",
     "gc_bias": "If set, may fail to sequence reads with abnormal GC content.",
-    "cpus": "Number of cpus to use. Default: 2.",
+    "cpus": "Number of cpus to use. Default: 1.",
     "debug": " Enable debug logging.",
     "seed": "Seed for all the random number generators.",
 }
@@ -205,7 +205,7 @@ bowtie2_indexing_param_descriptions = {
     "nodc": "Disable diff-cover (algorithm becomes quadratic).",
     "offrate": "SA is sampled every 2^<int> BWT chars. Default: 5.",
     "ftabchars": "# of chars consumed in initial lookup. Default: 10.",
-    "threads": "# of CPUs.",
+    "threads": "# of CPUs. Default: 1.",
     "seed": "Seed for random number generator.",
 }
 # fmt: on

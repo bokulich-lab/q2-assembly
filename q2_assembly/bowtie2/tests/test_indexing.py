@@ -24,7 +24,7 @@ class TestBowtie2Indexing(TestPluginBase):
 
     def setUp(self):
         super().setUp()
-        self.test_params_list = ["--large-index", "--bmax", "11"]
+        self.test_params_list = ["--large-index", "--bmax", "11", "--threads", "1"]
 
     @patch("subprocess.run")
     @patch("os.makedirs")
@@ -45,6 +45,8 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--threads",
+                        "1",
                         "/here/samp1_contigs.fa",
                         "/there/samp1/index",
                     ],
@@ -56,6 +58,8 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--threads",
+                        "1",
                         "/here/samp2_contigs.fa",
                         "/there/samp2/index",
                     ],
@@ -83,6 +87,8 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--threads",
+                        "1",
                         "/here/smp1/mag1.fa",
                         "/there/smp1/mag1/index",
                     ],
@@ -94,6 +100,8 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--threads",
+                        "1",
                         "/here/smp1/mag2.fa",
                         "/there/smp1/mag2/index",
                     ],

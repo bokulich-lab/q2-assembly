@@ -255,6 +255,8 @@ class TestMegahit(TestPluginBase):
             "--no-mercy",
             "--bubble-level",
             "1",
+            "--num-cpu-threads",
+            "1",
         ]
         p.assert_called_with(seqs=input, common_args=exp_args)
 
