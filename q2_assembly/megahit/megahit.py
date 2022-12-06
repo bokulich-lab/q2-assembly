@@ -135,7 +135,7 @@ def assemble_megahit(
     kmin_1pass: bool = False,
     memory: float = None,
     mem_flag: int = None,
-    num_cpu_threads: int = None,
+    num_cpu_threads: int = 1,
     no_hw_accel: bool = False,
     min_contig_len: int = None,
 ) -> ContigSequencesDirFmt:

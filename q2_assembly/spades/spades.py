@@ -135,7 +135,7 @@ def assemble_spades(
     only_assembler: bool = False,
     careful: bool = False,
     disable_rr: bool = False,
-    threads: int = None,
+    threads: int = 1,
     memory: int = None,
     k: List[int] = None,
     cov_cutoff: Union[float, str] = "off",

@@ -107,7 +107,7 @@ def generate_reads(
     mode: str = None,
     model: str = "HiSeq",
     gc_bias: bool = False,
-    cpus: int = None,
+    cpus: int = 1,
     debug: bool = False,
     seed: int = None,
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, DNAFASTAFormat, biom.Table):

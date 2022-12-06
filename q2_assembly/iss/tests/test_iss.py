@@ -60,6 +60,8 @@ class TestISS(TestPluginBase):
             "halfnormal",
             "--model",
             "HiSeq",
+            "--cpus",
+            "1",
             "--debug",
         ]
 

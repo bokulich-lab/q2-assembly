@@ -70,7 +70,7 @@ def index_contigs(
     nodc: bool = False,
     offrate: int = None,
     ftabchars: int = None,
-    threads: int = None,
+    threads: int = 1,
     seed: int = None,
 ) -> Bowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ["contigs"]}
@@ -99,7 +99,7 @@ def index_mags(
     nodc: bool = False,
     offrate: int = None,
     ftabchars: int = None,
-    threads: int = None,
+    threads: int = 1,
     seed: int = None,
 ) -> MultiBowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ["mags"]}
