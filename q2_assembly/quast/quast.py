@@ -9,6 +9,7 @@
 import glob
 import json
 import os
+import platform
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
@@ -54,10 +55,13 @@ def _process_quast_arg(arg_key, arg_val):
     """
     if isinstance(arg_val, bool) and arg_val:
         return [_construct_param(arg_key)]
-    elif arg_key == "threads" and (not arg_val or arg_val > 1):
-        # TODO: this needs to be fixed (to allow multiprocessing)
+    elif (
+        arg_key == "threads"
+        and (not arg_val or arg_val > 1)
+        and platform.system() == "Darwin"
+    ):
         print(
-            "Multiprocessing is currently not supported. Resetting "
+            "Multiprocessing is currently not supported on macOS. Resetting "
             "number of threads to 1."
         )
         return [_construct_param(arg_key), "1"]

@@ -52,9 +52,16 @@ class TestQuast(TestPluginBase):
         exp = ["--threads", "1"]
         self.assertListEqual(obs, exp)
 
-    def test_process_quast_arg_threads_too_many(self):
+    @patch("platform.system", return_value="Darwin")
+    def test_process_quast_arg_threads_many_Darwin(self, p1):
         obs = _process_quast_arg("threads", 6)
         exp = ["--threads", "1"]
+        self.assertListEqual(obs, exp)
+
+    @patch("platform.system", return_value="Linux")
+    def test_process_quast_arg_threads_many_Linux(self, p1):
+        obs = _process_quast_arg("threads", 6)
+        exp = ["--threads", "6"]
         self.assertListEqual(obs, exp)
 
     def test_process_quast_arg_threads_correct(self):
@@ -238,11 +245,12 @@ class TestQuast(TestPluginBase):
                 common_args=["-m", "10", "-t", "1"],
             )
 
+    @patch("platform.system", return_value="Linux")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
-    def test_evaluate_contigs_action_no_reads(self, p1, p2, p3, p4):
+    def test_evaluate_contigs_action_no_reads(self, p1, p2, p3, p4, p5):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
         p1.return_value = test_temp_dir
@@ -262,7 +270,7 @@ class TestQuast(TestPluginBase):
             contigs,
             {},
             False,
-            ["--min-contig", "150", "--threads", "1", "--contig-thresholds", "10,20"],
+            ["--min-contig", "150", "--threads", "5", "--contig-thresholds", "10,20"],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
 
