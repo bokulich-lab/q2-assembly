@@ -55,11 +55,7 @@ def _process_quast_arg(arg_key, arg_val):
     """
     if isinstance(arg_val, bool) and arg_val:
         return [_construct_param(arg_key)]
-    elif (
-        arg_key == "threads"
-        and (not arg_val or arg_val > 1)
-        and platform.system() == "Darwin"
-    ):
+    elif arg_key == "threads" and arg_val > 1 and platform.system() == "Darwin":
         print(
             "Multiprocessing is currently not supported on macOS. Resetting "
             "number of threads to 1."

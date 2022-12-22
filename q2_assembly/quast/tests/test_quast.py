@@ -47,11 +47,6 @@ class TestQuast(TestPluginBase):
         exp = ["--k-list", "1,2,3"]
         self.assertListEqual(obs, exp)
 
-    def test_process_quast_arg_threads_not_set(self):
-        obs = _process_quast_arg("threads", None)
-        exp = ["--threads", "1"]
-        self.assertListEqual(obs, exp)
-
     @patch("platform.system", return_value="Darwin")
     def test_process_quast_arg_threads_many_Darwin(self, p1):
         obs = _process_quast_arg("threads", 6)
