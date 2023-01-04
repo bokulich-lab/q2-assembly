@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -49,15 +49,19 @@ class TestQuast(TestPluginBase):
 
     @patch("platform.system", return_value="Darwin")
     def test_process_quast_arg_threads_many_Darwin(self, p1):
-        obs = _process_quast_arg("threads", 6)
-        exp = ["--threads", "1"]
-        self.assertListEqual(obs, exp)
+        with self.assertRaisesRegex(ValueError, "only supported on Linux"):
+            _process_quast_arg("threads", 6)
 
     @patch("platform.system", return_value="Linux")
     def test_process_quast_arg_threads_many_Linux(self, p1):
         obs = _process_quast_arg("threads", 6)
         exp = ["--threads", "6"]
         self.assertListEqual(obs, exp)
+
+    @patch("platform.system", return_value="")
+    def test_process_quast_arg_threads_many_unknownOS(self, p1):
+        with self.assertRaisesRegex(ValueError, "only supported on Linux"):
+            _process_quast_arg("threads", 6)
 
     def test_process_quast_arg_threads_correct(self):
         obs = _process_quast_arg("threads", 1)

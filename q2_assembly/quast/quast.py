@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -55,12 +55,8 @@ def _process_quast_arg(arg_key, arg_val):
     """
     if isinstance(arg_val, bool) and arg_val:
         return [_construct_param(arg_key)]
-    elif arg_key == "threads" and arg_val > 1 and platform.system() == "Darwin":
-        print(
-            "Multiprocessing is currently not supported on macOS. Resetting "
-            "number of threads to 1."
-        )
-        return [_construct_param(arg_key), "1"]
+    elif arg_key == "threads" and arg_val > 1 and platform.system() != "Linux":
+        raise ValueError("Multiprocessing is currently only supported on Linux.")
     elif not isinstance(arg_val, list):
         return [_construct_param(arg_key), str(arg_val)]
     else:
