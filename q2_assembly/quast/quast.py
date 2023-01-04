@@ -56,6 +56,8 @@ def _process_quast_arg(arg_key, arg_val):
     if isinstance(arg_val, bool) and arg_val:
         return [_construct_param(arg_key)]
     elif arg_key == "threads" and arg_val > 1 and platform.system() != "Linux":
+        # This is a limitation in quast that is documented in this issue:
+        # https://github.com/ablab/quast/issues/175
         raise ValueError("Multiprocessing is currently only supported on Linux.")
     elif not isinstance(arg_val, list):
         return [_construct_param(arg_key), str(arg_val)]
