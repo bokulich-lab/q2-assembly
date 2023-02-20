@@ -121,4 +121,3 @@ def _modify_links(fp: str):
 def _get_sample_from_path(fp):
     """Extracts sample name from a contig's file path."""
     return os.path.basename(fp.replace("_contigs.fa", ""))
-
