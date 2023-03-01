@@ -20,6 +20,7 @@ from q2_assembly.quast.quast import _fix_html_reports
 
 from .._utils import (
     _construct_param,
+    _get_sample_from_path,
     _modify_links,
     _process_common_input_params,
     _remove_html_element,
@@ -118,6 +119,11 @@ class TestUtils(TestPluginBase):
             f"{self._tmp}/icarus_viewers/contig_size_viewer.html",
             f"{self._tmp}/expected/contig_size_viewer.html",
         )
+
+    def test_get_sample_from_path(self):
+        obs = _get_sample_from_path("test/path/sample_1_contigs.fa")
+        exp = "sample_1"
+        self.assertEqual(obs, exp)
 
 
 if __name__ == "__main__":

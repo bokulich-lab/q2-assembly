@@ -27,6 +27,11 @@ class TestBowtie2Utils(TestPluginBase):
         exp = "sample1"
         self.assertEqual(obs, exp)
 
+    def test_get_subdir_from_path_contig_underscores(self):
+        obs = _get_subdir_from_path("/path/to/dir/sample_1_contigs.fa")
+        exp = "sample_1"
+        self.assertEqual(obs, exp)
+
     def test_get_subdir_from_path_mag(self):
         obs = _get_subdir_from_path("/path/to/dir/sample1/mag1.fa", "mags")
         exp = "sample1/mag1"
