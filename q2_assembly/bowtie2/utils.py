@@ -139,7 +139,7 @@ def _get_subdir_from_path(fp: str, input_type: str = "contigs"):
         subdir (str): Subdir to be created, based on the given input.
     """
     if input_type.lower() == "contigs":
-        return os.path.basename(fp.replace('_contigs.fa', ''))
+        return os.path.basename(fp.replace("_contigs.fa", ""))
     elif input_type.lower() == "mags":
         fpl = os.path.splitext(fp)
         return os.path.join(*fpl[0].split("/")[-2:])
