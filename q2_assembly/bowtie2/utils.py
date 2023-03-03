@@ -8,7 +8,7 @@
 
 import os
 
-from q2_assembly._utils import _construct_param
+from q2_assembly._utils import _construct_param, _get_sample_from_path
 
 
 def _process_bowtie2build_arg(arg_key, arg_val):
@@ -139,7 +139,8 @@ def _get_subdir_from_path(fp: str, input_type: str = "contigs"):
         subdir (str): Subdir to be created, based on the given input.
     """
     if input_type.lower() == "contigs":
-        return os.path.basename(fp.replace("_contigs.fa", ""))
+        return _get_sample_from_path(fp)
+        # return os.path.basename(fp.replace("_contigs.fa", ""))
     elif input_type.lower() == "mags":
         fpl = os.path.splitext(fp)
         return os.path.join(*fpl[0].split("/")[-2:])
