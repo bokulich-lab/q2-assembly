@@ -124,7 +124,7 @@ quast_params = {
 quast_param_descriptions = {
     "min_contig": "Lower threshold for contig length. Default: 500.",
     "threads": "Maximum number of parallel jobs. Default: 1. "
-               "Currently disabled - only 1 CPU is supported.",
+               "Currently supported on Linux only.",
     "k_mer_stats": "Compute k-mer-based quality metrics (recommended for large "
                    "genomes). This may significantly increase memory and time "
                    "consumption on large genomes.",
