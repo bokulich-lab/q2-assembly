@@ -18,6 +18,7 @@ from typing import List, Union
 import pandas as pd
 import pkg_resources
 import q2templates
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -71,6 +72,7 @@ def _evaluate_contigs(
     contigs: ContigSequencesDirFmt,
     reads: dict,
     paired: bool,
+    references: List[DNAFASTAFormat],
     common_args: list,
 ) -> List[str]:
     """Runs the contig assembly QC using QUAST.
@@ -102,6 +104,8 @@ def _evaluate_contigs(
 
     if reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
+        # TODO: this is a strange statement which most likely
+        #  doesn't do what it should - check and fix
         if (rev_count < len(samples) > rev_count) and paired:
             raise Exception(
                 f"Number of reverse reads ({rev_count}) does not match "
@@ -123,7 +127,9 @@ def _evaluate_contigs(
                     "Some samples are missing from the reads file. "
                     "Please check your input files."
                 )
-
+    if references:
+        for ref in references:
+            cmd.extend(["-r", str(ref)])
     try:
         run_command(cmd, verbose=True)
     except subprocess.CalledProcessError as e:
@@ -171,6 +177,7 @@ def evaluate_contigs(
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
+    references: DNAFASTAFormat = None,
     min_contig: int = None,
     threads: int = 1,
     k_mer_stats: bool = False,
@@ -179,7 +186,7 @@ def evaluate_contigs(
 ):
 
     kwargs = {
-        k: v for k, v in locals().items() if k not in ["output_dir", "contigs", "reads"]
+        k: v for k, v in locals().items() if k not in ["output_dir", "contigs", "reads", "references"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
@@ -201,7 +208,7 @@ def evaluate_contigs(
 
         # run quast
         samples = _evaluate_contigs(
-            results_dir, contigs, reads_fps, paired, common_args
+            results_dir, contigs, reads_fps, paired, references, common_args
         )
 
         # fix/remove some URLs
