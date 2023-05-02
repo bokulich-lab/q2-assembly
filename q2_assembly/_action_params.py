@@ -9,7 +9,7 @@
 from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
 
 megahit_params = {
-    "presets": Str,
+    "presets": Str % Choices(['meta', 'meta-sensitive', 'meta-large', 'disabled']),
     "min_count": Int % Range(1, None),
     "k_list": List[Int % Range(15, 255, inclusive_end=True)],
     "k_min": Int % Range(15, 255, inclusive_end=True),
@@ -21,7 +21,7 @@ megahit_params = {
     "prune_depth": Int % Range(1, None),
     "disconnect_ratio": Float % Range(0, 1, inclusive_end=True),
     "low_local_ratio": Float % Range(0, 1, inclusive_end=True),
-    "max_tip_len": Int % Range(1, None),
+    "max_tip_len": Int % Range(1, None) | Str % Choices(['auto']),
     "cleaning_rounds": Int % Range(1, None),
     "no_local": Bool,
     "kmin_1pass": Bool,
@@ -33,37 +33,34 @@ megahit_params = {
 }
 # fmt: off
 megahit_param_descriptions = {
-    "presets": "Override a group of parameters. Possible values: 'meta-sensitive', "
-               "'meta-large'.",
-    "min_count": "Minimum multiplicity for filtering (k_min+1)-mers. Default: 2",
-    "k_list": "List of kmer size - all must be odd with an increment <= 28. "
-              "Default: [21,29,39,59,79,99,119,141]",
-    "k_min": "Minimum kmer size (<= 255), must be odd number. "
-             "Default: 21. Overrides k_list.",
-    "k_max": "Maximum kmer size (<= 255), must be odd number. "
-             "Default: 141. Overrides k_list.",
+    "presets": "Override a group of parameters. See the megahit documentation "
+               "for details.",
+    "min_count": "Minimum multiplicity for filtering (k_min+1)-mers.",
+    "k_list": "List of kmer size - all must be odd with an increment <= 28.",
+    "k_min": "Minimum kmer size (<= 255), must be odd number. Overrides k_list.",
+    "k_max": "Maximum kmer size (<= 255), must be odd number. Overrides k_list.",
     "k_step": "Increment of kmer size of each iteration (<= 28), must be even number. "
-              "Default: 12. Overrides k_list.",
+              "Overrides k_list.",
     "no_mercy": "Do not add mercy kmers.",
-    "bubble_level": "Intensity of bubble merging, 0 to disable. Default: 2.",
-    "prune_level": "Strength of low depth pruning. Default: 2.",
-    "prune_depth": "Remove unitigs with avg kmer depth less than this value. "
-                   "Default: 2.",
+    "bubble_level": "Intensity of bubble merging, 0 to disable.",
+    "prune_level": "Strength of low depth pruning.",
+    "prune_depth": "Remove unitigs with avg kmer depth less than this value.",
     "disconnect_ratio": "Disconnect unitigs if its depth is less than this ratio times "
-                        "the total depth of itself and its siblings. Default: 0.1.",
+                        "the total depth of itself and its siblings.",
     "low_local_ratio": "Remove unitigs if its depth is less than this ratio times "
-                       "the average depth of the neighborhoods. Default: 0.2.",
-    "max_tip_len": "Remove tips less than this value.",
-    "cleaning_rounds": "Number of rounds for graph cleanning. Default: 5.",
+                       "the average depth of the neighborhoods.",
+    "max_tip_len": "Remove tips less than this value. 'auto' will trim tips shorter "
+                   "than 2*k for iteration of kmer_size=k",
+    "cleaning_rounds": "Number of rounds for graph cleanning.",
     "no_local": "Disable local assembly.",
     "kmin_1pass": "Use 1pass mode to build SdBG of k_min.",
     "memory": "Max memory in byte to be used in SdBG construction (if set between 0-1, "
-              "fraction of the machine's total memory). Default: 0.9.",
+              "fraction of the machine's total memory).",
     "mem_flag": "SdBG builder memory mode. 0: minimum; 1: moderate; "
-    "others: use all memory specified by '-m/--memory'. Default: 1.",
-    "num_cpu_threads": "Number of CPU threads. Default: 1.",
+    "others: use all memory specified by '-m/--memory'.",
+    "num_cpu_threads": "Number of CPU threads.",
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
-    "min_contig_len": "Minimum length of contigs to output. Default: 200.",
+    "min_contig_len": "Minimum length of contigs to output.",
 }
 # fmt: on
 spades_params = {
