@@ -77,10 +77,10 @@ spades_params = {
     "disable_rr": Bool,
     "threads": Int % Range(1, None),
     "memory": Int % Range(1, None),
-    "k": List[Int % Range(1, 128, inclusive_end=False)],
+    "k": List[Int % Range(1, 128, inclusive_end=False)] | Str % Choices(['auto']),
     "cov_cutoff": Float % Range(0, 1, inclusive_start=False)
     | Str % Choices(["auto", "off"]),
-    "phred_offset": Int,
+    "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
     "debug": Bool,
 }
 # fmt: off
@@ -98,13 +98,12 @@ spades_param_descriptions = {
     "only_assembler": "Runs only assembling (without read error correction).",
     "careful": "Tries to reduce number of mismatches and short indels.",
     "disable_rr": "Disables repeat resolution stage of assembling.",
-    "threads": "Number of threads. Default: 1.",
-    "memory": "RAM limit for SPAdes in Gb (terminates if exceeded). Default: 250.",
-    "k": "List of k-mer sizes (must be odd and less than 128). Default: 'auto'.",
+    "threads": "Number of threads.",
+    "memory": "RAM limit for SPAdes in Gb (terminates if exceeded).",
+    "k": "List of k-mer sizes (must be odd and less than 128).",
     "cov_cutoff": "Coverage cutoff value (a positive float number, or 'auto', or "
-                  "'off'). Default: 'off'.",
-    "phred_offset": "PHRED quality offset in the input reads (33 or 64). "
-                    "Default: auto-detect.",
+                  "'off').",
+    "phred_offset": "PHRED quality offset in the input reads (33 or 64).",
     "debug": "Runs SPAdes in debug mode.",
 }
 # fmt: on
@@ -119,15 +118,14 @@ quast_params = {
 }
 # fmt: off
 quast_param_descriptions = {
-    "min_contig": "Lower threshold for contig length. Default: 500.",
-    "threads": "Maximum number of parallel jobs. Default: 1. "
+    "min_contig": "Lower threshold for contig length.",
+    "threads": "Maximum number of parallel jobs."
                "Currently supported on Linux only.",
     "k_mer_stats": "Compute k-mer-based quality metrics (recommended for large "
                    "genomes). This may significantly increase memory and time "
                    "consumption on large genomes.",
-    "k_mer_size": "Size of k used in k-mer-stats. Default: 101.",
-    "contig_thresholds": "List of contig length thresholds. "
-                         "Default: 0,1000,5000,10000,25000,50000.",
+    "k_mer_size": "Size of k used in k-mer-stats.",
+    "contig_thresholds": "List of contig length thresholds.",
 }
 # fmt: on
 iss_params = {
@@ -178,7 +176,7 @@ bowtie2_indexing_params = {
     "verbose": Bool,
     "noauto": Bool,
     "packed": Bool,
-    "bmax": Int % Range(1, None),
+    "bmax": Int % Range(1, None) | Choices(['auto']),
     "bmaxdivn": Int % Range(1, None),
     "dcv": Int % Range(1, None),
     "nodc": Bool,
@@ -197,12 +195,12 @@ bowtie2_indexing_param_descriptions = {
     "noauto": " Disable automatic -p/--bmax/--dcv memory-fitting.",
     "packed": "Use packed strings internally; slower, less memory.",
     "bmax": "Max bucket sz for blockwise suffix-array builder.",
-    "bmaxdivn": "Max bucket sz as divisor of ref len. Default: 4.",
-    "dcv": "Diff-cover period for blockwise. Default: 1024.",
+    "bmaxdivn": "Max bucket sz as divisor of ref len.",
+    "dcv": "Diff-cover period for blockwise.",
     "nodc": "Disable diff-cover (algorithm becomes quadratic).",
-    "offrate": "SA is sampled every 2^<int> BWT chars. Default: 5.",
-    "ftabchars": "# of chars consumed in initial lookup. Default: 10.",
-    "threads": "# of CPUs. Default: 1.",
+    "offrate": "SA is sampled every 2^<int> BWT chars.",
+    "ftabchars": "# of chars consumed in initial lookup.",
+    "threads": "# of CPUs.",
     "seed": "Seed for random number generator.",
 }
 # fmt: on
