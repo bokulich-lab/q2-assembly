@@ -116,11 +116,12 @@ def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
 
 def warn_about_presets():
     warning = (
-        'The presets parameter overrides settings for the min_count and k_list '
-        'parameters. The settings of min_count and k_list registered in provenance '
-        'may not reflect the actual settings used by the presets parameter. Refer '
-        'to the megahit documentation for more details, and refer to the presets '
-        'values of these parameters when interpreting or reporting your results.')
+        "The presets parameter overrides settings for the min_count and k_list "
+        "parameters. The settings of min_count and k_list registered in provenance "
+        "may not reflect the actual settings used by the presets parameter. Refer "
+        "to the megahit documentation for more details, and refer to the presets "
+        "values of these parameters when interpreting or reporting your results."
+    )
     warnings.warn(warning, UserWarning)
 
 
@@ -140,7 +141,7 @@ def assemble_megahit(
     prune_depth: int = 2,
     disconnect_ratio: float = 0.1,
     low_local_ratio: float = 0.2,
-    max_tip_len: int = 'auto',
+    max_tip_len: int = "auto",
     cleaning_rounds: int = 5,
     no_local: bool = False,
     kmin_1pass: bool = False,
@@ -150,16 +151,17 @@ def assemble_megahit(
     no_hw_accel: bool = False,
     min_contig_len: int = 200,
 ) -> ContigSequencesDirFmt:
-
-    if max_tip_len == 'auto':
+    if max_tip_len == "auto":
         max_tip_len = None
-    if presets == 'disabled':
+    if presets == "disabled":
         presets = None
     else:
         warn_about_presets()
     if any([k_min, k_max, k_step]) and not all([k_min, k_max, k_step]):
-        raise ValueError('If any of the parameters k_min, k_max, or k_step are used '
-                         'then all must be explicitly set.')
+        raise ValueError(
+            "If any of the parameters k_min, k_max, or k_step are used "
+            "then all must be explicitly set."
+        )
 
     kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
     common_args = _process_common_input_params(

@@ -111,7 +111,6 @@ def generate_reads(
     debug: bool = False,
     seed: int = 0,
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, DNAFASTAFormat, biom.Table):
-
     _locals = locals().copy()
     available_genomes = 0
     if genomes:

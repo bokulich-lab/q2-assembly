@@ -177,7 +177,6 @@ def evaluate_contigs(
     k_mer_size: int = 101,
     contig_thresholds: List[int] = [0, 1000, 5000, 10000, 25000, 50000],
 ):
-
     kwargs = {
         k: v for k, v in locals().items() if k not in ["output_dir", "contigs", "reads"]
     }

@@ -116,18 +116,18 @@ def map_reads_to_contigs(
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
     skip: int = 0,
-    qupto: int = 'unlimited',
+    qupto: int = "unlimited",
     trim5: int = 0,
     trim3: int = 0,
-    trim_to: str = 'untrimmed',
+    trim_to: str = "untrimmed",
     phred33: bool = False,
     phred64: bool = False,
     mode: str = "local",
     sensitivity: str = "sensitive",
     n: int = 0,
     len: int = 22,
-    i: str = 'S,1,1.15',
-    n_ceil: str = 'L,0,0.15',
+    i: str = "S,1,1.15",
+    n_ceil: str = "L,0,0.15",
     dpad: int = 15,
     gbar: int = 4,
     ignore_quals: bool = False,
@@ -139,34 +139,34 @@ def map_reads_to_contigs(
     ma: int = 2,
     mp: int = 6,
     np: int = 1,
-    rdg: str = '5,3',
-    rfg: str = '5,3',
-    k: int = 'off',
+    rdg: str = "5,3",
+    rfg: str = "5,3",
+    k: int = "off",
     a: bool = False,
     d: int = 15,
     r: int = 2,
     minins: int = 0,
     maxins: int = 500,
-    valid_mate_orientations: str = 'fr',
+    valid_mate_orientations: str = "fr",
     no_mixed: bool = False,
     no_discordant: bool = False,
     dovetail: bool = False,
     no_contain: bool = False,
     no_overlap: bool = False,
-    offrate: int = 'off',
+    offrate: int = "off",
     threads: int = 1,
     reorder: bool = False,
     mm: bool = False,
     seed: int = 0,
     non_deterministic: bool = False,
 ) -> BAMDirFmt:
-    if qupto == 'unlimited':
+    if qupto == "unlimited":
         qupto = None
-    if trim_to == 'untrimmed':
+    if trim_to == "untrimmed":
         trim_to = None
-    if k == 'off':
+    if k == "off":
         k = None
-    if offrate == 'off':
+    if offrate == "off":
         offrate = None
     kwargs = {
         k: v

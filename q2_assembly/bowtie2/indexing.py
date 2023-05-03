@@ -64,7 +64,7 @@ def index_contigs(
     verbose: bool = False,
     noauto: bool = False,
     packed: bool = False,
-    bmax: int = 'auto',
+    bmax: int = "auto",
     bmaxdivn: int = 4,
     dcv: int = 1024,
     nodc: bool = False,
@@ -73,7 +73,7 @@ def index_contigs(
     threads: int = 1,
     seed: int = 0,
 ) -> Bowtie2IndexDirFmt:
-    if bmax == 'auto':
+    if bmax == "auto":
         bmax = None
     kwargs = {k: v for k, v in locals().items() if k not in ["contigs"]}
     common_args = _process_common_input_params(
@@ -95,7 +95,7 @@ def index_mags(
     verbose: bool = False,
     noauto: bool = False,
     packed: bool = False,
-    bmax: int = 'auto',
+    bmax: int = "auto",
     bmaxdivn: int = 4,
     dcv: int = 1024,
     nodc: bool = False,
@@ -104,7 +104,7 @@ def index_mags(
     threads: int = 1,
     seed: int = 0,
 ) -> MultiBowtie2IndexDirFmt:
-    if bmax == 'auto':
+    if bmax == "auto":
         bmax = None
     kwargs = {k: v for k, v in locals().items() if k not in ["mags"]}
     common_args = _process_common_input_params(

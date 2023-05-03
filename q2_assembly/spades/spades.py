@@ -137,12 +137,11 @@ def assemble_spades(
     disable_rr: bool = False,
     threads: int = 1,
     memory: int = 250,
-    k: List[int] = ['auto'],
+    k: List[int] = ["auto"],
     cov_cutoff: Union[float, str] = "off",
-    phred_offset: str = 'auto-detect',
+    phred_offset: str = "auto-detect",
     debug: bool = False,
 ) -> ContigSequencesDirFmt:
-
     kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
     common_args = _process_common_input_params(
         processing_func=_process_spades_arg, params=kwargs

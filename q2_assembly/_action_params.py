@@ -9,7 +9,7 @@
 from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
 
 megahit_params = {
-    "presets": Str % Choices(['meta', 'meta-sensitive', 'meta-large', 'disabled']),
+    "presets": Str % Choices(["meta", "meta-sensitive", "meta-large", "disabled"]),
     "min_count": Int % Range(1, None),
     "k_list": List[Int % Range(15, 255, inclusive_end=True)],
     "k_min": Int % Range(15, 255, inclusive_end=True),
@@ -21,7 +21,7 @@ megahit_params = {
     "prune_depth": Int % Range(1, None),
     "disconnect_ratio": Float % Range(0, 1, inclusive_end=True),
     "low_local_ratio": Float % Range(0, 1, inclusive_end=True),
-    "max_tip_len": Int % Range(1, None) | Str % Choices(['auto']),
+    "max_tip_len": Int % Range(1, None) | Str % Choices(["auto"]),
     "cleaning_rounds": Int % Range(1, None),
     "no_local": Bool,
     "kmin_1pass": Bool,
@@ -77,7 +77,7 @@ spades_params = {
     "disable_rr": Bool,
     "threads": Int % Range(1, None),
     "memory": Int % Range(1, None),
-    "k": List[Int % Range(1, 128, inclusive_end=False) | Str % Choices(['auto'])],
+    "k": List[Int % Range(1, 128, inclusive_end=False) | Str % Choices(["auto"])],
     "cov_cutoff": Float % Range(0, 1, inclusive_start=False)
     | Str % Choices(["auto", "off"]),
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
@@ -175,7 +175,7 @@ bowtie2_indexing_params = {
     "verbose": Bool,
     "noauto": Bool,
     "packed": Bool,
-    "bmax": Int % Range(1, None) | Choices(['auto']),
+    "bmax": Int % Range(1, None) | Choices(["auto"]),
     "bmaxdivn": Int % Range(1, None),
     "dcv": Int % Range(1, None),
     "nodc": Bool,
