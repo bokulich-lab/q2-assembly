@@ -330,7 +330,16 @@ class TestQuast(TestPluginBase):
             contigs,
             exp_reads_dict,
             False,
-            ["--min-contig", "150", "--threads", "1"],
+            [
+                "--min-contig",
+                "150",
+                "--threads",
+                "1",
+                "--k-mer-size",
+                "101",
+                "--contig-thresholds",
+                "0,1000,5000,10000,25000,50000",
+            ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
 
@@ -381,7 +390,16 @@ class TestQuast(TestPluginBase):
             contigs,
             exp_reads_dict,
             True,
-            ["--min-contig", "150", "--threads", "1"],
+            [
+                "--min-contig",
+                "150",
+                "--threads",
+                "1",
+                "--k-mer-size",
+                "101",
+                "--contig-thresholds",
+                "0,1000,5000,10000,25000,50000",
+            ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
 
