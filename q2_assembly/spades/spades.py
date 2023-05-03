@@ -137,7 +137,7 @@ def assemble_spades(
     disable_rr: bool = False,
     threads: int = 1,
     memory: int = 250,
-    k: List[int] = 'auto',
+    k: List[int] = ['auto'],
     cov_cutoff: Union[float, str] = "off",
     phred_offset: str = 'auto-detect',
     debug: bool = False,

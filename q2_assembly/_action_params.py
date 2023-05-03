@@ -77,7 +77,7 @@ spades_params = {
     "disable_rr": Bool,
     "threads": Int % Range(1, None),
     "memory": Int % Range(1, None),
-    "k": List[Int % Range(1, 128, inclusive_end=False)] | Str % Choices(['auto']),
+    "k": List[Int % Range(1, 128, inclusive_end=False) | Str % Choices(['auto'])],
     "cov_cutoff": Float % Range(0, 1, inclusive_start=False)
     | Str % Choices(["auto", "off"]),
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
@@ -145,26 +145,25 @@ iss_params = {
     "gc_bias": Bool,
     "cpus": Int % Range(1, None),
     "debug": Bool,
-    "seed": Int % Range(1, None),
+    "seed": Int % Range(0, None),
 }
 # fmt: off
 iss_param_descriptions = {
     "sample_names": "List of sample names that should be generated. ",
     "n_genomes": "How many genomes will be used for the simulation. "
-                 "Only required when genome sequences are provided. Default: 10.",
+                 "Only required when genome sequences are provided.",
     "ncbi": "Download input genomes from NCBI. Can be bacteria, viruses, archaea "
             "or a combination of the three.",
     "n_genomes_ncbi": "How many genomes will be downloaded from NCBI. If more than "
                       "one kingdom is set with --ncbi, multiple values are necessary.",
-    "abundance": "Abundance distribution. Default: lognormal.",
+    "abundance": "Abundance distribution.",
     "coverage": "Coverage distribution.",
     "model": "Error model. Use either of the precomputed models when --mode "
-             "set to 'kde'. Default: HiSeq.",
-    "n_reads": "Number of reads to generate. Default: 1000000.",
-    "mode": "Error model. If not specified, using kernel density estimation. "
-            "Default: kde.",
+             "set to 'kde'.",
+    "n_reads": "Number of reads to generate.",
+    "mode": "Error model. If not specified, using kernel density estimation.",
     "gc_bias": "If set, may fail to sequence reads with abnormal GC content.",
-    "cpus": "Number of cpus to use. Default: 1.",
+    "cpus": "Number of cpus to use.",
     "debug": " Enable debug logging.",
     "seed": "Seed for all the random number generators.",
 }
@@ -183,7 +182,7 @@ bowtie2_indexing_params = {
     "offrate": Int % Range(0, None),
     "ftabchars": Int % Range(1, None),
     "threads": Int % Range(1, None),
-    "seed": Int % Range(1, None),
+    "seed": Int % Range(0, None),
 }
 # fmt: off
 bowtie2_indexing_param_descriptions = {
@@ -205,8 +204,8 @@ bowtie2_indexing_param_descriptions = {
 }
 # fmt: on
 bowtie2_mapping_params = {
-    "skip": Int % Range(1, None),
-    "qupto": Int % Range(1, None),
+    "skip": Int % Range(0, None),
+    "qupto": Int % Range(1, None) | Str % Choices(["unlimited"]),
     "trim5": Int % Range(0, None),
     "trim3": Int % Range(0, None),
     "trim_to": Str,
@@ -227,11 +226,11 @@ bowtie2_mapping_params = {
     "end_to_end": Bool,
     "local": Bool,
     "ma": Int % Range(0, None),
-    "mp": Str,
+    "mp": Int % Range(0, None),
     "np": Int % Range(0, None),
     "rdg": Str,
     "rfg": Str,
-    "k": Int % Range(0, None),
+    "k": Int % Range(0, None) | Str % Choices(["off"]),
     "a": Bool,
     "d": Int % Range(0, None),
     "r": Int % Range(0, None),
@@ -243,7 +242,7 @@ bowtie2_mapping_params = {
     "dovetail": Bool,
     "no_contain": Bool,
     "no_overlap": Bool,
-    "offrate": Int % Range(0, None),
+    "offrate": Int % Range(0, None) | Str % Choices(["off"]),
     "threads": Int % Range(1, None),
     "reorder": Bool,
     "mm": Bool,
@@ -254,29 +253,26 @@ bowtie2_mapping_params = {
 bowtie2_mapping_param_descriptions = {
     "skip": "Skip (i.e. do not align) the first <int> reads or pairs in the input.",
     "qupto": "Align the first <int> reads or read pairs from the input (after the "
-             "-s/--skip reads or pairs have been skipped), then stop. "
-             "Default: no limit.",
-    "trim5": "Trim <int> bases from 5' (left) end of each read before alignment. "
-             "Default: 0.",
-    "trim3": "Trim <int> bases from 3' (right) end of each read before alignment "
-             "Default: 0.",
+             "-s/--skip reads or pairs have been skipped), then stop.",
+    "trim5": "Trim <int> bases from 5' (left) end of each read before alignment.",
+    "trim3": "Trim <int> bases from 3' (right) end of each read before alignment.",
     "trim_to": "Trim reads exceeding <int> bases. Bases will be trimmed from either "
                "the 3' (right) or 5' (left) end of the read. If the read end is not "
                "specified, bowtie2 will default to trimming from the 3' (right) end "
                "of the read. --trim-to and -trim3/-trim5 are mutually exclusive. "
                "The value of this parameter should have the following format: "
                "[3:|5:]<int>, e.g.: '5:120' if bases should be trimmed from 3' end or "
-               "just '120' if the end is not specified.",
-    "phred33": 'Input qualities are ASCII chars equal to the Phred quality plus 33. '
-               'This is also called the "Phred+33" encoding, which is used by the '
-               'very latest Illumina pipelines.',
-    "phred64": 'Input qualities are ASCII chars equal to the Phred quality plus 64. '
-               'This is also called the "Phred+64" encoding.',
+               "just '120' if the end is not specified. Set to 'untrimmed' to perform "
+               "no trimming.",
+    "phred33": 'Input qualities are ASCII chars equal to the Phred quality plus 33, '
+               'i.e., "Phred+33" encoding.',
+    "phred64": 'Input qualities are ASCII chars equal to the Phred quality plus 64, '
+               'i.e., "Phred+64" encoding.',
     "mode": "bowtie2 alignment settings. See bowtie2 manual for more details.",
     "sensitivity": "bowtie2 alignment sensitivity. See bowtie2 manual for details.",
     "n": "Sets the number of mismatches to allowed in a seed alignment during "
          "multiseed alignment. Setting this higher makes alignment slower (often much "
-         "slower) but increases sensitivity. Default: 0.",
+         "slower) but increases sensitivity.",
     "len": "Sets the length of the seed substrings to align during multiseed "
            "alignment. Smaller values make alignment slower but more sensitive. "
            "Default: the --sensitive preset is used by default, which sets -L to "
@@ -288,12 +284,11 @@ bowtie2_mapping_param_descriptions = {
     "n_ceil": 'Sets a function governing the maximum number of ambiguous characters '
               '(usually Ns and/or .s) allowed in a read as a function of read length. '
               'The value of this parameter should be provided as a comma-separated '
-              'list, e.g.: "S,1,0.75". For details on how to set functions consult '
+              'list, e.g.: "L,1,0.75". For details on how to set functions consult '
               'bowtie2 manual.',
     "dpad": '"Pads" dynamic programming problems by <int> columns on either side to '
-            'allow gaps. Default: 15.',
-    "gbar": "Disallow gaps within <int> positions of the beginning or end of the read. "
-            "Default: 4.",
+            'allow gaps.',
+    "gbar": "Disallow gaps within <int> positions of the beginning or end of the read.",
     "ignore_quals": "When calculating a mismatch penalty, always consider the quality "
                     "value at the mismatched position to be the highest possible, "
                     "regardless of the actual value. I.e. input is treated as though "
@@ -336,46 +331,44 @@ bowtie2_mapping_param_descriptions = {
              '--end-to-end. --end-to-end is the default mode.',
     "ma": "Sets the match bonus. In --local mode <int> is added to the alignment score "
           "for each position where a read character aligns to a reference character "
-          "and the characters match. Not used in --end-to-end mode. Default: 2.",
-    "mp": "Sets the maximum (MX) and minimum (MN) mismatch penalties, both integers. "
-          "A number less than or equal to MX and greater than or equal to MN is "
-          "subtracted from the alignment score for each position where a read "
-          "character aligns to a reference character, the characters do not match, "
-          "and neither is an N. If --ignore-quals is specified, the number subtracted "
-          "quals MX. Otherwise, the number subtracted is MN + floor((MX-MN)(MIN(Q,40.0"
-          ")/40.0)) where Q is the Phred quality value. The value of this parameter "
-          "should be provided as a comma-separated list of two integers. Default: 6,2.",
+          "and the characters match. Not used in --end-to-end mode.",
+    "mp": "max penalty for mismatch; lower qual = lower penalty.",
     "np": "Sets penalty for positions where the read, reference, or both, contain an "
-          "ambiguous character such as N. Default: 1.",
+          "ambiguous character such as N.",
     "rdg": "Sets the read gap open (<int1>) and extend (<int2>) penalties. A read gap "
            "of length N gets a penalty of <int1> + N * <int2>. The value of this "
-           "parameter should be provided as a comma-separated list of two integers. "
-           "Default: 5,3.",
+           "parameter should be provided as a comma-separated list of two integers.",
     "rfg": "Sets the reference gap open (<int1>) and extend (<int2>) penalties. "
            "A reference gap of length N gets a penalty of <int1> + N * <int2>. The "
            "value of this parameter should be provided as a comma-separated list of "
-           "two integers. Default: 5,3.",
-    "k": "When -k is specified, however, bowtie2 searches for at most <int> distinct, "
-         "valid alignments for each read. The search terminates when it can't find "
-         "more distinct valid alignments, or when it finds <int>, whichever happens "
-         "first. All alignments found are reported in descending order by alignment "
-         "score. For more information, consult the bowtie2 manual.",
-    "a": "Like -k but with no upper limit on number of alignments to search for. -a "
-         "is mutually exclusive with -k.",
+           "two integers.",
+    "k": "Report up to <int> alns per read. By default, bowtie2 searches for "
+         "distinct, valid alignments for each read. When it finds a valid alignment, "
+         "it continues looking for alignments that are nearly as good or better. The "
+         "best alignment found is reported (randomly selected from among best if "
+         "tied). Information about the best alignments is used to estimate mapping "
+         "quality and to set SAM optional fields, such as AS:i and XS:i. When -k is "
+         "specified, however, bowtie2 searches for at most <int> distinct, valid "
+         "alignments for each read. The search terminates when it can't find more "
+         "distinct valid alignments, or when it finds <int>, whichever happens first. "
+         "All alignments found are reported in descending order by alignment score. "
+         "For more information, consult the bowtie2 manual.",
+    "a": "Report all alignments. Like -k but with no upper limit on number of "
+         "alignments to search for. -a is mutually exclusive with -k. Note: Bowtie 2 "
+         "is not designed with -a mode in mind, and when aligning reads to long, "
+         "repetitive genomes this mode can be very, very slow.",
     "d": 'Up to <int> consecutive seed extension attempts can "fail" before bowtie2 '
          'moves on, using the alignments found so far. A seed extension "fails" if it '
          'does not yield a new best or a new second-best alignment. This limit is '
-         'automatically adjusted up when -k or -a are specified. Default: 15.',
+         'automatically adjusted up when -k or -a are specified.',
     "r": '<int> is the maximum number of times Bowtie 2 will "re-seed" reads with '
          'repetitive seeds. When "re-seeding," bowtie2 simply chooses a new set of '
          'reads (same length, same number of mismatches allowed) at different offsets '
          'and searches for more alignments. A read is considered to have repetitive '
          'seeds if the total number of seed hits divided by the number of seeds that '
-         'aligned at least once is greater than 300. Default: 2.',
-    "minins": "The minimum fragment length for valid paired-end alignments. "
-              "Default: 0.",
-    "maxins": "The maximum fragment length for valid paired-end alignments. "
-              "Default: 500.",
+         'aligned at least once is greater than 300.',
+    "minins": "The minimum fragment length for valid paired-end alignments.",
+    "maxins": "The maximum fragment length for valid paired-end alignments.",
     "valid_mate_orientations": "The upstream/downstream mate orientations for a valid "
                                "paired-end alignment against the forward reference "
                                "strand. For more details consult the bowtie2 manual.",
@@ -394,21 +387,22 @@ bowtie2_mapping_param_descriptions = {
                   "to be non-concordant.",
     "offrate": "Override the offrate of the index with <int>. If <int> is greater than "
                "the offrate used to build the index, then some row markings are "
-               "discarded when the index is read into memory.",
+               "discarded when the index is read into memory. This reduces the memory "
+               "footprint of the aligner but requires more time to calculate text "
+               "offsets. <int> must be greater than the value used to build the index.",
     "threads": "Launch <int>> parallel search threads. Threads will run on separate "
                "processors/cores and synchronize when parsing reads and outputting "
                "alignments. Searching for alignments is highly parallel, and speedup "
                "is close to linear. Increasing -p increases Bowtie 2's memory "
-               "footprint. Default: 1.",
+               "footprint.",
     "reorder": "Guarantees that output SAM records are printed in an order "
                "corresponding to the order of the reads in the original input file, "
                "even when --threads is set greater than 1.",
     "mm": "Use memory-mapped I/O to load the index, rather than typical file I/O. "
           "Memory-mapping allows many concurrent bowtie processes on the same computer "
           "to share the same memory image of the index.",
-    "seed": "Use <int> as the seed for pseudo-random number generator. Default: 0.",
+    "seed": "Use <int> as the seed for pseudo-random number generator.",
     "non_deterministic": "If specified, Bowtie 2 re-initializes its pseudo-random "
-                         "generator for each read using the current time. "
-                         "Default: off.",
+                         "generator for each read using the current time.",
 }
 # fmt: on

@@ -71,7 +71,7 @@ def index_contigs(
     offrate: int = 5,
     ftabchars: int = 10,
     threads: int = 1,
-    seed: int = None,
+    seed: int = 0,
 ) -> Bowtie2IndexDirFmt:
     if bmax == 'auto':
         bmax = None
@@ -102,7 +102,7 @@ def index_mags(
     offrate: int = 5,
     ftabchars: int = 10,
     threads: int = 1,
-    seed: int = None,
+    seed: int = 0,
 ) -> MultiBowtie2IndexDirFmt:
     if bmax == 'auto':
         bmax = None
