@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import tempfile
 from typing import List, Union
+import warnings
 
 import pandas as pd
 from q2_types.per_sample_sequences import (
@@ -113,6 +114,16 @@ def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
     return result
 
 
+def warn_about_presets():
+    warning = (
+        'The presets parameter overrides settings for the min_count and k_list '
+        'parameters. The settings of min_count and k_list registered in provenance '
+        'may not reflect the actual settings used by the presets parameter. Refer '
+        'to the megahit documentation for more details, and refer to the presets '
+        'values of these parameters when interpreting or reporting your results.')
+    warnings.warn(warning, UserWarning)
+
+
 def assemble_megahit(
     seqs: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
@@ -144,6 +155,8 @@ def assemble_megahit(
         max_tip_len = None
     if presets == 'disabled':
         presets = None
+    else:
+        warn_about_presets()
     if any([k_min, k_max, k_step]) and not all([k_min, k_max, k_step]):
         raise ValueError('If any of the parameters k_min, k_max, or k_step are used '
                          'then all must be explicitly set.')
