@@ -102,7 +102,7 @@ def generate_reads(
     ncbi: List[str] = ["bacteria"],
     n_genomes_ncbi: List[int] = [10],
     abundance: str = "lognormal",
-    coverage: str = "lognormal",
+    coverage: str = "off",
     n_reads: int = 1000000,
     mode: str = "kde",
     model: str = "HiSeq",
@@ -111,6 +111,8 @@ def generate_reads(
     debug: bool = False,
     seed: int = 0,
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, DNAFASTAFormat, biom.Table):
+    if coverage == "off":
+        coverage = None
     _locals = locals().copy()
     available_genomes = 0
     if genomes:

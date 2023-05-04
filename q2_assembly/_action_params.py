@@ -135,10 +135,19 @@ iss_params = {
     "n_genomes_ncbi": List[Int % Range(1, None)],
     "abundance": Str
     % Choices(
-        ["uniform", "halfnormal", "exponential", "lognormal", "zero-inflated-lognormal"]
+        [
+            "uniform",
+            "halfnormal",
+            "exponential",
+            "lognormal",
+            "zero-inflated-lognormal",
+            "off",
+        ]
     ),
     "coverage": Str
-    % Choices(["halfnormal", "exponential", "lognormal", "zero-inflated-lognormal"]),
+    % Choices(
+        ["halfnormal", "exponential", "lognormal", "zero-inflated-lognormal", "off"]
+    ),
     "model": Str % Choices(["HiSeq", "NovaSeq", "MiSeq"]),
     "n_reads": Int % Range(1, None),
     "mode": Str % Choices(["kde", "basic", "perfect"]),
