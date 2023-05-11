@@ -18,7 +18,7 @@ from typing import List, Union
 import pandas as pd
 import pkg_resources
 import q2templates
-from q2_types.feature_data import DNAFASTAFormat
+from q2_types.feature_data import DNAFASTAFormat, DNAIterator
 from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -65,6 +65,17 @@ def _process_quast_arg(arg_key, arg_val):
     else:
         arg_value = ",".join(str(x) for x in arg_val)
         return [_construct_param(arg_key), arg_value]
+
+
+def _split_reference(ref: DNAFASTAFormat, all_refs_dir: str) -> List[str]:
+    all_seq_fps = []
+    for seq in ref.view(DNAIterator):
+        seq_id = seq.metadata["id"]
+        seq_fp = os.path.join(all_refs_dir, f"{seq_id}.fasta")
+        all_seq_fps.append(seq_fp)
+        with open(seq_fp, "w") as f:
+            f.write(f">{seq_id}\n{str(seq)}")
+    return all_seq_fps
 
 
 def _evaluate_contigs(
@@ -128,8 +139,13 @@ def _evaluate_contigs(
                     "Please check your input files."
                 )
     if references:
+        all_refs_dir = os.path.join(results_dir, "references")
+        os.makedirs(all_refs_dir, exist_ok=True)
+        all_ref_fps = []
         for ref in references:
-            cmd.extend(["-r", str(ref)])
+            all_ref_fps.extend(_split_reference(ref, all_refs_dir))
+        for fp in all_ref_fps:
+            cmd.extend(["-r", fp])
     try:
         run_command(cmd, verbose=True)
     except subprocess.CalledProcessError as e:
