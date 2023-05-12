@@ -64,15 +64,17 @@ def index_contigs(
     verbose: bool = False,
     noauto: bool = False,
     packed: bool = False,
-    bmax: int = None,
-    bmaxdivn: int = None,
-    dcv: int = None,
+    bmax: int = "auto",
+    bmaxdivn: int = 4,
+    dcv: int = 1024,
     nodc: bool = False,
-    offrate: int = None,
-    ftabchars: int = None,
+    offrate: int = 5,
+    ftabchars: int = 10,
     threads: int = 1,
-    seed: int = None,
+    seed: int = 0,
 ) -> Bowtie2IndexDirFmt:
+    if bmax == "auto":
+        bmax = None
     kwargs = {k: v for k, v in locals().items() if k not in ["contigs"]}
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2build_arg, params=kwargs
@@ -93,15 +95,17 @@ def index_mags(
     verbose: bool = False,
     noauto: bool = False,
     packed: bool = False,
-    bmax: int = None,
-    bmaxdivn: int = None,
-    dcv: int = None,
+    bmax: int = "auto",
+    bmaxdivn: int = 4,
+    dcv: int = 1024,
     nodc: bool = False,
-    offrate: int = None,
-    ftabchars: int = None,
+    offrate: int = 5,
+    ftabchars: int = 10,
     threads: int = 1,
-    seed: int = None,
+    seed: int = 0,
 ) -> MultiBowtie2IndexDirFmt:
+    if bmax == "auto":
+        bmax = None
     kwargs = {k: v for k, v in locals().items() if k not in ["mags"]}
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2build_arg, params=kwargs

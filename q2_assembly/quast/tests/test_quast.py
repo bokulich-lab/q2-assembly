@@ -323,6 +323,7 @@ class TestQuast(TestPluginBase):
             reads=None,
             min_contig=150,
             threads=5,
+            k_mer_size=101,
             contig_thresholds=[10, 20],
         )
 
@@ -332,7 +333,16 @@ class TestQuast(TestPluginBase):
             {},
             False,
             None,
-            ["--min-contig", "150", "--threads", "5", "--contig-thresholds", "10,20"],
+            [
+                "--min-contig",
+                "150",
+                "--threads",
+                "5",
+                "--k-mer-size",
+                "101",
+                "--contig-thresholds",
+                "10,20",
+            ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
 
@@ -364,6 +374,8 @@ class TestQuast(TestPluginBase):
             reads=reads,
             min_contig=150,
             threads=1,
+            k_mer_size=101,
+            contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
         )
 
         exp_reads_dict = {
@@ -382,7 +394,16 @@ class TestQuast(TestPluginBase):
             exp_reads_dict,
             False,
             None,
-            ["--min-contig", "150", "--threads", "1"],
+            [
+                "--min-contig",
+                "150",
+                "--threads",
+                "1",
+                "--k-mer-size",
+                "101",
+                "--contig-thresholds",
+                "0,1000,5000,10000,25000,50000",
+            ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
 
@@ -414,6 +435,8 @@ class TestQuast(TestPluginBase):
             reads=reads,
             min_contig=150,
             threads=1,
+            k_mer_size=101,
+            contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
         )
 
         exp_reads_dict = {
@@ -432,7 +455,16 @@ class TestQuast(TestPluginBase):
             exp_reads_dict,
             True,
             None,
-            ["--min-contig", "150", "--threads", "1"],
+            [
+                "--min-contig",
+                "150",
+                "--threads",
+                "1",
+                "--k-mer-size",
+                "101",
+                "--contig-thresholds",
+                "0,1000,5000,10000,25000,50000",
+            ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
 

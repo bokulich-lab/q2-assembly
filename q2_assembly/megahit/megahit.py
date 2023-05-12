@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import tempfile
 from typing import List, Union
+import warnings
 
 import pandas as pd
 from q2_types.per_sample_sequences import (
@@ -113,32 +114,54 @@ def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
     return result
 
 
+def warn_about_presets():
+    warning = (
+        "The presets parameter overrides settings for the min_count and k_list "
+        "parameters. The settings of min_count and k_list registered in provenance "
+        "may not reflect the actual settings used by the presets parameter. Refer "
+        "to the megahit documentation for more details, and refer to the presets "
+        "values of these parameters when interpreting or reporting your results."
+    )
+    warnings.warn(warning, UserWarning)
+
+
 def assemble_megahit(
     seqs: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
     presets: str = None,
-    min_count: int = None,
-    k_list: List[int] = None,
+    min_count: int = 2,
+    k_list: List[int] = [21, 29, 39, 59, 79, 99, 119, 141],
     k_min: int = None,
     k_max: int = None,
     k_step: int = None,
     no_mercy: bool = False,
-    bubble_level: int = None,
-    prune_level: int = None,
-    prune_depth: int = None,
-    disconnect_ratio: float = None,
-    low_local_ratio: float = None,
-    max_tip_len: int = None,
-    cleaning_rounds: int = None,
+    bubble_level: int = 2,
+    prune_level: int = 2,
+    prune_depth: int = 2,
+    disconnect_ratio: float = 0.1,
+    low_local_ratio: float = 0.2,
+    max_tip_len: int = "auto",
+    cleaning_rounds: int = 5,
     no_local: bool = False,
     kmin_1pass: bool = False,
-    memory: float = None,
-    mem_flag: int = None,
+    memory: float = 0.9,
+    mem_flag: int = 1,
     num_cpu_threads: int = 1,
     no_hw_accel: bool = False,
-    min_contig_len: int = None,
+    min_contig_len: int = 200,
 ) -> ContigSequencesDirFmt:
+    if max_tip_len == "auto":
+        max_tip_len = None
+    if presets == "disabled":
+        presets = None
+    else:
+        warn_about_presets()
+    if any([k_min, k_max, k_step]) and not all([k_min, k_max, k_step]):
+        raise ValueError(
+            "If any of the parameters k_min, k_max, or k_step are used "
+            "then all must be explicitly set."
+        )
 
     kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
     common_args = _process_common_input_params(

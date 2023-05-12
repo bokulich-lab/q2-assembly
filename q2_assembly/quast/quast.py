@@ -198,13 +198,12 @@ def evaluate_contigs(
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
     references: DNAFASTAFormat = None,
-    min_contig: int = None,
+    min_contig: int = 500,
     threads: int = 1,
     k_mer_stats: bool = False,
-    k_mer_size: int = None,
-    contig_thresholds: List[int] = None,
+    k_mer_size: int = 101,
+    contig_thresholds: List[int] = [0, 1000, 5000, 10000, 25000, 50000],
 ):
-
     kwargs = {
         k: v
         for k, v in locals().items()
