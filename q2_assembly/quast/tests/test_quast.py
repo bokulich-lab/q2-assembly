@@ -12,8 +12,9 @@ import os
 import tempfile
 import unittest
 from subprocess import CalledProcessError
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, call, mock_open, patch
 
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -21,7 +22,12 @@ from q2_types.per_sample_sequences import (
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
-from ..quast import _evaluate_contigs, _process_quast_arg, evaluate_contigs
+from ..quast import (
+    _evaluate_contigs,
+    _process_quast_arg,
+    _split_reference,
+    evaluate_contigs,
+)
 
 
 class MockTempDir(tempfile.TemporaryDirectory):
@@ -72,6 +78,21 @@ class TestQuast(TestPluginBase):
         obs = _process_quast_arg("k_bool", True)
         exp = ["--k-bool"]
         self.assertListEqual(obs, exp)
+
+    def test_split_reference(self):
+        ref = DNAFASTAFormat(self.get_data_path("references/ref1.fasta"), "r")
+        refs_dir = "some/dir"
+        m = mock_open()
+
+        with patch("builtins.open", m):
+            obs = _split_reference(ref, refs_dir)
+        exp1, exp2 = ["some/dir/ref1.1.fasta", "some/dir/ref1.2.fasta"]
+
+        self.assertListEqual(obs, [exp1, exp2])
+        self.assertListEqual(m.call_args_list, [call(exp1, "w"), call(exp2, "w")])
+        m().write.assert_has_calls(
+            [call(">ref1.1\nATGCATCG"), call(">ref1.2\nGTCATCAT")]
+        )
 
     @patch("subprocess.run")
     def test_evaluate_contigs_minimal(self, p):
@@ -250,6 +271,40 @@ class TestQuast(TestPluginBase):
                 references=None,
                 common_args=["-m", "10", "-t", "1"],
             )
+
+    @patch("os.makedirs")
+    @patch("subprocess.run")
+    def test_evaluate_contigs_with_refs(self, p1, p2):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        ref1 = DNAFASTAFormat(self.get_data_path("references/ref1.fasta"), "r")
+        ref2 = DNAFASTAFormat(self.get_data_path("references/ref2.fasta"), "r")
+        obs_samples = _evaluate_contigs(
+            results_dir="some/dir",
+            contigs=contigs,
+            reads={},
+            paired=False,
+            references=[ref1, ref2],
+            common_args=["-t", "1"],
+        )
+
+        exp_command = [
+            "metaquast.py",
+            "-o",
+            "some/dir",
+            "-t",
+            "1",
+            os.path.join(str(contigs), "sample1_contigs.fa"),
+            os.path.join(str(contigs), "sample2_contigs.fa"),
+            "-r",
+            "some/dir/references/ref1.1.fasta",
+            "-r",
+            "some/dir/references/ref1.2.fasta",
+            "-r",
+            "some/dir/references/ref2.1.fasta",
+        ]
+        self.assertListEqual(obs_samples, ["sample1", "sample2"])
+        p1.assert_called_once_with(exp_command, check=True)
+        p2.assert_called_once_with("some/dir/references", exist_ok=True)
 
     @patch("platform.system", return_value="Linux")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
