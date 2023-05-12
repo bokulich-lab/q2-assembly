@@ -24,7 +24,21 @@ class TestBowtie2Indexing(TestPluginBase):
 
     def setUp(self):
         super().setUp()
-        self.test_params_list = ["--large-index", "--bmax", "11", "--threads", "1"]
+        self.test_params_list = [
+            "--large-index",
+            "--bmax",
+            "11",
+            "--bmaxdivn",
+            "4",
+            "--dcv",
+            "1024",
+            "--offrate",
+            "5",
+            "--ftabchars",
+            "10",
+            "--threads",
+            "1",
+        ]
 
     @patch("subprocess.run")
     @patch("os.makedirs")
@@ -45,6 +59,14 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--bmaxdivn",
+                        "4",
+                        "--dcv",
+                        "1024",
+                        "--offrate",
+                        "5",
+                        "--ftabchars",
+                        "10",
                         "--threads",
                         "1",
                         "/here/samp1_contigs.fa",
@@ -58,6 +80,14 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--bmaxdivn",
+                        "4",
+                        "--dcv",
+                        "1024",
+                        "--offrate",
+                        "5",
+                        "--ftabchars",
+                        "10",
                         "--threads",
                         "1",
                         "/here/samp2_contigs.fa",
@@ -87,6 +117,14 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--bmaxdivn",
+                        "4",
+                        "--dcv",
+                        "1024",
+                        "--offrate",
+                        "5",
+                        "--ftabchars",
+                        "10",
                         "--threads",
                         "1",
                         "/here/smp1/mag1.fa",
@@ -100,6 +138,14 @@ class TestBowtie2Indexing(TestPluginBase):
                         "--large-index",
                         "--bmax",
                         "11",
+                        "--bmaxdivn",
+                        "4",
+                        "--dcv",
+                        "1024",
+                        "--offrate",
+                        "5",
+                        "--ftabchars",
+                        "10",
                         "--threads",
                         "1",
                         "/here/smp1/mag2.fa",
@@ -128,7 +174,16 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
     def test_index_contigs(self, p):
         input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        index_contigs(input_contigs, large_index=True, bmax=11)
+        index_contigs(
+            input_contigs,
+            large_index=True,
+            bmax=11,
+            bmaxdivn=4,
+            dcv=1024,
+            offrate=5,
+            ftabchars=10,
+            threads=1,
+        )
 
         exp_contigs = [f"{str(input_contigs)}/sample{x+1}_contigs.fa" for x in range(2)]
         p.assert_called_with(exp_contigs, ANY, self.test_params_list, "contigs")
@@ -136,7 +191,16 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
     def test_index_mags(self, p):
         input_mags = MultiMAGSequencesDirFmt(self.get_data_path("mags"), "r")
-        index_mags(input_mags, large_index=True, bmax=11)
+        index_mags(
+            input_mags,
+            large_index=True,
+            bmax=11,
+            bmaxdivn=4,
+            dcv=1024,
+            offrate=5,
+            ftabchars=10,
+            threads=1,
+        )
 
         exp_mags = [
             f"{str(input_mags)}/sample{x+1}/mag{y+1}.fa"

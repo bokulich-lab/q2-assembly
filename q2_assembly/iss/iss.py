@@ -99,19 +99,20 @@ def generate_reads(
     genomes: DNAFASTAFormat = None,
     sample_names: List[str] = None,
     n_genomes: int = 10,
-    ncbi: List[str] = None,
-    n_genomes_ncbi: List[int] = None,
-    abundance: str = None,
-    coverage: str = None,
-    n_reads: int = None,
-    mode: str = None,
+    ncbi: List[str] = ["bacteria"],
+    n_genomes_ncbi: List[int] = [10],
+    abundance: str = "lognormal",
+    coverage: str = "off",
+    n_reads: int = 1000000,
+    mode: str = "kde",
     model: str = "HiSeq",
     gc_bias: bool = False,
     cpus: int = 1,
     debug: bool = False,
-    seed: int = None,
+    seed: int = 0,
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, DNAFASTAFormat, biom.Table):
-
+    if coverage == "off":
+        coverage = None
     _locals = locals().copy()
     available_genomes = 0
     if genomes:

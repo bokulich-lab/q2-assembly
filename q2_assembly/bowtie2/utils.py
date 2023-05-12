@@ -104,7 +104,9 @@ def _process_bowtie2_arg(arg_key, arg_val):
         return [f"-{arg_key}", str(arg_val)]
     elif arg_key == "len":
         return ["-L", str(arg_val)]
-    elif arg_key in ["mp", "rdg", "rfg"]:
+    # note: `mp` appears to no longer be a list param value, now an int
+    # (in version 2.4.4)
+    elif arg_key in ["rdg", "rfg"]:
         return [
             _construct_param(arg_key),
             _construct_double_list_param_value(arg_key, arg_val),

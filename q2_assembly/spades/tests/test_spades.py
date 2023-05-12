@@ -222,7 +222,19 @@ class TestSpades(TestPluginBase):
         _ = assemble_spades(
             seqs=input, meta=True, threads=14, k=[1, 2], cov_cutoff="off"
         )
-        exp_args = ["--meta", "--threads", "14", "-k", "1,2", "--cov-cutoff", "off"]
+        exp_args = [
+            "--meta",
+            "--threads",
+            "14",
+            "--memory",
+            "250",
+            "-k",
+            "1,2",
+            "--cov-cutoff",
+            "off",
+            "--phred-offset",
+            "auto-detect",
+        ]
         p.assert_called_with(seqs=input, meta=True, common_args=exp_args)
 
 
