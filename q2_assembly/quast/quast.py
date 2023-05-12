@@ -202,7 +202,9 @@ def evaluate_contigs(
 ):
 
     kwargs = {
-        k: v for k, v in locals().items() if k not in ["output_dir", "contigs", "reads", "references"]
+        k: v
+        for k, v in locals().items()
+        if k not in ["output_dir", "contigs", "reads", "references"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
