@@ -142,6 +142,10 @@ def _evaluate_contigs(
         all_refs_dir = os.path.join(results_dir, "references")
         os.makedirs(all_refs_dir, exist_ok=True)
         all_ref_fps = []
+        # we need to split the references into separate files so that QUAST
+        # can correctly display alignment details per reference (otherwise it
+        # will show those as if all the provided sequences belonged to a single
+        # reference
         for ref in references:
             all_ref_fps.extend(_split_reference(ref, all_refs_dir))
         for fp in all_ref_fps:
