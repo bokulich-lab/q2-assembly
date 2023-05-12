@@ -272,12 +272,20 @@ class TestQuast(TestPluginBase):
                 common_args=["-m", "10", "-t", "1"],
             )
 
+    @patch("q2_assembly.quast._split_reference")
     @patch("os.makedirs")
     @patch("subprocess.run")
-    def test_evaluate_contigs_with_refs(self, p1, p2):
+    def test_evaluate_contigs_with_refs(self, p1, p2, p3):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         ref1 = DNAFASTAFormat(self.get_data_path("references/ref1.fasta"), "r")
         ref2 = DNAFASTAFormat(self.get_data_path("references/ref2.fasta"), "r")
+
+        exp_refs = [
+            ["some/dir/references/ref1.1.fasta", "some/dir/references/ref1.2.fasta"],
+            ["some/dir/references/ref2.1.fasta"],
+        ]
+        p3.side_effect = exp_refs
+
         obs_samples = _evaluate_contigs(
             results_dir="some/dir",
             contigs=contigs,
@@ -296,15 +304,21 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "-r",
-            "some/dir/references/ref1.1.fasta",
+            exp_refs[0][0],
             "-r",
-            "some/dir/references/ref1.2.fasta",
+            exp_refs[0][1],
             "-r",
-            "some/dir/references/ref2.1.fasta",
+            exp_refs[1][0],
         ]
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p1.assert_called_once_with(exp_command, check=True)
         p2.assert_called_once_with("some/dir/references", exist_ok=True)
+        p3.assert_has_calls(
+            [
+                call(ref1, "some/dir/references"),
+                call(ref2, "some/dir/references"),
+            ]
+        )
 
     @patch("platform.system", return_value="Linux")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
