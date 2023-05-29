@@ -184,7 +184,7 @@ bowtie2_indexing_params = {
     "verbose": Bool,
     "noauto": Bool,
     "packed": Bool,
-    "bmax": Int % Range(1, None) | Choices(["auto"]),
+    "bmax": Int % Range(1, None) | Str % Choices(["auto"]),
     "bmaxdivn": Int % Range(1, None),
     "dcv": Int % Range(1, None),
     "nodc": Bool,
