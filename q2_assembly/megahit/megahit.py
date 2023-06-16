@@ -153,7 +153,7 @@ def assemble_megahit_parallel(
     no_hw_accel=False,
     min_contig_len=200,
 ):
-    kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
+    kwargs = {k: v for k, v in locals().items() if k not in ["seqs", "ctx"]}
 
     single_partition = ctx.get_action("demux", "partition_samples_single")
     paired_partition = ctx.get_action("demux", "partition_samples_paired")
