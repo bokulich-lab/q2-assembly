@@ -53,7 +53,7 @@ plugin = Plugin(
 )
 
 plugin.pipelines.register_function(
-    function=q2_assembly.megahit.assemble_megahit_parallel,
+    function=q2_assembly.megahit.assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters=megahit_params,
     outputs=[("contigs", SampleData[Contigs])],
@@ -67,7 +67,7 @@ plugin.pipelines.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_assembly.megahit.assemble_megahit,
+    function=q2_assembly.megahit._assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters=megahit_params,
     outputs=[("contigs", SampleData[Contigs])],

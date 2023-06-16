@@ -6,6 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .megahit import assemble_megahit
+from .megahit import assemble_megahit, _assemble_megahit
 
-__all__ = ["assemble_megahit"]
+__all__ = ["assemble_megahit", "_assemble_megahit"]

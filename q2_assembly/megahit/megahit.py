@@ -89,7 +89,7 @@ def _process_sample(sample, fwd, rev, common_args, out):
         )
 
 
-def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
+def assemble_megahit_helper(seqs, common_args) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
     Both, paired- and single-end reads can be processed - the output will
@@ -128,7 +128,7 @@ def warn_about_presets():
     warnings.warn(warning, UserWarning)
 
 
-def assemble_megahit_parallel(
+def assemble_megahit(
     ctx,
     seqs,
     presets=None,
@@ -175,7 +175,7 @@ def assemble_megahit_parallel(
     return collate_contigs(contigs)
 
 
-def assemble_megahit(
+def _assemble_megahit(
     seqs: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
@@ -218,4 +218,4 @@ def assemble_megahit(
         processing_func=_process_megahit_arg, params=kwargs
     )
 
-    return _assemble_megahit(seqs=seqs, common_args=common_args)
+    return assemble_megahit_helper(seqs=seqs, common_args=common_args)

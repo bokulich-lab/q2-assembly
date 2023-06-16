@@ -21,10 +21,10 @@ from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.megahit.megahit import (
-    _assemble_megahit,
+    assemble_megahit_helper,
     _process_megahit_arg,
     _process_sample,
-    assemble_megahit,
+    _assemble_megahit,
 )
 
 
@@ -218,7 +218,7 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_megahit(seqs=input, common_args=self.test_params_list)
+        obs = assemble_megahit_helper(seqs=input, common_args=self.test_params_list)
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="paired")
 
         p.assert_has_calls(exp_calls, any_order=False)
@@ -229,7 +229,7 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_megahit(seqs=input, common_args=self.test_params_list)
+        obs = assemble_megahit_helper(seqs=input, common_args=self.test_params_list)
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="single")
 
         p.assert_has_calls(exp_calls, any_order=False)
@@ -240,7 +240,7 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        _ = assemble_megahit(
+        _ = _assemble_megahit(
             seqs=input,
             presets="meta-sensitive",
             bubble_level=1,
