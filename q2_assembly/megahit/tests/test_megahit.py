@@ -21,10 +21,10 @@ from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.megahit.megahit import (
-    assemble_megahit_helper,
+    _assemble_megahit,
     _process_megahit_arg,
     _process_sample,
-    _assemble_megahit,
+    assemble_megahit_helper,
 )
 
 
