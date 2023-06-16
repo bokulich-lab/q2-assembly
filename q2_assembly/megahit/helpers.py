@@ -15,6 +15,6 @@ def collate_contigs(contigs: ContigSequencesDirFmt) -> ContigSequencesDirFmt:
 
     for contig in contigs:
         for fp in contig.path.iterdir():
-            duplicate(result.path, fp)
+            duplicate(fp, result.path)
 
     return result
