@@ -9,11 +9,11 @@
 from ._version import get_versions
 from .bowtie2 import indexing, mapping
 from .iss import iss
-from .megahit import megahit
+from .megahit import megahit, helpers
 from .quast import quast
 from .spades import spades
 
 __version__ = get_versions()["version"]
 del get_versions
 
-__all__ = ["indexing", "mapping", "iss", "megahit", "quast", "spades"]
+__all__ = ["indexing", "mapping", "iss", "megahit", "helpers", "quast", "spades"]

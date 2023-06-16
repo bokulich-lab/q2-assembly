@@ -84,7 +84,9 @@ plugin.methods.register_function(
     function=q2_assembly.helpers.collate_contigs,
     inputs={"contigs": List[SampleData[Contigs]]},
     parameters={},
-    outputs={"collated_contigs": SampleData[Contigs]}
+    outputs={"collated_contigs": SampleData[Contigs]},
+    name="Collate contigs",
+    description="Collates contigs."
 )
 
 plugin.methods.register_function(

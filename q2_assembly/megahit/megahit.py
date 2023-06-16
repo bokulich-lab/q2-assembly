@@ -10,15 +10,15 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import List, Union
 import warnings
+from typing import List, Union
 
 import pandas as pd
 from q2_types.per_sample_sequences import (
-    SingleLanePerSamplePairedEndFastqDirFmt,
-    SingleLanePerSampleSingleEndFastqDirFmt,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
+    SingleLanePerSamplePairedEndFastqDirFmt,
+    SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
@@ -130,45 +130,45 @@ def warn_about_presets():
 def assemble_megahit_parallel(
     ctx,
     seqs,
-    presets = None,
-    min_count = 2,
-    k_list = [21, 29, 39, 59, 79, 99, 119, 141],
-    k_min = None,
-    k_max = None,
-    k_step = None,
-    no_mercy = False,
-    bubble_level = 2,
-    prune_level = 2,
-    prune_depth = 2,
-    disconnect_ratio = 0.1,
-    low_local_ratio = 0.2,
-    max_tip_len = "auto",
-    cleaning_rounds = 5,
-    no_local = False,
-    kmin_1pass = False,
-    memory = 0.9,
-    mem_flag = 1,
-    num_cpu_threads = 1,
-    no_hw_accel = False,
-    min_contig_len = 200,
+    presets=None,
+    min_count=2,
+    k_list=[21, 29, 39, 59, 79, 99, 119, 141],
+    k_min=None,
+    k_max=None,
+    k_step=None,
+    no_mercy=False,
+    bubble_level=2,
+    prune_level=2,
+    prune_depth=2,
+    disconnect_ratio=0.1,
+    low_local_ratio=0.2,
+    max_tip_len="auto",
+    cleaning_rounds=5,
+    no_local=False,
+    kmin_1pass=False,
+    memory=0.9,
+    mem_flag=1,
+    num_cpu_threads=1,
+    no_hw_accel=False,
+    min_contig_len=200,
 ):
     kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
 
-    single_partition = ctx.get_action('demux', 'partition_samples_single')
-    paired_partition = ctx.get_action('demux', 'partition_samples_paired')
-    _assemble_megahit = ctx.get_action('assembly', 'assemble_megahit')
-    collate_contigs = ctx.get_action('assembly', 'collate_contigs')
+    single_partition = ctx.get_action("demux", "partition_samples_single")
+    paired_partition = ctx.get_action("demux", "partition_samples_paired")
+    _assemble_megahit = ctx.get_action("assembly", "assemble_megahit")
+    collate_contigs = ctx.get_action("assembly", "collate_contigs")
 
     if seqs.type <= SequencesWithQuality:
-        partitioned_seqs, = single_partition(seqs)
+        (partitioned_seqs,) = single_partition(seqs)
     elif seqs.type <= PairedEndSequencesWithQuality:
-        partitioned_seqs, = paired_partition(seqs)
+        (partitioned_seqs,) = paired_partition(seqs)
     else:
         raise NotImplementedError()
 
     contigs = []
     for seq in partitioned_seqs.values():
-        contig, = _assemble_megahit(seq, **kwargs)
+        (contig,) = _assemble_megahit(seq, **kwargs)
         contigs.append(contig)
 
     return collate_contigs(contigs)
