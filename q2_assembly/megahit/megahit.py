@@ -14,6 +14,7 @@ import warnings
 from typing import List, Union
 
 import pandas as pd
+from q2_types.sample_data import SampleData
 from q2_types.per_sample_sequences import (
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
@@ -159,9 +160,9 @@ def assemble_megahit_parallel(
     _assemble_megahit = ctx.get_action("assembly", "assemble_megahit")
     collate_contigs = ctx.get_action("assembly", "collate_contigs")
 
-    if seqs.type <= SequencesWithQuality:
+    if seqs.type <= SampleData[SequencesWithQuality]:
         (partitioned_seqs,) = single_partition(seqs)
-    elif seqs.type <= PairedEndSequencesWithQuality:
+    elif seqs.type <= SampleData[PairedEndSequencesWithQuality]:
         (partitioned_seqs,) = paired_partition(seqs)
     else:
         raise NotImplementedError()

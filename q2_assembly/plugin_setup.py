@@ -20,7 +20,7 @@ from q2_types_genomics.per_sample_data import (
     SingleBowtie2Index,
 )
 from q2_types_genomics.per_sample_data._type import AlignmentMap
-from qiime2.plugin import Citations, Plugin, List
+from qiime2.plugin import Citations, List, Plugin
 
 import q2_assembly
 from q2_assembly import __version__
@@ -86,7 +86,7 @@ plugin.methods.register_function(
     parameters={},
     outputs={"collated_contigs": SampleData[Contigs]},
     name="Collate contigs",
-    description="Collates contigs."
+    description="Collates contigs.",
 )
 
 plugin.methods.register_function(

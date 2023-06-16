@@ -9,7 +9,7 @@
 from ._version import get_versions
 from .bowtie2 import indexing, mapping
 from .iss import iss
-from .megahit import megahit, helpers
+from .megahit import helpers, megahit
 from .quast import quast
 from .spades import spades
 
