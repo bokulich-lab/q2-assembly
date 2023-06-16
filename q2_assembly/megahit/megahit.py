@@ -130,7 +130,7 @@ def warn_about_presets():
 def assemble_megahit_parallel(
     ctx,
     seqs,
-    preset = None,
+    presets = None,
     min_count = 2,
     k_list = [21, 29, 39, 59, 79, 99, 119, 141],
     k_min = None,
