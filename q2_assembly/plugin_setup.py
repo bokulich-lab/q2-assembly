@@ -20,7 +20,7 @@ from q2_types_genomics.per_sample_data import (
     SingleBowtie2Index,
 )
 from q2_types_genomics.per_sample_data._type import AlignmentMap
-from qiime2.plugin import Citations, Plugin
+from qiime2.plugin import Citations, Plugin, List
 
 import q2_assembly
 from q2_assembly import __version__
@@ -52,6 +52,20 @@ plugin = Plugin(
     short_description="QIIME 2 plugin for (meta)genome assembly.",
 )
 
+plugin.pipelines.register_function(
+    function=q2_assembly.megahit.assemble_megahit_parallel,
+    inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    parameters=megahit_params,
+    outputs=[("contigs", SampleData[Contigs])],
+    input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
+    parameter_descriptions=megahit_param_descriptions,
+    output_descriptions={"contigs": "The resulting assembled contigs."},
+    name="Assemble contigs using MEGAHIT.",
+    description="This method uses MEGAHIT to assemble provided paired- or "
+    "single-end NGS reads into contigs.",
+    citations=[citations["Li2015"], citations["Li2016"]],
+)
+
 plugin.methods.register_function(
     function=q2_assembly.megahit.assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
@@ -64,6 +78,13 @@ plugin.methods.register_function(
     description="This method uses MEGAHIT to assemble provided paired- or "
     "single-end NGS reads into contigs.",
     citations=[citations["Li2015"], citations["Li2016"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.helpers.collate_contigs,
+    inputs={"contigs": List[SampleData[Contigs]]},
+    parameters={},
+    outputs={"collated_contigs": SampleData[Contigs]}
 )
 
 plugin.methods.register_function(
