@@ -172,7 +172,8 @@ def assemble_megahit(
         (contig,) = _assemble_megahit(seq, **kwargs)
         contigs.append(contig)
 
-    return collate_contigs(contigs)
+    (collated_contigs,) = collate_contigs(contigs)
+    return collated_contigs
 
 
 def _assemble_megahit(

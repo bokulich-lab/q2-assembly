@@ -6,8 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from qiime2.util import duplicate
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
+from qiime2.util import duplicate
 
 
 def collate_contigs(contigs: ContigSequencesDirFmt) -> ContigSequencesDirFmt:
@@ -15,6 +15,6 @@ def collate_contigs(contigs: ContigSequencesDirFmt) -> ContigSequencesDirFmt:
 
     for contig in contigs:
         for fp in contig.path.iterdir():
-            duplicate(fp, result.path)
+            duplicate(fp, result.path / fp.name)
 
     return result
