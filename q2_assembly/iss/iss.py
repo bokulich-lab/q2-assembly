@@ -142,6 +142,10 @@ def generate_reads(
         )
         _locals["n_genomes"] = available_genomes - 1
 
+    if not sample_names:
+        # If it's empty or None, create a list with a default element "sample"
+        sample_names = ["sample"]
+    
     if len(set(sample_names)) < len(sample_names):
         dupl = {str(x) for x in sample_names if sample_names.count(x) > 1}
         raise Exception(
