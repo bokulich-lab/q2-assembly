@@ -145,6 +145,12 @@ def generate_reads(
     if not sample_names:
         # If it's empty or None, create a list with a default element "sample"
         sample_names = ["sample"]
+        print (
+            'The "--p-sample-names" option was not provided. ' 
+            'Only one sample will be created with the prefix "sample".'
+            '\n'
+        )
+
     if len(set(sample_names)) < len(sample_names):
         dupl = {str(x) for x in sample_names if sample_names.count(x) > 1}
         raise Exception(
