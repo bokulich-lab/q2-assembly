@@ -188,10 +188,9 @@ class TestISS(TestPluginBase):
             _table_to_dataframe(obs_abundances), _table_to_dataframe(exp_biom_table)
         )
 
-        # Test the scenario where the user does not provide an element for the sample_names list.
-        # The function generate_reads should handle this case without raising errors.
         def test_generate_reads_no_sample_names_provided(self):
             generate_reads(n_genomes_ncbi=[1],ncbi=["bacteria"],n_reads=1)
+
 
 if __name__ == "__main__":
     unittest.main()
