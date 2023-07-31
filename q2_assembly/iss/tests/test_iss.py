@@ -189,7 +189,7 @@ class TestISS(TestPluginBase):
         )
 
         def test_generate_reads_no_sample_names_provided(self):
-            generate_reads(n_genomes_ncbi=[1],ncbi=["bacteria"],n_reads=1)
+            generate_reads(n_genomes_ncbi=[1], ncbi=["bacteria"], n_reads=1)
 
 
 if __name__ == "__main__":
