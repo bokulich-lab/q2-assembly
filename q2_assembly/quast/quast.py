@@ -18,6 +18,7 @@ from typing import List, Union
 import pandas as pd
 import pkg_resources
 import q2templates
+from q2_types.feature_data import DNAFASTAFormat, DNAIterator
 from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -66,11 +67,23 @@ def _process_quast_arg(arg_key, arg_val):
         return [_construct_param(arg_key), arg_value]
 
 
+def _split_reference(ref: DNAFASTAFormat, all_refs_dir: str) -> List[str]:
+    all_seq_fps = []
+    for seq in ref.view(DNAIterator):
+        seq_id = seq.metadata["id"]
+        seq_fp = os.path.join(all_refs_dir, f"{seq_id}.fasta")
+        all_seq_fps.append(seq_fp)
+        with open(seq_fp, "w") as f:
+            f.write(f">{seq_id}\n{str(seq)}")
+    return all_seq_fps
+
+
 def _evaluate_contigs(
     results_dir: str,
     contigs: ContigSequencesDirFmt,
     reads: dict,
     paired: bool,
+    references: List[DNAFASTAFormat],
     common_args: list,
 ) -> List[str]:
     """Runs the contig assembly QC using QUAST.
@@ -102,6 +115,8 @@ def _evaluate_contigs(
 
     if reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
+        # TODO: this is a strange statement which most likely
+        #  doesn't do what it should - check and fix
         if (rev_count < len(samples) > rev_count) and paired:
             raise Exception(
                 f"Number of reverse reads ({rev_count}) does not match "
@@ -123,7 +138,18 @@ def _evaluate_contigs(
                     "Some samples are missing from the reads file. "
                     "Please check your input files."
                 )
-
+    if references:
+        all_refs_dir = os.path.join(results_dir, "references")
+        os.makedirs(all_refs_dir, exist_ok=True)
+        all_ref_fps = []
+        # we need to split the references into separate files so that QUAST
+        # can correctly display alignment details per reference (otherwise it
+        # will show those as if all the provided sequences belonged to a single
+        # reference
+        for ref in references:
+            all_ref_fps.extend(_split_reference(ref, all_refs_dir))
+        for fp in all_ref_fps:
+            cmd.extend(["-r", fp])
     try:
         run_command(cmd, verbose=True)
     except subprocess.CalledProcessError as e:
@@ -171,6 +197,7 @@ def evaluate_contigs(
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
+    references: DNAFASTAFormat = None,
     min_contig: int = 500,
     threads: int = 1,
     k_mer_stats: bool = False,
@@ -178,7 +205,9 @@ def evaluate_contigs(
     contig_thresholds: List[int] = [0, 1000, 5000, 10000, 25000, 50000],
 ):
     kwargs = {
-        k: v for k, v in locals().items() if k not in ["output_dir", "contigs", "reads"]
+        k: v
+        for k, v in locals().items()
+        if k not in ["output_dir", "contigs", "reads", "references"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
@@ -200,7 +229,7 @@ def evaluate_contigs(
 
         # run quast
         samples = _evaluate_contigs(
-            results_dir, contigs, reads_fps, paired, common_args
+            results_dir, contigs, reads_fps, paired, references, common_args
         )
 
         # fix/remove some URLs
