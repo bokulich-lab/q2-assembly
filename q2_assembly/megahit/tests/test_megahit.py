@@ -18,6 +18,7 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.megahit.megahit import (
@@ -37,6 +38,7 @@ class TestMegahit(TestPluginBase):
 
     def setUp(self):
         super().setUp()
+        self.assemble_megahit = self.plugin.pipelines["assemble_megahit"]
         self.fake_common_args = ["--presets", "meta-fake", "--k-min", "39"]
         self.test_params_dict = {
             "presets": "meta-sensitive",
@@ -277,6 +279,26 @@ class TestMegahit(TestPluginBase):
             "200",
         ]
         p.assert_called_with(seqs=input, common_args=exp_args)
+
+    def test_assemble_megahit_parallel_paired(self):
+        input_files = self.get_data_path("reads/paired-end-parallel")
+        _input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data(
+            "SampleData[PairedEndSequencesWithQuality]", _input
+        )
+
+        (out,) = self.assemble_megahit(samples)
+        out.validate()
+        self.assertIs(out.format, ContigSequencesDirFmt)
+
+    def test_assemble_megahit_parallel_single(self):
+        input_files = self.get_data_path("reads/single-end-parallel")
+        _input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data("SampleData[SequencesWithQuality]", _input)
+
+        (out,) = self.assemble_megahit(samples)
+        out.validate()
+        self.assertIs(out.format, ContigSequencesDirFmt)
 
 
 if __name__ == "__main__":
