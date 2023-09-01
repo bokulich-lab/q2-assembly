@@ -235,7 +235,7 @@ class TestMegahit(TestPluginBase):
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit._assemble_megahit")
+    @patch("q2_assembly.megahit.assemble_megahit_helper")
     def test_assemble_megahit_process_params(self, p):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
