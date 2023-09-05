@@ -89,34 +89,6 @@ def _process_sample(sample, fwd, rev, common_args, out):
         )
 
 
-def assemble_megahit_helper(seqs, common_args) -> ContigSequencesDirFmt:
-    """Runs the assembly for all available samples.
-
-    Both, paired- and single-end reads can be processed - the output will
-    be adjusted accordingly.
-
-    Args:
-        seqs: Sequences to be processed.
-        common_args: List of common flags and their values for
-            the MEGAHIT command.
-
-    Returns:
-        result (ContigSequencesDirFmt): Assembled contigs.
-
-    """
-
-    paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
-    manifest = seqs.manifest.view(pd.DataFrame)
-    result = ContigSequencesDirFmt()
-
-    for samp in list(manifest.index):
-        fwd = manifest.loc[samp, "forward"]
-        rev = manifest.loc[samp, "reverse"] if paired else None
-
-        _process_sample(samp, fwd, rev, common_args, result)
-    return result
-
-
 def warn_about_presets():
     warning = (
         "The presets parameter overrides settings for the min_count and k_list "
@@ -220,3 +192,31 @@ def _assemble_megahit(
     )
 
     return assemble_megahit_helper(seqs=seqs, common_args=common_args)
+
+
+def assemble_megahit_helper(seqs, common_args) -> ContigSequencesDirFmt:
+    """Runs the assembly for all available samples.
+
+    Both, paired- and single-end reads can be processed - the output will
+    be adjusted accordingly.
+
+    Args:
+        seqs: Sequences to be processed.
+        common_args: List of common flags and their values for
+            the MEGAHIT command.
+
+    Returns:
+        result (ContigSequencesDirFmt): Assembled contigs.
+
+    """
+
+    paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
+    manifest = seqs.manifest.view(pd.DataFrame)
+    result = ContigSequencesDirFmt()
+
+    for samp in list(manifest.index):
+        fwd = manifest.loc[samp, "forward"]
+        rev = manifest.loc[samp, "reverse"] if paired else None
+
+        _process_sample(samp, fwd, rev, common_args, result)
+    return result
