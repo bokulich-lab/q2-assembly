@@ -11,10 +11,10 @@ from qiime2.util import duplicate
 
 
 def collate_contigs(contigs: ContigSequencesDirFmt) -> ContigSequencesDirFmt:
-    result = ContigSequencesDirFmt()
+    collated_contigs = ContigSequencesDirFmt()
 
     for contig in contigs:
         for fp in contig.path.iterdir():
-            duplicate(fp, result.path / fp.name)
+            duplicate(fp, collated_contigs.path / fp.name)
 
-    return result
+    return collated_contigs
