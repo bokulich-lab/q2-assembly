@@ -155,14 +155,14 @@ def assemble_megahit(
 ):
     kwargs = {k: v for k, v in locals().items() if k not in ["seqs", "ctx"]}
 
-    single_partition = ctx.get_action("demux", "partition_samples_single")
-    paired_partition = ctx.get_action("demux", "partition_samples_paired")
     _assemble_megahit = ctx.get_action("assembly", "_assemble_megahit")
     collate_contigs = ctx.get_action("assembly", "collate_contigs")
 
     if seqs.type <= SampleData[SequencesWithQuality]:
+        single_partition = ctx.get_action("demux", "partition_samples_single")
         (partitioned_seqs,) = single_partition(seqs)
     elif seqs.type <= SampleData[PairedEndSequencesWithQuality]:
+        paired_partition = ctx.get_action("demux", "partition_samples_paired")
         (partitioned_seqs,) = paired_partition(seqs)
     else:
         raise NotImplementedError()
