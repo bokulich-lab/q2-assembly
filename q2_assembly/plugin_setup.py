@@ -20,7 +20,7 @@ from q2_types_genomics.per_sample_data import (
     SingleBowtie2Index,
 )
 from q2_types_genomics.per_sample_data._type import AlignmentMap
-from qiime2.plugin import Citations, List, Plugin
+from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 
 import q2_assembly
 from q2_assembly import __version__
@@ -81,12 +81,30 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
+    function=q2_assembly.helpers.partition_contigs,
+    inputs={"contigs": SampleData[Contigs]},
+    parameters={"num_partitions": Int % Range(1, None)},
+    outputs={"partitioned_contigs": Collection[SampleData[Contigs]]},
+    input_descriptions={"contigs": "The contigs to partition."},
+    parameter_descriptions={
+        "num_partitions": "The number of partitions to split the contigs"
+        " into. Defaults to partitioning into individual"
+        " samples."
+    },
+    name="Partition contigs",
+    description="Partition contigs into individual samples or the number of"
+    " partitions specified.",
+)
+
+plugin.methods.register_function(
     function=q2_assembly.helpers.collate_contigs,
     inputs={"contigs": List[SampleData[Contigs]]},
     parameters={},
     outputs={"collated_contigs": SampleData[Contigs]},
+    input_descriptions={"contigs": "A collection of contigs to be collated."},
     name="Collate contigs",
-    description="Collates contigs.",
+    description="Takes a collection of SampleData[Contigs] and collates them"
+    " into a single artifact.",
 )
 
 plugin.methods.register_function(
