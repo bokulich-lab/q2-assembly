@@ -16,7 +16,7 @@ from q2_types_genomics.per_sample_data import (
 )
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.bowtie2.indexing import _index_seqs, index_contigs, index_mags
+from q2_assembly.bowtie2.indexing import _index_contigs, _index_seqs, index_mags
 
 
 class TestBowtie2Indexing(TestPluginBase):
@@ -174,7 +174,7 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
     def test_index_contigs(self, p):
         input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        index_contigs(
+        _index_contigs(
             input_contigs,
             large_index=True,
             bmax=11,
