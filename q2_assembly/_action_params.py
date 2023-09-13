@@ -414,4 +414,10 @@ bowtie2_mapping_param_descriptions = {
     "non_deterministic": "If specified, Bowtie 2 re-initializes its pseudo-random "
                          "generator for each read using the current time.",
 }
+partition_params = {"num_partitions": Int % Range(1, None)}
+partition_param_descriptions = {
+        "num_partitions": "The number of partitions to split the contigs"
+        " into. Defaults to partitioning into individual"
+        " samples."
+    }
 # fmt: on

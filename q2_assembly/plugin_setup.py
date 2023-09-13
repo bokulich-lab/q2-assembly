@@ -33,6 +33,8 @@ from q2_assembly._action_params import (
     iss_params,
     megahit_param_descriptions,
     megahit_params,
+    partition_param_descriptions,
+    partition_params,
     quast_param_descriptions,
     quast_params,
     spades_param_descriptions,
@@ -55,14 +57,12 @@ plugin = Plugin(
 plugin.pipelines.register_function(
     function=q2_assembly.megahit.assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
-    parameters={**megahit_params, "num_partitions": Int % Range(1, None)},
+    parameters={**megahit_params, **partition_params},
     outputs=[("contigs", SampleData[Contigs])],
     input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
     parameter_descriptions={
         **megahit_param_descriptions,
-        "num_partitions": "The number of partitions to split your sequences"
-        " into, Defaults to partitioning into individual"
-        " samples.",
+        **partition_param_descriptions,
     },
     output_descriptions={"contigs": "The resulting assembled contigs."},
     name="Assemble contigs using MEGAHIT.",
@@ -144,8 +144,24 @@ plugin.visualizers.register_function(
     citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
 )
 
-plugin.methods.register_function(
+plugin.pipelines.register_function(
     function=q2_assembly.indexing.index_contigs,
+    inputs={"contigs": SampleData[Contigs]},
+    parameters={**bowtie2_indexing_params, **partition_params},
+    outputs=[("index", SampleData[SingleBowtie2Index])],
+    input_descriptions={"contigs": "Contigs to be indexed."},
+    parameter_descriptions={
+        **bowtie2_indexing_param_descriptions,
+        **partition_param_descriptions,
+    },
+    output_descriptions={"index": "Bowtie2 indices generated for input sequences."},
+    name="Index contigs using Bowtie2.",
+    description="This method uses Bowtie2 to generate indices of " "provided contigs.",
+    citations=[citations["Langmead2012"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.indexing._index_contigs,
     inputs={"contigs": SampleData[Contigs]},
     parameters=bowtie2_indexing_params,
     outputs=[("index", SampleData[SingleBowtie2Index])],
