@@ -75,22 +75,24 @@ def index_contigs(
     seed=0,
     num_partitions=None,
 ):
-    if bmax == "auto":
-        bmax = None
     kwargs = {
         k: v
         for k, v in locals().items()
         if k not in ["contigs", "num_partitions", "ctx"]
     }
-    common_args = _process_common_input_params(
-        processing_func=_process_bowtie2build_arg, params=kwargs
-    )
-    result = Bowtie2IndexDirFmt()
 
-    contig_fps = sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa")))
-    _index_seqs(contig_fps, str(result), common_args, "contigs")
+    _index_contigs = ctx.get_action("assembly", "_index_contigs")
+    partition_contigs = ctx.get_action("assembly", "partition_contigs")
+    collate_indices = ctx.get_action("assembly", "collate_indices")
 
-    return result
+    (partitioned_contigs,) = partition_contigs(contigs, num_partitions)
+    indices = []
+    for contig in partitioned_contigs.values():
+        (index,) = _index_contigs(contigs=contig, **kwargs)
+        indices.append(index)
+
+    (collated_indices,) = collate_indices(indices)
+    return collated_indices
 
 
 def _index_contigs(

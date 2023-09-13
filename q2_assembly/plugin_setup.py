@@ -174,6 +174,19 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
+    function=q2_assembly.helpers.collate_indices,
+    inputs={"indices": List[SampleData[SingleBowtie2Index]]},
+    parameters={},
+    outputs={"collated_indices": SampleData[SingleBowtie2Index]},
+    input_descriptions={"indices": "A collection of indices to be collated."},
+    name="Collate indices",
+    description=(
+        "Takes a collection of SampleData[Bowtie2Incex] and collates"
+        " them into a single artifact."
+    ),
+)
+
+plugin.methods.register_function(
     function=q2_assembly.indexing.index_mags,
     inputs={"mags": SampleData[MAGs]},
     parameters=bowtie2_indexing_params,
