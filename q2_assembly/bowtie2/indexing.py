@@ -57,6 +57,43 @@ def _index_seqs(
 
 
 def index_contigs(
+    ctx,
+    contigs,
+    large_index=False,
+    debug=False,
+    sanitized=False,
+    verbose=False,
+    noauto=False,
+    packed=False,
+    bmax="auto",
+    bmaxdivn=4,
+    dcv=1024,
+    nodc=False,
+    offrate=5,
+    ftabchars=10,
+    threads=1,
+    seed=0,
+    num_partitions=None,
+):
+    if bmax == "auto":
+        bmax = None
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["contigs", "num_partitions", "ctx"]
+    }
+    common_args = _process_common_input_params(
+        processing_func=_process_bowtie2build_arg, params=kwargs
+    )
+    result = Bowtie2IndexDirFmt()
+
+    contig_fps = sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa")))
+    _index_seqs(contig_fps, str(result), common_args, "contigs")
+
+    return result
+
+
+def _index_contigs(
     contigs: ContigSequencesDirFmt,
     large_index: bool = False,
     debug: bool = False,
