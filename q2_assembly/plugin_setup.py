@@ -55,10 +55,15 @@ plugin = Plugin(
 plugin.pipelines.register_function(
     function=q2_assembly.megahit.assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
-    parameters=megahit_params,
+    parameters={**megahit_params, "num_partitions": Int % Range(1, None)},
     outputs=[("contigs", SampleData[Contigs])],
     input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
-    parameter_descriptions=megahit_param_descriptions,
+    parameter_descriptions={
+        **megahit_param_descriptions,
+        "num_partitions": "The number of partitions to split your sequences"
+        " into, Defaults to partitioning into individual"
+        " samples.",
+    },
     output_descriptions={"contigs": "The resulting assembled contigs."},
     name="Assemble contigs using MEGAHIT.",
     description="This method uses MEGAHIT to assemble provided paired- or "

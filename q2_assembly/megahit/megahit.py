@@ -124,8 +124,11 @@ def assemble_megahit(
     num_cpu_threads=1,
     no_hw_accel=False,
     min_contig_len=200,
+    num_partitions=None,
 ):
-    kwargs = {k: v for k, v in locals().items() if k not in ["seqs", "ctx"]}
+    kwargs = {
+        k: v for k, v in locals().items() if k not in ["seqs", "num_partitions", "ctx"]
+    }
 
     _assemble_megahit = ctx.get_action("assembly", "_assemble_megahit")
     collate_contigs = ctx.get_action("assembly", "collate_contigs")
@@ -137,7 +140,7 @@ def assemble_megahit(
     else:
         raise NotImplementedError()
 
-    (partitioned_seqs,) = partition_method(seqs)
+    (partitioned_seqs,) = partition_method(seqs, num_partitions)
 
     contigs = []
     for seq in partitioned_seqs.values():
