@@ -10,11 +10,14 @@ import unittest
 from subprocess import CalledProcessError
 from unittest.mock import ANY, call, patch
 
+from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types_genomics.per_sample_data import (
     ContigSequencesDirFmt,
     MultiMAGSequencesDirFmt,
 )
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly.bowtie2.indexing import _index_contigs, _index_seqs, index_mags
 
@@ -24,6 +27,7 @@ class TestBowtie2Indexing(TestPluginBase):
 
     def setUp(self):
         super().setUp()
+        self.index_contigs = self.plugin.pipelines["index_contigs"]
         self.test_params_list = [
             "--large-index",
             "--bmax",
@@ -187,6 +191,25 @@ class TestBowtie2Indexing(TestPluginBase):
 
         exp_contigs = [f"{str(input_contigs)}/sample{x+1}_contigs.fa" for x in range(2)]
         p.assert_called_with(exp_contigs, ANY, self.test_params_list, "contigs")
+
+    def test_index_contigs_parallel(self):
+        input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        input_artifact = Artifact.import_data("SampleData[Contigs]", input_contigs)
+
+        with ParallelConfig():
+            (out,) = self.index_contigs.parallel(
+                input_artifact,
+                large_index=True,
+                bmax=11,
+                bmaxdivn=4,
+                dcv=1024,
+                offrate=5,
+                ftabchars=10,
+                threads=1,
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, Bowtie2IndexDirFmt)
 
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
     def test_index_mags(self, p):
