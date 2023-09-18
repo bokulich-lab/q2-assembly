@@ -159,6 +159,7 @@ def map_reads_to_contigs(
     mm=False,
     seed=0,
     non_deterministic=False,
+    num_partitions=None,
 ):
     if qupto == "unlimited":
         qupto = None

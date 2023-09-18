@@ -142,7 +142,7 @@ class TestBowtie2Mapping(TestPluginBase):
                 paired=True,
                 sample_name=s,
                 sample_inputs=s_props,
-                result_fp=str(self.test_result),
+                result=self.test_result,
             )
 
             exp_calls = [
@@ -181,7 +181,7 @@ class TestBowtie2Mapping(TestPluginBase):
                     paired=True,
                     sample_name=s,
                     sample_inputs=s_props,
-                    result_fp=str(self.test_result),
+                    result=self.test_result,
                 )
 
     @patch("shutil.move")
@@ -199,7 +199,7 @@ class TestBowtie2Mapping(TestPluginBase):
                 paired=False,
                 sample_name=s,
                 sample_inputs=s_props,
-                result_fp=str(self.test_result),
+                result=self.test_result,
             )
 
             exp_calls = [
