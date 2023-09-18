@@ -25,6 +25,8 @@ from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 import q2_assembly
 from q2_assembly import __version__
 from q2_assembly._action_params import (
+    _map_sample_reads_params,
+    _map_sample_reads_params_description,
     bowtie2_indexing_param_descriptions,
     bowtie2_indexing_params,
     bowtie2_mapping_param_descriptions,
@@ -228,7 +230,7 @@ plugin.methods.register_function(
     citations=[citations["Gourle2019"]],
 )
 
-plugin.methods.register_function(
+plugin.pipelines.register_function(
     function=q2_assembly.mapping.map_reads_to_contigs,
     inputs={
         "indexed_contigs": SampleData[SingleBowtie2Index],
@@ -247,4 +249,16 @@ plugin.methods.register_function(
     description="This method uses Bowtie2 to map provided reads to "
     "respective contigs.",
     citations=[citations["Langmead2012"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.mapping._map_sample_reads,
+    inputs={"result": SampleData[AlignmentMap]},
+    parameters=_map_sample_reads_params,
+    outputs=[("alignment_map", SampleData[AlignmentMap])],
+    input_descriptions={"result": "The Artifact to write the result to."},
+    parameter_descriptions=_map_sample_reads_params_description,
+    output_descriptions={},
+    name="Map reads to contigs helper.",
+    description="Not to be called directly. Used by map_reads_to_contigs.",
 )

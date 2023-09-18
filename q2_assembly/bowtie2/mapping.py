@@ -11,14 +11,10 @@ import shutil
 import subprocess
 import tempfile
 from copy import deepcopy
-from typing import Union
 
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types.per_sample_sequences import (
-    SingleLanePerSamplePairedEndFastqDirFmt,
-    SingleLanePerSampleSingleEndFastqDirFmt,
-)
+from q2_types.per_sample_sequences import SingleLanePerSamplePairedEndFastqDirFmt
 from q2_types_genomics.per_sample_data import BAMDirFmt
 
 from .._utils import _process_common_input_params, run_commands_with_pipe
@@ -26,12 +22,12 @@ from .utils import _process_bowtie2_arg
 
 
 def _map_sample_reads(
+    result: BAMDirFmt,
     common_args: list,
     paired: bool,
     sample_name: str,
     sample_inputs: dict,
-    result_fp: str,
-):
+) -> BAMDirFmt:
     """Constructs mapping command for bowtie2 and runs the mapping.
 
     Args:
@@ -42,6 +38,7 @@ def _map_sample_reads(
             bowtie2 index, forward and reverse (if paired) reads.
         result_fp (str): Path to where the result should be stored.
     """
+    result_fp = str(result)
     base_cmd = ["bowtie2"]
     base_cmd.extend(common_args)
 
@@ -111,55 +108,54 @@ def _gather_sample_data(
 
 
 def map_reads_to_contigs(
-    indexed_contigs: Bowtie2IndexDirFmt,
-    reads: Union[
-        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
-    ],
-    skip: int = 0,
-    qupto: int = "unlimited",
-    trim5: int = 0,
-    trim3: int = 0,
-    trim_to: str = "untrimmed",
-    phred33: bool = False,
-    phred64: bool = False,
-    mode: str = "local",
-    sensitivity: str = "sensitive",
-    n: int = 0,
-    len: int = 22,
-    i: str = "S,1,1.15",
-    n_ceil: str = "L,0,0.15",
-    dpad: int = 15,
-    gbar: int = 4,
-    ignore_quals: bool = False,
-    nofw: bool = False,
-    norc: bool = False,
-    no_1mm_upfront: bool = False,
-    end_to_end: bool = False,
-    local: bool = False,
-    ma: int = 2,
-    mp: int = 6,
-    np: int = 1,
-    rdg: str = "5,3",
-    rfg: str = "5,3",
-    k: int = "off",
-    a: bool = False,
-    d: int = 15,
-    r: int = 2,
-    minins: int = 0,
-    maxins: int = 500,
-    valid_mate_orientations: str = "fr",
-    no_mixed: bool = False,
-    no_discordant: bool = False,
-    dovetail: bool = False,
-    no_contain: bool = False,
-    no_overlap: bool = False,
-    offrate: int = "off",
-    threads: int = 1,
-    reorder: bool = False,
-    mm: bool = False,
-    seed: int = 0,
-    non_deterministic: bool = False,
-) -> BAMDirFmt:
+    ctx,
+    indexed_contigs,
+    reads,
+    skip=0,
+    qupto="unlimited",
+    trim5=0,
+    trim3=0,
+    trim_to="untrimmed",
+    phred33=False,
+    phred64=False,
+    mode="local",
+    sensitivity="sensitive",
+    n=0,
+    len=22,
+    i="S,1,1.15",
+    n_ceil="L,0,0.15",
+    dpad=15,
+    gbar=4,
+    ignore_quals=False,
+    nofw=False,
+    norc=False,
+    no_1mm_upfront=False,
+    end_to_end=False,
+    local=False,
+    ma=2,
+    mp=6,
+    np=1,
+    rdg="5,3",
+    rfg="5,3",
+    k="off",
+    a=False,
+    d=15,
+    r=2,
+    minins=0,
+    maxins=500,
+    valid_mate_orientations="fr",
+    no_mixed=False,
+    no_discordant=False,
+    dovetail=False,
+    no_contain=False,
+    no_overlap=False,
+    offrate="off",
+    threads=1,
+    reorder=False,
+    mm=False,
+    seed=0,
+    non_deterministic=False,
+):
     if qupto == "unlimited":
         qupto = None
     if trim_to == "untrimmed":
@@ -171,7 +167,7 @@ def map_reads_to_contigs(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["indexed_contigs", "reads", "sensitivity", "mode"]
+        if k not in ["ctx", "indexed_contigs", "reads", "sensitivity", "mode"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2_arg, params=kwargs
