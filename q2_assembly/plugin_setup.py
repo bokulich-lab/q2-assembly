@@ -258,7 +258,9 @@ plugin.methods.register_function(
     inputs={"result": SampleData[AlignmentMap]},
     parameters=_map_sample_reads_params,
     outputs=[("alignment_map", SampleData[AlignmentMap])],
-    input_descriptions={"result": "The Artifact to write the result to."},
+    input_descriptions={
+        "result": "Vestigial. Only here for now because methods" " need a return."
+    },
     parameter_descriptions=_map_sample_reads_params_description,
     output_descriptions={},
     name="Map reads to contigs helper.",
