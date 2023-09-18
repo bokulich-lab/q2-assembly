@@ -282,7 +282,7 @@ class TestMegahit(TestPluginBase):
         p.assert_called_with(seqs=input, common_args=exp_args)
 
     def test_assemble_megahit_parallel_paired(self):
-        input_files = self.get_data_path("reads/paired-end-parallel")
+        input_files = self.get_data_path("formatted-reads/paired-end")
         _input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
         samples = Artifact.import_data(
             "SampleData[PairedEndSequencesWithQuality]", _input
@@ -295,7 +295,7 @@ class TestMegahit(TestPluginBase):
         self.assertIs(out.format, ContigSequencesDirFmt)
 
     def test_assemble_megahit_parallel_single(self):
-        input_files = self.get_data_path("reads/single-end-parallel")
+        input_files = self.get_data_path("formatted-reads/single-end")
         _input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
         samples = Artifact.import_data("SampleData[SequencesWithQuality]", _input)
 
