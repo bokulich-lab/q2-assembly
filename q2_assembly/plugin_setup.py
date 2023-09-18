@@ -262,7 +262,7 @@ plugin.methods.register_function(
     parameters=_map_sample_reads_params,
     outputs=[("alignment_map", SampleData[AlignmentMap])],
     input_descriptions={
-        "result": "Vestigial. Only here for now because methods" " need a return."
+        "result": "Vestigial. Only here for now because methods need a return."
     },
     parameter_descriptions=_map_sample_reads_params_description,
     output_descriptions={},

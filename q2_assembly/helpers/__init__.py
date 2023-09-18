@@ -6,15 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from ._version import get_versions
-from .bowtie2 import indexing, mapping
-from .helpers import helpers
-from .iss import iss
-from .megahit import megahit
-from .quast import quast
-from .spades import spades
+from .helpers import collate_contigs, collate_indices, partition_contigs
 
-__version__ = get_versions()["version"]
-del get_versions
-
-__all__ = ["indexing", "mapping", "iss", "megahit", "quast", "spades", "helpers"]
+__all__ = ["partition_contigs", "collate_contigs", "collate_indices"]
