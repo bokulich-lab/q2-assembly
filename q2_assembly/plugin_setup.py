@@ -238,14 +238,17 @@ plugin.pipelines.register_function(
         "indexed_contigs": SampleData[SingleBowtie2Index],
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
-    parameters=bowtie2_mapping_params,
+    parameters={**bowtie2_mapping_params, **partition_params},
     outputs=[("alignment_map", SampleData[AlignmentMap])],
     input_descriptions={
         "indexed_contigs": "Bowtie 2 indices generated for contigs " "of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
         "were assembled.",
     },
-    parameter_descriptions=bowtie2_mapping_param_descriptions,
+    parameter_descriptions={
+        **bowtie2_mapping_param_descriptions,
+        **partition_param_descriptions,
+    },
     output_descriptions={"alignment_map": "Reads-to-contigs mapping."},
     name="Map reads to contigs using Bowtie2.",
     description="This method uses Bowtie2 to map provided reads to "
