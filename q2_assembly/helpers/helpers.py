@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
+from q2_types_genomics.per_sample_data import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
 
@@ -75,3 +75,14 @@ def collate_indices(indices: Bowtie2IndexDirFmt) -> Bowtie2IndexDirFmt:
                 duplicate(fp, out_fp)
 
     return collated_indices
+
+
+def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
+    collated_alignments = BAMDirFmt()
+
+    for alignment in alignments:
+        for _alignment in alignment.path.iterdir():
+            filename = os.path.basename(_alignment)
+            duplicate(filename, os.path.join(collated_alignments.path, filename))
+
+    return collated_alignments

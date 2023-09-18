@@ -258,14 +258,24 @@ plugin.pipelines.register_function(
 
 plugin.methods.register_function(
     function=q2_assembly.mapping._map_sample_reads,
-    inputs={"result": SampleData[AlignmentMap]},
+    inputs={},
     parameters=_map_sample_reads_params,
     outputs=[("alignment_map", SampleData[AlignmentMap])],
-    input_descriptions={
-        "result": "Vestigial. Only here for now because methods need a return."
-    },
     parameter_descriptions=_map_sample_reads_params_description,
     output_descriptions={},
+    name="Map reads to contigs helper.",
+    description="Not to be called directly. Used by map_reads_to_contigs.",
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.helpers.collate_alignments,
+    inputs={"alignments": List[SampleData[AlignmentMap]]},
+    parameters={},
+    outputs=[("collated_alignments", SampleData[AlignmentMap])],
+    input_descriptions={"alignments": "A collection of alignments to be collated."},
+    output_descriptions={
+        "collated_alignments": "The alignemnts collated into oine artifact"
+    },
     name="Map reads to contigs helper.",
     description="Not to be called directly. Used by map_reads_to_contigs.",
 )
