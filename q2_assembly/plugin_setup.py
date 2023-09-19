@@ -25,8 +25,6 @@ from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 import q2_assembly
 from q2_assembly import __version__
 from q2_assembly._action_params import (
-    _map_sample_reads_params,
-    _map_sample_reads_params_description,
     bowtie2_indexing_param_descriptions,
     bowtie2_indexing_params,
     bowtie2_mapping_param_descriptions,
@@ -257,14 +255,24 @@ plugin.pipelines.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_assembly.mapping._map_sample_reads,
-    inputs={},
-    parameters=_map_sample_reads_params,
+    function=q2_assembly.mapping._map_reads_to_contigs,
+    inputs={
+        "indexed_contigs": SampleData[SingleBowtie2Index],
+        "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
+    },
+    parameters=bowtie2_mapping_params,
     outputs=[("alignment_map", SampleData[AlignmentMap])],
-    parameter_descriptions=_map_sample_reads_params_description,
-    output_descriptions={},
-    name="Map reads to contigs helper.",
-    description="Not to be called directly. Used by map_reads_to_contigs.",
+    input_descriptions={
+        "indexed_contigs": "Bowtie 2 indices generated for contigs " "of interest.",
+        "reads": "The paired- or single-end reads from which the contigs "
+        "were assembled.",
+    },
+    parameter_descriptions=bowtie2_mapping_param_descriptions,
+    output_descriptions={"alignment_map": "Reads-to-contigs mapping."},
+    name="Map reads to contigs using Bowtie2.",
+    description="This method uses Bowtie2 to map provided reads to "
+    "respective contigs.",
+    citations=[citations["Langmead2012"]],
 )
 
 plugin.methods.register_function(
