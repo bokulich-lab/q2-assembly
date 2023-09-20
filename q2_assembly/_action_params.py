@@ -6,7 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from qiime2.core.type import Bool, Choices, Collection, Float, Int, List, Range, Str
+from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
 
 megahit_params = {
     "presets": Str % Choices(["meta", "meta-sensitive", "meta-large", "disabled"]),
@@ -423,14 +423,17 @@ partition_param_descriptions = {
 _map_sample_reads_params = {
     "common_args": List[Str],
     "paired": Bool,
-    "sample_name": Str,
-    "sample_inputs": Collection[Str],
+    "sample_names": List[Str],
+    "sample_fwds": List[Str],
+    "sample_revs": List[Str],
+    "sample_indices": List[Str],
 }
 _map_sample_reads_params_descriptions = {
     "common_args": "List of arguments that should be passed to bowtie2.",
     "paired": "Indicates whether reads are paired-end.",
-    "sample_name": "Name of the sample to be processed.",
-    "sample_inputs": "Dictionary of sample inputs containing bowtie2"
-                     " index, forward are reverse (if paired) reads.",
+    "sample_names": "Sample Names.",
+    "sample_fwds": "Paths to sample forward reads.",
+    "sample_revs": "Paths to sample reverse reads.",
+    "sample_indices": "Paths to sample indices.",
 }
 # fmt: on
