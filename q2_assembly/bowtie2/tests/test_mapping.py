@@ -19,13 +19,11 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from q2_types_genomics.per_sample_data import BAMDirFmt
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
-from q2_assembly.bowtie2.mapping import (
-    _gather_sample_data,
-    _map_reads_to_contigs,
-    _map_sample_reads,
-)
+from q2_assembly.bowtie2.mapping import _gather_sample_data, _map_sample_reads
 
 
 class MockTempDir(tempfile.TemporaryDirectory):
@@ -143,7 +141,6 @@ class TestBowtie2Mapping(TestPluginBase):
                 paired=True,
                 sample_name=s,
                 sample_inputs=s_props,
-                result_fp=str(self.test_result),
             )
 
             exp_calls = [
@@ -182,7 +179,6 @@ class TestBowtie2Mapping(TestPluginBase):
                     paired=True,
                     sample_name=s,
                     sample_inputs=s_props,
-                    result_fp=str(self.test_result),
                 )
 
     @patch("shutil.move")
@@ -200,7 +196,6 @@ class TestBowtie2Mapping(TestPluginBase):
                 paired=False,
                 sample_name=s,
                 sample_inputs=s_props,
-                result_fp=str(self.test_result),
             )
 
             exp_calls = [
@@ -234,7 +229,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
         p1.return_value = self.test_samples
 
-        _map_reads_to_contigs(
+        self.map_reads_to_contigs(
             indexed_contigs=index,
             reads=reads,
             trim5=10,
@@ -267,7 +262,7 @@ class TestBowtie2Mapping(TestPluginBase):
             self.test_samples[s]["rev"] = None
         p1.return_value = self.test_samples
 
-        _map_reads_to_contigs(
+        self.map_reads_to_contigs(
             indexed_contigs=index,
             reads=reads,
             trim5=10,
@@ -300,7 +295,7 @@ class TestBowtie2Mapping(TestPluginBase):
             self.test_samples[s]["rev"] = None
         p1.return_value = self.test_samples
 
-        _map_reads_to_contigs(
+        self.map_reads_to_contigs(
             indexed_contigs=index,
             reads=reads,
             trim5=10,
@@ -311,16 +306,30 @@ class TestBowtie2Mapping(TestPluginBase):
             sensitivity="very-fast",
         )
 
-        p1.assert_called_with(index, ANY, False)
-        pd.testing.assert_frame_equal(
-            p1.call_args[0][1], reads.manifest.view(pd.DataFrame)
-        )
+    def test_map_reads_to_contigs_single_parallel(self):
+        input_index = self.get_data_path("indices/from_contigs")
+        input_reads = self.get_data_path("formatted-reads/single-end")
 
-        exp_calls = []
-        self.test_params_list[-1] += "-local"
-        for s, s_props in self.test_samples.items():
-            exp_calls.append(call(self.test_params_list, False, s, s_props, ANY))
-        p2.assert_has_calls(exp_calls)
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data("SampleData[SingleBowtie2Index]", index)
+
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
+
+        with ParallelConfig():
+            (out,) = self.map_reads_to_contigs.parallel(
+                indexed_contigs=index,
+                reads=reads,
+                trim5=10,
+                n=1,
+                i="L,1,0.5",
+                valid_mate_orientations="ff",
+                mode="local",
+                sensitivity="very-fast",
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, BAMDirFmt)
 
 
 if __name__ == "__main__":

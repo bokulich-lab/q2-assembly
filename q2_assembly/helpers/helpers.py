@@ -83,6 +83,6 @@ def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
     for alignment in alignments:
         for _alignment in alignment.path.iterdir():
             filename = os.path.basename(_alignment)
-            duplicate(filename, os.path.join(collated_alignments.path, filename))
+            duplicate(_alignment, os.path.join(collated_alignments.path, filename))
 
     return collated_alignments
