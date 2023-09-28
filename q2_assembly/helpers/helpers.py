@@ -41,7 +41,7 @@ def partition_contigs(
 
         for sample_fp in samples:
             # These paths are defined in the ContigSequencesDirFmt class as
-            # {sample_id}_contigs,(fa | fasta). This should get the id from a
+            # {sample_id}_contigs.(fa | fasta). This should get the id from a
             # name like that
             sample_id = sample_fp.name.split("_contigs")[0]
             duplicate(sample_fp, result.path / sample_fp.name)
