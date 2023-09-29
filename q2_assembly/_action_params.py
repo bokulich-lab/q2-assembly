@@ -420,20 +420,4 @@ partition_param_descriptions = {
         " into. Defaults to partitioning into individual"
         " samples."
 }
-_map_sample_reads_params = {
-    "common_args": List[Str],
-    "paired": Bool,
-    "sample_names": List[Str],
-    "sample_fwds": List[Str],
-    "sample_revs": List[Str],
-    "sample_indices": List[Str],
-}
-_map_sample_reads_params_descriptions = {
-    "common_args": "List of arguments that should be passed to bowtie2.",
-    "paired": "Indicates whether reads are paired-end.",
-    "sample_names": "Sample Names.",
-    "sample_fwds": "Paths to sample forward reads.",
-    "sample_revs": "Paths to sample reverse reads.",
-    "sample_indices": "Paths to sample indices.",
-}
 # fmt: on
