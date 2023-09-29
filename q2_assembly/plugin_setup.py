@@ -20,7 +20,7 @@ from q2_types_genomics.per_sample_data import (
     SingleBowtie2Index,
 )
 from q2_types_genomics.per_sample_data._type import AlignmentMap
-from qiime2.plugin import Citations, Plugin
+from qiime2.plugin import Citations, List, Plugin
 
 import q2_assembly
 from q2_assembly import __version__
@@ -85,11 +85,13 @@ plugin.visualizers.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
+        "references": List[FeatureData[Sequence]],
     },
     parameters=quast_params,
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
+        "references": "Reference genomes to align the assembled contigs against.",
     },
     parameter_descriptions=quast_param_descriptions,
     name="Evaluate quality of the assembled contigs using metaQUAST.",

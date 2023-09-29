@@ -19,8 +19,8 @@ requirements:
     - quast
     - beautifulsoup4
     - biopython <=1.78
-    - bowtie2 >=2.4.4
-    - samtools
+    - bowtie2 {{ bowtie2 }}
+    - gridss
     - insilicoseq
     - megahit ==1.2.9
     - qiime2 {{ qiime2_epoch }}.*
