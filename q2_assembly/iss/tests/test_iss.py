@@ -98,6 +98,9 @@ class TestISS(TestPluginBase):
         exp = ["--k_bool"]
         self.assertListEqual(obs, exp)
 
+    def test_generate_reads_no_sample_names_provided(self):
+        generate_reads(n_genomes_ncbi=[1], ncbi=["bacteria"], n_reads=1)
+
     @patch("os.rename")
     def test_rename_reads(self, p):
         fp = self.get_data_path("reads")
@@ -187,9 +190,6 @@ class TestISS(TestPluginBase):
         pd.testing.assert_frame_equal(
             _table_to_dataframe(obs_abundances), _table_to_dataframe(exp_biom_table)
         )
-
-        def test_generate_reads_no_sample_names_provided(self):
-            generate_reads(n_genomes_ncbi=[1], ncbi=["bacteria"], n_reads=1)
 
 
 if __name__ == "__main__":
