@@ -32,12 +32,13 @@ requirements:
 test:
   requires:
     - coverage
+    - pytest
     - pytest-cov
   imports:
     - q2_assembly
     - qiime2.plugins.assembly
   commands:
-    - pytest --cov q2_assembly --pyargs q2_assembly
+    - pytest --cov q2_assembly --cov-report xml:coverage.xml --pyargs q2_assembly
 
 about:
   home: https://github.com/bokulich-lab/q2-assembly
