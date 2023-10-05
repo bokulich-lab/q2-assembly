@@ -11,11 +11,11 @@
   <div class="row">
       <div class="col-lg-6">
           <div class="btn-group">
-              <a href="quast_data/report.pdf" class="btn btn-success"> Full report (pdf) </a>
-              <a href="quast_data/basic_stats/cumulative_plot.pdf" class="btn btn-default"> Cumulative plot </a>
-              <a href="quast_data/basic_stats/GC_content_plot.pdf" class="btn btn-default"> GC content plot </a>
-              <a href="quast_data/basic_stats/Nx_plot.pdf" class="btn btn-default"> Nx plot </a>
-              <a href="quast_data/report.tsv" class="btn btn-default"> Stats table (tsv) </a>
+              <a href="quast_data/combined_reference/report.pdf" class="btn btn-success"> Full report (pdf) </a>
+              <a href="quast_data/combined_reference/basic_stats/cumulative_plot.pdf" class="btn btn-default"> Cumulative plot </a>
+              <a href="quast_data/combined_reference/basic_stats/GC_content_plot.pdf" class="btn btn-default"> GC content plot </a>
+              <a href="quast_data/combined_reference/basic_stats/Nx_plot.pdf" class="btn btn-default"> Nx plot </a>
+              <a href="quast_data/combined_reference/report.tsv" class="btn btn-default"> Stats table (tsv) </a>
           </div>
       </div>
   </div>
@@ -51,7 +51,7 @@
       var updateReportLink = function() {
           var currentSample = document.getElementById("sample-id").value
           var reportBtn = document.getElementById("sample-gc-btn")
-          reportBtn.setAttribute("href", `quast_data/basic_stats/${currentSample}_contigs_GC_content_plot.pdf`)
+          reportBtn.setAttribute("href", `quast_data/combined_reference/basic_stats/${currentSample}_contigs_GC_content_plot.pdf`)
       }
 
       var populateSampleNames = function() {
