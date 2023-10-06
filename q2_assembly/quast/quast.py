@@ -14,7 +14,7 @@ import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
 from typing import List, Union
-
+from zipfile import ZipFile
 import pandas as pd
 import pkg_resources
 import q2templates
@@ -190,6 +190,20 @@ def _fix_html_reports(results_dp: str):
     _modify_links(report_fp)
 
 
+def _zip_dir(zip_object: ZipFile, directory: str) -> None:
+    for root, _, files in os.walk(directory):
+        for file in files:
+            file_path = os.path.join(root, file)
+            arcname = os.path.relpath(file_path, os.path.dirname(directory))
+            zip_object.write(file_path, arcname=arcname)
+
+
+def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
+    with ZipFile(output_filename, 'w') as zipf:
+        for directory in path_to_dirs:
+            _zip_dir(zipf, directory)
+
+
 def evaluate_contigs(
     # TODO: expose more parameters
     output_dir: str,
@@ -235,8 +249,21 @@ def evaluate_contigs(
         # fix/remove some URLs
         _fix_html_reports(results_dir)
 
+        # Copy templates to output dir
         copy_tree(os.path.join(TEMPLATES, "quast"), output_dir)
+
+        # Copy results to output dir
         copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
+
+        # Zip summary, not_aligned and runs_per_reference dirs for download
+        dirnames = ["not_aligned", "runs_per_reference", "summary"]
+        zip_these_dirs = [
+            os.path.join(output_dir, "quast_data", f"{dirname}") for dirname in dirnames
+        ]
+        output_filename = os.path.join(
+            output_dir, "quast_data", "additional_reports.zip"
+            )
+        _zip_additional_reports(zip_these_dirs, output_filename)
 
         context = {
             "tabs": [
