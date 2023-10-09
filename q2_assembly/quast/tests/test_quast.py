@@ -12,6 +12,8 @@ import os
 import tempfile
 import unittest
 from subprocess import CalledProcessError
+from zipfile import ZipFile
+from filecmp import dircmp
 from unittest.mock import ANY, call, mock_open, patch
 
 from q2_types.feature_data import DNAFASTAFormat
@@ -27,6 +29,8 @@ from ..quast import (
     _process_quast_arg,
     _split_reference,
     evaluate_contigs,
+    _zip_dir,
+    _zip_additional_reports,
 )
 
 
@@ -493,6 +497,84 @@ class TestQuast(TestPluginBase):
             "samples": json.dumps(["sample1", "sample2"]),
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
+
+    def make_file_tree(self, root) -> None:
+        folder1_files = [
+            os.path.join(root, f"folder_1/file_{i}") for i in range(3)
+        ]
+        folder2_files = [
+            os.path.join(root, f"folder_2/subfolder_{j}/file_{i}")
+            for i in range(3) for j in range(3)
+        ]
+        folder3_files = [
+            os.path.join(
+                root, f"folder_3/subfolder_{j}/subsubfolder_{k}/file_{i}"
+            )
+            for i in range(3) for j in range(3) for k in range(3)
+        ]
+
+        all_files = [*folder1_files, *folder2_files, *folder3_files]
+
+        for file in all_files:
+            try:
+                open(file, 'a').close()
+            except Exception:
+                os.makedirs(file)
+
+    def test_zip_dir(self):
+        # Create tmp working directory
+        with tempfile.TemporaryDirectory() as tmp:
+            # Create a directory with a random file structure and
+            # empty files
+            root_path = os.path.join(tmp, "expected")
+            self.make_file_tree(root_path)
+
+            # Open ZipFile context and call _zip_dir
+            output_filename = os.path.join(tmp, "this_is_a.zip")
+            with ZipFile(output_filename, 'w') as zipf:
+                _zip_dir(zipf, tmp)
+
+            with ZipFile(output_filename, 'r') as zipf:
+                zipf.extractall(path=os.path.join(tmp, "observed"))
+
+            # Instantiate compare directory object
+            compare = dircmp(
+                a=os.path.join(tmp, "expected"),
+                b=os.path.join(tmp, "observed")
+            )
+
+            # Should return an empty list
+            self.assertFalse(compare.diff_files)
+
+    def test_zip_additional_reports(self):
+        # Create tmp working directory
+        with tempfile.TemporaryDirectory() as tmp:
+            # Create a directory with a random file structure and
+            # empty files
+            root_path = os.path.join(tmp, "expected")
+            self.make_file_tree(root_path)
+
+            # Open ZipFile context and call _zip_dir
+            output_filename = os.path.join(tmp, "this_is_a.zip")
+            path_to_dirs = [
+                os.path.join(root_path, f"folder_{i}") for i in range(1, 4)
+            ]
+            _zip_additional_reports(
+                path_to_dirs=path_to_dirs, output_filename=output_filename
+            )
+
+            # Extract zip
+            with ZipFile(output_filename, 'r') as zipf:
+                zipf.extractall(path=os.path.join(tmp, "observed"))
+
+            # Instantiate compare directory object
+            compare = dircmp(
+                a=os.path.join(tmp, "expected"),
+                b=os.path.join(tmp, "observed")
+            )
+
+            # Should return an empty list
+            self.assertFalse(compare.diff_files)
 
 
 if __name__ == "__main__":
