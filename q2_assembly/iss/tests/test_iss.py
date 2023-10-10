@@ -23,6 +23,7 @@ from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.iss.iss import (
     _abundances_to_biom,
+    _ensure_sample_names_exists,
     _generate_reads,
     _process_iss_arg,
     _rename_reads_files,
@@ -98,8 +99,43 @@ class TestISS(TestPluginBase):
         exp = ["--k_bool"]
         self.assertListEqual(obs, exp)
 
-    def test_generate_reads_no_sample_names_provided(self):
-        generate_reads(n_genomes_ncbi=[1], ncbi=["bacteria"], n_reads=1)
+    """ CHANGE THIS BASED ON THE OTHE RMODULES
+    def mock_ensure_sample_names_exists(sample_names):
+        return ["sample"]
+
+    @patch("q2_assembly.iss._ensure_sample_names_exists")
+    def test_ensure_sample_names_exists(self, mock_ensure_sample_names_exists):
+        # Your test cases go here
+        sample_names = []
+        res = mock_ensure_sample_names_exists(sample_names)
+        self.assertNotEqual(sample_names, res)
+
+        sample_names = None
+        res = mock_ensure_sample_names_exists(sample_names)
+        self.assertNotEqual(sample_names, res)
+    """
+
+    @patch("builtins.print")  # Mock the 'print' function
+    def test_sample_names_empty(self, mock_print):
+        # Call the function with an empty list
+        result = _ensure_sample_names_exists([])
+
+        # Check that the function returns the default sample name
+        self.assertEqual(result, ["sample"])
+
+        # Check that the print function was called with the expected message
+        mock_print.assert_called_once_with(
+            'The "--p-sample-names" option was not provided. '
+            'Only one sample will be created with the prefix "sample".'
+            "\n"
+        )
+
+    def test_sample_names_not_empty(self):
+        # Call the function with a non-empty list
+        result = _ensure_sample_names_exists(["sample1", "sample2"])
+
+        # Check that the function returns the input list unchanged
+        self.assertEqual(result, ["sample1", "sample2"])
 
     @patch("os.rename")
     def test_rename_reads(self, p):
