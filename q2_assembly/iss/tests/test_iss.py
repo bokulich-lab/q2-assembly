@@ -103,7 +103,7 @@ class TestISS(TestPluginBase):
     def test_sample_names_empty(self, mock_print):
         result = _ensure_sample_names_exists([])
 
-        self.assertEqual(result, ["sample"])
+        self.assertListEqual(result, ["sample"])
 
         mock_print.assert_called_once_with(
             'The "--p-sample-names" option was not provided. '
@@ -113,7 +113,7 @@ class TestISS(TestPluginBase):
 
     def test_sample_names_not_empty(self):
         result = _ensure_sample_names_exists(["sample1", "sample2"])
-        self.assertEqual(result, ["sample1", "sample2"])
+        self.assertListEqual(result, ["sample1", "sample2"])
 
     @patch("os.rename")
     def test_rename_reads(self, p):
