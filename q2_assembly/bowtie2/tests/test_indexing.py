@@ -6,7 +6,9 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import tempfile
 import unittest
+from pathlib import Path
 from subprocess import CalledProcessError
 from unittest.mock import ANY, call, patch
 
@@ -40,9 +42,10 @@ class TestBowtie2Indexing(TestPluginBase):
             "1",
         ]
 
+    @patch("q2_assembly.bowtie2.indexing.assert_inputs_not_empty")
     @patch("subprocess.run")
     @patch("os.makedirs")
-    def test_index_seqs_contigs(self, p1, p2):
+    def test_index_seqs_contigs(self, p1, p2, p3):
         _index_seqs(
             fasta_fps=["/here/samp1_contigs.fa", "/here/samp2_contigs.fa"],
             result_fp="/there/",
@@ -98,9 +101,10 @@ class TestBowtie2Indexing(TestPluginBase):
             ]
         )
 
+    @patch("q2_assembly.bowtie2.indexing.assert_inputs_not_empty")
     @patch("subprocess.run")
     @patch("os.makedirs")
-    def test_index_seqs_mags(self, p1, p2):
+    def test_index_seqs_mags(self, p1, p2, p3):
         _index_seqs(
             fasta_fps=["/here/smp1/mag1.fa", "/here/smp1/mag2.fa"],
             result_fp="/there/",
@@ -156,11 +160,12 @@ class TestBowtie2Indexing(TestPluginBase):
             ]
         )
 
+    @patch("q2_assembly.bowtie2.indexing.assert_inputs_not_empty")
     @patch(
         "subprocess.run", side_effect=CalledProcessError(returncode=123, cmd="some cmd")
     )
     @patch("os.makedirs")
-    def test_index_seqs_with_error(self, p1, p2):
+    def test_index_seqs_with_error(self, p1, p2, p3):
         with self.assertRaisesRegex(
             Exception, "An error.*while running Bowtie2.*code 123"
         ):
@@ -208,6 +213,26 @@ class TestBowtie2Indexing(TestPluginBase):
             for y in range(2)
         ]
         p.assert_called_with(exp_mags, ANY, self.test_params_list, "mags")
+
+    def test_empty_fasta_input(self):
+        with self.assertRaisesRegex(
+            ValueError, r".*files were empty.*empty_contigs.fa.*second_empty_contigs.fa"
+        ):
+            with tempfile.TemporaryDirectory() as tempdir:
+                _index_seqs(
+                    fasta_fps=[
+                        self.get_data_path(
+                            Path("empty_contigs") / "sample1_contigs.fa"
+                        ),
+                        self.get_data_path(Path("empty_contigs") / "empty_contigs.fa"),
+                        self.get_data_path(
+                            Path("empty_contigs") / "second_empty_contigs.fa"
+                        ),
+                    ],
+                    result_fp=Path(tempdir) / "out",
+                    common_args=self.test_params_list,
+                    input_type="contigs",
+                )
 
 
 if __name__ == "__main__":

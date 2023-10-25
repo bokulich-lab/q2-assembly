@@ -36,6 +36,7 @@ setup(
         "q2_assembly.bowtie2.tests": [
             "data/*",
             "data/contigs/*",
+            "data/empty_contigs/*",
             "data/indices/*/*/*",
             "data/mags/*/*",
             "data/maps/*/*",
