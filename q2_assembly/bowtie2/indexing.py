@@ -30,7 +30,7 @@ def assert_inputs_not_empty(fasta_fps: list):
     if empty_files:
         msg = (
             f"The following input files were empty: {empty_files}. "
-            "Please filter these contigs from your input and try again."
+            "Please filter these files from your input and try again."
         )
         raise ValueError(msg)
 
