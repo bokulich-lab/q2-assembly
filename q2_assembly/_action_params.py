@@ -117,7 +117,7 @@ quast_params = {
     "k_mer_size": Int % Range(1, None),
     "contig_thresholds": List[Int % Range(0, None)],
     "memory_efficient": Bool,
-    "min_alignment": Int % Range(1, None),
+    "min_alignment": Int % Range(65, None),
     "min_identity": Float % Range(80.0, 100.0),
     "ambiguity_usage": Str % Choices(["none", "one", "all"]),
     "ambiguity_score": Float % Range(0.8, 1.0),
