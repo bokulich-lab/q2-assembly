@@ -145,6 +145,33 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
+    def test_evaluate_contigs_more_params_memory_efficient(self, p):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        obs_samples = _evaluate_contigs(
+            results_dir="some/dir",
+            contigs=contigs,
+            reads={},
+            paired=False,
+            references=None,
+            common_args=["-m", "10", "-t", "1", "--memory-efficient"],
+        )
+
+        exp_command = [
+            "metaquast.py",
+            "-o",
+            "some/dir",
+            "-m",
+            "10",
+            "-t",
+            "1",
+            "--memory-efficient",
+            os.path.join(str(contigs), "sample1_contigs.fa"),
+            os.path.join(str(contigs), "sample2_contigs.fa"),
+        ]
+        self.assertListEqual(obs_samples, ["sample1", "sample2"])
+        p.assert_called_once_with(exp_command, check=True)
+
+    @patch("subprocess.run")
     def test_evaluate_contigs_single_end(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = {
@@ -356,6 +383,14 @@ class TestQuast(TestPluginBase):
                 "101",
                 "--contig-thresholds",
                 "10,20",
+                "--min-alignment",
+                "65",
+                "--min-identity",
+                "90.0",
+                "--ambiguity-usage",
+                "one",
+                "--ambiguity-score",
+                "0.99"
             ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
@@ -417,6 +452,14 @@ class TestQuast(TestPluginBase):
                 "101",
                 "--contig-thresholds",
                 "0,1000,5000,10000,25000,50000",
+                "--min-alignment",
+                "65",
+                "--min-identity",
+                "90.0",
+                "--ambiguity-usage",
+                "one",
+                "--ambiguity-score",
+                "0.99"
             ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
@@ -478,6 +521,14 @@ class TestQuast(TestPluginBase):
                 "101",
                 "--contig-thresholds",
                 "0,1000,5000,10000,25000,50000",
+                "--min-alignment",
+                "65",
+                "--min-identity",
+                "90.0",
+                "--ambiguity-usage",
+                "one",
+                "--ambiguity-score",
+                "0.99"
             ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))

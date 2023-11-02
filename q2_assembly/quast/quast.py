@@ -203,6 +203,11 @@ def evaluate_contigs(
     k_mer_stats: bool = False,
     k_mer_size: int = 101,
     contig_thresholds: List[int] = [0, 1000, 5000, 10000, 25000, 50000],
+    memory_efficient: bool = False,
+    min_alignment: int = 65,
+    min_identity: float = 90.0,
+    ambiguity_usage: str = 'one',
+    ambiguity_score: float = 0.99,
 ):
     kwargs = {
         k: v
