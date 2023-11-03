@@ -12,6 +12,8 @@ import os
 import tempfile
 import unittest
 from subprocess import CalledProcessError
+from zipfile import ZipFile
+from filecmp import dircmp
 from unittest.mock import ANY, call, mock_open, patch
 
 from q2_types.feature_data import DNAFASTAFormat
@@ -27,6 +29,8 @@ from ..quast import (
     _process_quast_arg,
     _split_reference,
     evaluate_contigs,
+    _zip_dir,
+    _zip_additional_reports,
 )
 
 
@@ -364,6 +368,7 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
+                {"title": "Krona charts", "url": "q2_krona_charts.html"}
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -425,6 +430,7 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
+                {"title": "Krona charts", "url": "q2_krona_charts.html"}
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -486,10 +492,62 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
+                {"title": "Krona charts", "url": "q2_krona_charts.html"}
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
+
+    def test_zip_dir(self):
+        # Get path to test data
+        data_path = self.get_data_path("zip_test_data")
+
+        # Create tmp working directory
+        with tempfile.TemporaryDirectory() as tmp:
+            # Open ZipFile context and call _zip_dir
+            output_filename = os.path.join(tmp, "this_is_a.zip")
+            with ZipFile(output_filename, 'w') as zipf:
+                _zip_dir(zipf, data_path)
+
+            with ZipFile(output_filename, 'r') as zipf:
+                zipf.extractall(path=os.path.join(tmp, "observed"))
+
+            # Instantiate compare directory object
+            compare = dircmp(
+                a=os.path.join(data_path, "expected"),
+                b=os.path.join(tmp, "observed")
+            )
+
+            # Should return an empty list
+            self.assertFalse(compare.diff_files)
+
+    def test_zip_additional_reports(self):
+        # Get path to test data
+        root_path = self.get_data_path("zip_test_data/expected")
+
+        # Create tmp working directory
+        with tempfile.TemporaryDirectory() as tmp:
+            # Open ZipFile context and call _zip_dir
+            output_filename = os.path.join(tmp, "this_is_a.zip")
+            path_to_dirs = [
+                os.path.join(root_path, f"folder_{i}") for i in range(3)
+            ]
+            _zip_additional_reports(
+                path_to_dirs=path_to_dirs, output_filename=output_filename
+            )
+
+            # Extract zip
+            with ZipFile(output_filename, 'r') as zipf:
+                zipf.extractall(path=os.path.join(tmp, "observed"))
+
+            # Instantiate compare directory object
+            compare = dircmp(
+                a=root_path,
+                b=os.path.join(tmp, "observed")
+            )
+
+            # Should return an empty list
+            self.assertFalse(compare.diff_files)
 
 
 if __name__ == "__main__":
