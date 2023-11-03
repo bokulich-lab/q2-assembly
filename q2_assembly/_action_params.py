@@ -88,7 +88,8 @@ spades_param_descriptions = {
     "isolate": "This flag is highly recommended for high-coverage isolate and "
                "multi-cell data.",
     "sc": "This flag is required for MDA (single-cell) data.",
-    "meta": "This flag is required for metagenomic data.",
+    "meta": "This flag is required for metagenomic data. This option is only "
+            "supported in combination with paired-end reads.",
     "bio": "This flag is required for biosyntheticSPAdes mode.",
     "corona": "This flag is required for coronaSPAdes mode.",
     "plasmid": "Runs plasmidSPAdes pipeline for plasmid detection.",

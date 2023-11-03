@@ -109,6 +109,16 @@ class TestSpades(TestPluginBase):
         exp = ["--k-bool"]
         self.assertListEqual(obs, exp)
 
+    def test_process_spades_arg_phred_offset_auto(self):
+        obs = _process_spades_arg("phred_offset", "auto-detect")
+        exp = []
+        self.assertListEqual(obs, exp)
+
+    def test_process_spades_arg_phred_offset_int(self):
+        obs = _process_spades_arg("phred_offset", 33)
+        exp = ["--phred-offset", "33"]
+        self.assertListEqual(obs, exp)
+
     @patch("subprocess.run")
     @patch("tempfile.TemporaryDirectory")
     def test_process_sample_single_end(self, p1, p2):
@@ -232,8 +242,6 @@ class TestSpades(TestPluginBase):
             "1,2",
             "--cov-cutoff",
             "off",
-            "--phred-offset",
-            "auto-detect",
         ]
         p.assert_called_with(seqs=input, meta=True, common_args=exp_args)
 

@@ -41,6 +41,8 @@ def _process_spades_arg(arg_key, arg_val):
     """
     if isinstance(arg_val, bool) and arg_val:
         return [_construct_param(arg_key)]
+    elif arg_key == "phred_offset" and arg_val == "auto-detect":
+        return []
     elif not isinstance(arg_val, list):
         return [_construct_param(arg_key), str(arg_val)]
     elif arg_key == "k":
