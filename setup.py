@@ -32,6 +32,10 @@ setup(
             "data/html-files/fake-reports/*",
             "data/contigs/*",
             "data/references/*",
+            "data/zip_test_data/expected/*",
+            "data/zip_test_data/expected/*/*",
+            "data/zip_test_data/expected/*/*/*",
+            "data/zip_test_data/expected/*/*/*/*",
         ],
         "q2_assembly.bowtie2.tests": [
             "data/*",

@@ -23,6 +23,7 @@ from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.iss.iss import (
     _abundances_to_biom,
+    _ensure_sample_names_exists,
     _generate_reads,
     _process_iss_arg,
     _rename_reads_files,
@@ -97,6 +98,22 @@ class TestISS(TestPluginBase):
         obs = _process_iss_arg("k_bool", True)
         exp = ["--k_bool"]
         self.assertListEqual(obs, exp)
+
+    @patch("builtins.print")
+    def test_sample_names_empty(self, mock_print):
+        result = _ensure_sample_names_exists([])
+
+        self.assertListEqual(result, ["sample"])
+
+        mock_print.assert_called_once_with(
+            'The "--p-sample-names" option was not provided. '
+            'Only one sample will be created with the prefix "sample".'
+            "\n"
+        )
+
+    def test_sample_names_not_empty(self):
+        result = _ensure_sample_names_exists(["sample1", "sample2"])
+        self.assertListEqual(result, ["sample1", "sample2"])
 
     @patch("os.rename")
     def test_rename_reads(self, p):

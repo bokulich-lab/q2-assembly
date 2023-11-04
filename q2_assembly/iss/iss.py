@@ -94,6 +94,18 @@ def _abundances_to_biom(abundance_fps):
     )
 
 
+def _ensure_sample_names_exists(sample_names):
+    if not sample_names:
+        # If it's empty or None, create a list with a default element "sample"
+        sample_names = ["sample"]
+        print(
+            'The "--p-sample-names" option was not provided. '
+            'Only one sample will be created with the prefix "sample".'
+            "\n"
+        )
+    return sample_names
+
+
 # TODO: allow to input custom genomes and sample from those
 def generate_reads(
     genomes: DNAFASTAFormat = None,
@@ -141,6 +153,8 @@ def generate_reads(
             f"reduced to {available_genomes - 1}."
         )
         _locals["n_genomes"] = available_genomes - 1
+
+    sample_names = _ensure_sample_names_exists(sample_names)
 
     if len(set(sample_names)) < len(sample_names):
         dupl = {str(x) for x in sample_names if sample_names.count(x) > 1}
