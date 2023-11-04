@@ -42,7 +42,7 @@ class TestBowtie2Indexing(TestPluginBase):
             "1",
         ]
 
-    @patch("q2_assembly.bowtie2.indexing.assert_inputs_not_empty")
+    @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
     @patch("subprocess.run")
     @patch("os.makedirs")
     def test_index_seqs_contigs(self, p1, p2, p3):
@@ -101,7 +101,7 @@ class TestBowtie2Indexing(TestPluginBase):
             ]
         )
 
-    @patch("q2_assembly.bowtie2.indexing.assert_inputs_not_empty")
+    @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
     @patch("subprocess.run")
     @patch("os.makedirs")
     def test_index_seqs_mags(self, p1, p2, p3):
@@ -160,7 +160,7 @@ class TestBowtie2Indexing(TestPluginBase):
             ]
         )
 
-    @patch("q2_assembly.bowtie2.indexing.assert_inputs_not_empty")
+    @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
     @patch(
         "subprocess.run", side_effect=CalledProcessError(returncode=123, cmd="some cmd")
     )

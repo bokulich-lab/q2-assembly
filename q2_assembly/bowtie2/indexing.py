@@ -9,7 +9,6 @@ import glob
 import os
 import subprocess
 from copy import deepcopy
-from pathlib import Path
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types_genomics.per_sample_data import (
@@ -19,20 +18,9 @@ from q2_types_genomics.per_sample_data import (
 )
 
 from q2_assembly._utils import _process_common_input_params, run_command
-from q2_assembly.bowtie2.utils import _get_subdir_from_path, _process_bowtie2build_arg
-
-
-def assert_inputs_not_empty(fasta_fps: list):
-    empty_files = []
-    for fp in fasta_fps:
-        if not os.path.getsize(fp):
-            empty_files.append(Path(fp).name)
-    if empty_files:
-        msg = (
-            f"The following input files were empty: {empty_files}. "
-            "Please filter these files from your input and try again."
-        )
-        raise ValueError(msg)
+from q2_assembly.bowtie2.utils import (
+    _get_subdir_from_path, _process_bowtie2build_arg, _assert_inputs_not_empty
+)
 
 
 def _index_seqs(
@@ -50,7 +38,7 @@ def _index_seqs(
             the bowtie2-build command.
         input_type (str): Type of input sequences. Can be mags or contigs.
     """
-    assert_inputs_not_empty(fasta_fps)
+    _assert_inputs_not_empty(fasta_fps)
 
     base_cmd = ["bowtie2-build"]
     base_cmd.extend(common_args)
