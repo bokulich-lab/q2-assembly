@@ -9,6 +9,7 @@ import os
 import subprocess
 from typing import List
 
+import pkg_resources
 from bs4 import BeautifulSoup as BS
 
 EXTERNAL_CMD_WARNING = (
@@ -121,3 +122,13 @@ def _modify_links(fp: str):
 def _get_sample_from_path(fp):
     """Extracts sample name from a contig's file path."""
     return os.path.basename(fp).rsplit("_contigs.fa", maxsplit=1)[0]
+
+
+def get_relative_data_path(package, filename):
+    """Get data path relative to the procided package.
+
+    Args:
+        package (str): The package we are getting the data path under
+        filename (str): The name of the file/dir we are trying to get
+    """
+    return pkg_resources.resource_filename(package, "data/%s" % filename)

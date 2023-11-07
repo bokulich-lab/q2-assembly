@@ -23,6 +23,7 @@ from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 from qiime2.sdk.parallel_config import ParallelConfig
 
+from q2_assembly._utils import get_relative_data_path
 from q2_assembly.bowtie2.mapping import (
     _gather_sample_data,
     _map_reads_to_contigs,
@@ -36,6 +37,7 @@ class MockTempDir(tempfile.TemporaryDirectory):
 
 class TestBowtie2Mapping(TestPluginBase):
     package = "q2_assembly.bowtie2.tests"
+    root_test_package = "q2_assembly.tests"
 
     def setUp(self):
         super().setUp()
@@ -326,7 +328,9 @@ class TestBowtie2Mapping(TestPluginBase):
 
     def test_map_reads_to_contigs_single_parallel(self):
         input_index = self.get_data_path("indices/from_contigs")
-        input_reads = self.get_data_path("formatted-reads/single-end")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/single-end"
+        )
 
         index = Bowtie2IndexDirFmt(input_index, mode="r")
         index = Artifact.import_data("SampleData[SingleBowtie2Index]", index)
@@ -351,7 +355,9 @@ class TestBowtie2Mapping(TestPluginBase):
 
     def test_map_reads_to_contigs_paired_parallel(self):
         input_index = self.get_data_path("indices/from_contigs")
-        input_reads = self.get_data_path("formatted-reads/paired-end")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/paired-end"
+        )
 
         index = Bowtie2IndexDirFmt(input_index, mode="r")
         index = Artifact.import_data("SampleData[SingleBowtie2Index]", index)
