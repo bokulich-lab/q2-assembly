@@ -89,38 +89,3 @@ def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
             duplicate(_alignment, os.path.join(collated_alignments.path, filename))
 
     return collated_alignments
-
-
-def _partition_sample_data(sample_data, num_partitions):
-    """This one is not actually a QIIME 2 action, but it is in the vein of the
-    actions here.
-    """
-    result = []
-
-    num_samples = len(sample_data)
-    if num_partitions is None:
-        num_partitions = num_samples
-    elif num_partitions > num_samples:
-        warnings.warn(
-            "You have requested a number of partitions"
-            f" '{num_partitions}' that is greater than your number"
-            f" of samples '{num_samples}.' Your data will be"
-            f" partitioned by sample into '{num_samples}'"
-            " partitions."
-        )
-        num_partitions = num_samples
-
-    partitioned = np.array_split(list(sample_data.items()), num_partitions)
-    for partition in partitioned:
-        names = []
-        forwards = []
-        reverses = []
-        indices = []
-        for name, info in partition:
-            names.append(name)
-            forwards.append(info["fwd"])
-            reverses.append(info["rev"])
-            indices.append(info["index"])
-        result.append((names, forwards, reverses, indices))
-
-    return result
