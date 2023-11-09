@@ -211,6 +211,30 @@ class TestBowtie2Indexing(TestPluginBase):
         out.validate()
         self.assertIs(out.format, Bowtie2IndexDirFmt)
 
+    def test_index_contigs_parallel_too_many_partitions(self):
+        input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        input_artifact = Artifact.import_data("SampleData[Contigs]", input_contigs)
+        A_MODEST_NUMBER_OF_PARTITIONS = 100000000
+
+        with self.assertWarnsRegex(
+            UserWarning, f"You have requested.*{A_MODEST_NUMBER_OF_PARTITIONS}.*2"
+        ):
+            with ParallelConfig():
+                (out,) = self.index_contigs.parallel(
+                    input_artifact,
+                    large_index=True,
+                    bmax=11,
+                    bmaxdivn=4,
+                    dcv=1024,
+                    offrate=5,
+                    ftabchars=10,
+                    threads=1,
+                    num_partitions=A_MODEST_NUMBER_OF_PARTITIONS,
+                )._result()
+
+        out.validate()
+        self.assertIs(out.format, Bowtie2IndexDirFmt)
+
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
     def test_index_mags(self, p):
         input_mags = MultiMAGSequencesDirFmt(self.get_data_path("mags"), "r")
