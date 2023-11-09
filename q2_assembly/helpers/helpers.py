@@ -32,6 +32,7 @@ def partition_contigs(
             f" partitioned by sample into '{num_samples}'"
             " partitions."
         )
+        num_partitions = num_samples
 
     # If the number of splits to make is larger than the collection given,
     # np.array_split partitions the collection into individual elements
@@ -107,6 +108,7 @@ def _partition_sample_data(sample_data, num_partitions):
             f" partitioned by sample into '{num_samples}'"
             " partitions."
         )
+        num_partitions = num_samples
 
     partitioned = np.array_split(list(sample_data.items()), num_partitions)
     for partition in partitioned:
