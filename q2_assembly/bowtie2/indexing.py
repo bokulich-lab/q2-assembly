@@ -11,6 +11,7 @@ import subprocess
 from copy import deepcopy
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types_genomics.per_sample_data import (
     ContigSequencesDirFmt,
     MultiBowtie2IndexDirFmt,
@@ -86,7 +87,10 @@ def index_contigs(
     )
     result = Bowtie2IndexDirFmt()
 
-    contig_fps = sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa")))
+    contig_fps = sorted(
+        map(lambda v: str(v[1].path), contigs.sequences.iter_views(DNAFASTAFormat))
+    )
+
     _index_seqs(contig_fps, str(result), common_args, "contigs")
 
     return result
