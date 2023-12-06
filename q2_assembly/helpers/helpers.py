@@ -22,6 +22,7 @@ def partition_contigs(
     contigs = [
         (sample_id, sample_fp) for sample_id, sample_fp in contigs.sample_dict().items()
     ]
+
     num_samples = len(contigs)
     if num_partitions is None:
         num_partitions = num_samples
