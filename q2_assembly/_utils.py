@@ -125,10 +125,10 @@ def _get_sample_from_path(fp):
 
 
 def get_relative_data_path(package, filename):
-    """Get data path relative to the procided package.
+    """Get data path relative to the provided package.
 
     Args:
         package (str): The package we are getting the data path under
         filename (str): The name of the file/dir we are trying to get
     """
-    return pkg_resources.resource_filename(package, "data/%s" % filename)
+    return pkg_resources.resource_filename(package, f"data/{filename}")
