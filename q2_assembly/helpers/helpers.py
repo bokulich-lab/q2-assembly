@@ -35,8 +35,6 @@ def partition_contigs(
         )
         num_partitions = num_samples
 
-    # If the number of splits to make is larger than the collection given,
-    # np.array_split partitions the collection into individual elements
     contigs = np.array_split(contigs, num_partitions)
     for i, samples in enumerate(contigs, 1):
         result = ContigSequencesDirFmt()
