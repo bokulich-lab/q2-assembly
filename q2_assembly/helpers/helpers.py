@@ -19,8 +19,9 @@ def partition_contigs(
     contigs: ContigSequencesDirFmt, num_partitions: int = None
 ) -> ContigSequencesDirFmt:
     partitioned_contigs = {}
-
-    contigs = list(contigs.path.iterdir())
+    contigs = [
+        (sample_id, sample_fp) for sample_id, sample_fp in contigs.sample_dict().items()
+    ]
     num_samples = len(contigs)
     if num_partitions is None:
         num_partitions = num_samples
@@ -40,13 +41,13 @@ def partition_contigs(
     for i, samples in enumerate(contigs, 1):
         result = ContigSequencesDirFmt()
 
-        for sample_fp in samples:
-            # These paths are defined in the ContigSequencesDirFmt class as
-            # {sample_id}_contigs.(fa | fasta). This should get the id from a
-            # name like that
-            sample_id = sample_fp.name.rsplit("_contigs", 1)[0]
-            duplicate(sample_fp, result.path / sample_fp.name)
+        for sample_id, sample_fp in samples:
+            duplicate(sample_fp, result.path / os.path.basename(sample_fp))
 
+        # If num_partitions == num_samples we will only have gone through one
+        # sample in the above loop and will use its id as a key. Otherwise we
+        # may have gone through multiple samples in the above loop and will be
+        # using indices for keys
         if num_partitions == num_samples:
             partitioned_contigs[sample_id] = result
         else:
