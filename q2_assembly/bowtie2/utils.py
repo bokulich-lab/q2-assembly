@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import os
+from pathlib import Path
 
 from q2_assembly._utils import _construct_param, _get_sample_from_path
 
@@ -148,3 +149,16 @@ def _get_subdir_from_path(fp: str, input_type: str = "contigs"):
         return os.path.join(*fpl[0].split("/")[-2:])
     else:
         raise NotImplementedError(f'Input type "{input_type}" ' f"is not supported.")
+
+
+def _assert_inputs_not_empty(fasta_fps: list):
+    empty_files = []
+    for fp in fasta_fps:
+        if not os.path.getsize(fp):
+            empty_files.append(Path(fp).name)
+    if empty_files:
+        msg = (
+            f"The following input files were empty: {empty_files}. "
+            "Please filter these files from your input and try again."
+        )
+        raise ValueError(msg)

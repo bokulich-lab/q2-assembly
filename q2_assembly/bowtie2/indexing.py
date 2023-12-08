@@ -11,6 +11,7 @@ import subprocess
 from copy import deepcopy
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types_genomics.per_sample_data import (
     ContigSequencesDirFmt,
     MultiBowtie2IndexDirFmt,
@@ -18,7 +19,9 @@ from q2_types_genomics.per_sample_data import (
 )
 
 from q2_assembly._utils import _process_common_input_params, run_command
-from q2_assembly.bowtie2.utils import _get_subdir_from_path, _process_bowtie2build_arg
+from q2_assembly.bowtie2.utils import (
+    _get_subdir_from_path, _process_bowtie2build_arg, _assert_inputs_not_empty
+)
 
 
 def _index_seqs(
@@ -36,10 +39,13 @@ def _index_seqs(
             the bowtie2-build command.
         input_type (str): Type of input sequences. Can be mags or contigs.
     """
+    _assert_inputs_not_empty(fasta_fps)
+
     base_cmd = ["bowtie2-build"]
     base_cmd.extend(common_args)
 
     for fp in fasta_fps:
+
         sample_dp = os.path.join(result_fp, _get_subdir_from_path(fp, input_type))
         os.makedirs(sample_dp)
 
@@ -120,7 +126,10 @@ def _index_contigs(
     )
     result = Bowtie2IndexDirFmt()
 
-    contig_fps = sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa")))
+    contig_fps = sorted(
+        map(lambda v: str(v[1].path), contigs.sequences.iter_views(DNAFASTAFormat))
+    )
+
     _index_seqs(contig_fps, str(result), common_args, "contigs")
 
     return result

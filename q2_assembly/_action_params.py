@@ -116,6 +116,11 @@ quast_params = {
     "k_mer_stats": Bool,
     "k_mer_size": Int % Range(1, None),
     "contig_thresholds": List[Int % Range(0, None)],
+    "memory_efficient": Bool,
+    "min_alignment": Int % Range(65, None),
+    "min_identity": Float % Range(80.0, 100.0),
+    "ambiguity_usage": Str % Choices(["none", "one", "all"]),
+    "ambiguity_score": Float % Range(0.8, 1.0),
 }
 # fmt: off
 quast_param_descriptions = {
@@ -127,6 +132,23 @@ quast_param_descriptions = {
                    "consumption on large genomes.",
     "k_mer_size": "Size of k used in k-mer-stats.",
     "contig_thresholds": "List of contig length thresholds.",
+    "memory_efficient": "Significantly reduce memory consumption for large "
+                        "genomes. Forces one separate thread per each "
+                        "assembly and each chromosome.",
+    "min_alignment": "Minimum length of alignment (in bp). Alignments "
+                     "shorter than this value will be filtered. Alignments "
+                     "shorter than 65 bp will be filtered regardless of this "
+                     "threshold.",
+    "min_identity": "Minimum percent identity considered as proper alignment."
+                    "Alignments with identities worse than this value will be "
+                    "filtered.",
+    "ambiguity_usage": "Way of processing equally good alignments of a contig "
+                       "that are likely repeats. \'none\', skips these "
+                       "alignments. \'one\', takes the very best alignment. "
+                       "\'all\', uses all alignments, but san cause a "
+                       "significant increase of # mismatches.",
+    "ambiguity_score": "Score for defining equally good alignments of a "
+                       "single contig (see --ambiguity-usage).",
 }
 # fmt: on
 iss_params = {

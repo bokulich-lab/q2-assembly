@@ -23,6 +23,7 @@ requirements:
     - gridss
     - insilicoseq
     - megahit ==1.2.9
+    - pysam
     - qiime2 {{ qiime2_epoch }}.*
     - q2-types-genomics {{ qiime2_epoch }}.*
     - q2templates {{ qiime2_epoch }}.*
