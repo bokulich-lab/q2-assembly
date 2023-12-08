@@ -19,12 +19,15 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from q2_types_genomics.per_sample_data import BAMDirFmt
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
+from q2_assembly._utils import get_relative_data_path
 from q2_assembly.bowtie2.mapping import (
     _gather_sample_data,
+    _map_reads_to_contigs,
     _map_sample_reads,
-    map_reads_to_contigs,
 )
 
 
@@ -34,9 +37,11 @@ class MockTempDir(tempfile.TemporaryDirectory):
 
 class TestBowtie2Mapping(TestPluginBase):
     package = "q2_assembly.bowtie2.tests"
+    root_test_package = "q2_assembly.tests"
 
     def setUp(self):
         super().setUp()
+        self.map_reads_to_contigs = self.plugin.pipelines["map_reads_to_contigs"]
         self.test_params_list = [
             "--trim5",
             "10",
@@ -233,7 +238,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
         p1.return_value = self.test_samples
 
-        map_reads_to_contigs(
+        _map_reads_to_contigs(
             indexed_contigs=index,
             reads=reads,
             trim5=10,
@@ -266,7 +271,7 @@ class TestBowtie2Mapping(TestPluginBase):
             self.test_samples[s]["rev"] = None
         p1.return_value = self.test_samples
 
-        map_reads_to_contigs(
+        _map_reads_to_contigs(
             indexed_contigs=index,
             reads=reads,
             trim5=10,
@@ -299,7 +304,7 @@ class TestBowtie2Mapping(TestPluginBase):
             self.test_samples[s]["rev"] = None
         p1.return_value = self.test_samples
 
-        map_reads_to_contigs(
+        _map_reads_to_contigs(
             indexed_contigs=index,
             reads=reads,
             trim5=10,
@@ -320,6 +325,60 @@ class TestBowtie2Mapping(TestPluginBase):
         for s, s_props in self.test_samples.items():
             exp_calls.append(call(self.test_params_list, False, s, s_props, ANY))
         p2.assert_has_calls(exp_calls)
+
+    def test_map_reads_to_contigs_single_parallel(self):
+        input_index = self.get_data_path("indices/from_contigs")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/single-end"
+        )
+
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data("SampleData[SingleBowtie2Index]", index)
+
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
+
+        with ParallelConfig():
+            (out,) = self.map_reads_to_contigs.parallel(
+                indexed_contigs=index,
+                reads=reads,
+                trim5=10,
+                n=1,
+                i="L,1,0.5",
+                valid_mate_orientations="ff",
+                mode="local",
+                sensitivity="very-fast",
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, BAMDirFmt)
+
+    def test_map_reads_to_contigs_paired_parallel(self):
+        input_index = self.get_data_path("indices/from_contigs")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/paired-end"
+        )
+
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data("SampleData[SingleBowtie2Index]", index)
+
+        reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
+
+        with ParallelConfig():
+            (out,) = self.map_reads_to_contigs.parallel(
+                indexed_contigs=index,
+                reads=reads,
+                trim5=10,
+                n=1,
+                i="L,1,0.5",
+                valid_mate_orientations="ff",
+                mode="local",
+                sensitivity="very-fast",
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, BAMDirFmt)
 
 
 if __name__ == "__main__":

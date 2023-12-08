@@ -18,13 +18,15 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly.megahit.megahit import (
     _assemble_megahit,
     _process_megahit_arg,
     _process_sample,
-    assemble_megahit,
+    assemble_megahit_helper,
 )
 
 
@@ -37,6 +39,7 @@ class TestMegahit(TestPluginBase):
 
     def setUp(self):
         super().setUp()
+        self.assemble_megahit = self.plugin.pipelines["assemble_megahit"]
         self.fake_common_args = ["--presets", "meta-fake", "--k-min", "39"]
         self.test_params_dict = {
             "presets": "meta-sensitive",
@@ -218,7 +221,7 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_megahit(seqs=input, common_args=self.test_params_list)
+        obs = assemble_megahit_helper(seqs=input, common_args=self.test_params_list)
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="paired")
 
         p.assert_has_calls(exp_calls, any_order=False)
@@ -229,18 +232,18 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_megahit(seqs=input, common_args=self.test_params_list)
+        obs = assemble_megahit_helper(seqs=input, common_args=self.test_params_list)
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="single")
 
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit._assemble_megahit")
+    @patch("q2_assembly.megahit.assemble_megahit_helper")
     def test_assemble_megahit_process_params(self, p):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        _ = assemble_megahit(
+        _ = _assemble_megahit(
             seqs=input,
             presets="meta-sensitive",
             bubble_level=1,
@@ -277,6 +280,30 @@ class TestMegahit(TestPluginBase):
             "200",
         ]
         p.assert_called_with(seqs=input, common_args=exp_args)
+
+    def test_assemble_megahit_parallel_paired(self):
+        input_files = self.get_data_path("formatted-reads/paired-end")
+        _input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data(
+            "SampleData[PairedEndSequencesWithQuality]", _input
+        )
+
+        with ParallelConfig():
+            (out,) = self.assemble_megahit.parallel(samples)._result()
+
+        out.validate()
+        self.assertIs(out.format, ContigSequencesDirFmt)
+
+    def test_assemble_megahit_parallel_single(self):
+        input_files = self.get_data_path("formatted-reads/single-end")
+        _input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data("SampleData[SequencesWithQuality]", _input)
+
+        with ParallelConfig():
+            (out,) = self.assemble_megahit.parallel(samples)._result()
+
+        out.validate()
+        self.assertIs(out.format, ContigSequencesDirFmt)
 
 
 if __name__ == "__main__":

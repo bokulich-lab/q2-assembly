@@ -63,6 +63,45 @@ def _index_seqs(
 
 
 def index_contigs(
+    ctx,
+    contigs,
+    large_index=False,
+    debug=False,
+    sanitized=False,
+    verbose=False,
+    noauto=False,
+    packed=False,
+    bmax="auto",
+    bmaxdivn=4,
+    dcv=1024,
+    nodc=False,
+    offrate=5,
+    ftabchars=10,
+    threads=1,
+    seed=0,
+    num_partitions=None,
+):
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["contigs", "num_partitions", "ctx"]
+    }
+
+    _index_contigs = ctx.get_action("assembly", "_index_contigs")
+    partition_contigs = ctx.get_action("assembly", "partition_contigs")
+    collate_indices = ctx.get_action("assembly", "collate_indices")
+
+    (partitioned_contigs,) = partition_contigs(contigs, num_partitions)
+    indices = []
+    for contig in partitioned_contigs.values():
+        (index,) = _index_contigs(contigs=contig, **kwargs)
+        indices.append(index)
+
+    (collated_indices,) = collate_indices(indices)
+    return collated_indices
+
+
+def _index_contigs(
     contigs: ContigSequencesDirFmt,
     large_index: bool = False,
     debug: bool = False,

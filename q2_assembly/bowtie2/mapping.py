@@ -16,13 +16,181 @@ from typing import Union
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import (
+    PairedEndSequencesWithQuality,
+    SequencesWithQuality,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from q2_types.sample_data import SampleData
 from q2_types_genomics.per_sample_data import BAMDirFmt
 
 from .._utils import _process_common_input_params, run_commands_with_pipe
 from .utils import _process_bowtie2_arg
+
+
+def map_reads_to_contigs(
+    ctx,
+    indexed_contigs,
+    reads,
+    skip=0,
+    qupto="unlimited",
+    trim5=0,
+    trim3=0,
+    trim_to="untrimmed",
+    phred33=False,
+    phred64=False,
+    mode="local",
+    sensitivity="sensitive",
+    n=0,
+    len=22,
+    i="S,1,1.15",
+    n_ceil="L,0,0.15",
+    dpad=15,
+    gbar=4,
+    ignore_quals=False,
+    nofw=False,
+    norc=False,
+    no_1mm_upfront=False,
+    end_to_end=False,
+    local=False,
+    ma=2,
+    mp=6,
+    np=1,
+    rdg="5,3",
+    rfg="5,3",
+    k="off",
+    a=False,
+    d=15,
+    r=2,
+    minins=0,
+    maxins=500,
+    valid_mate_orientations="fr",
+    no_mixed=False,
+    no_discordant=False,
+    dovetail=False,
+    no_contain=False,
+    no_overlap=False,
+    offrate="off",
+    threads=1,
+    reorder=False,
+    mm=False,
+    seed=0,
+    non_deterministic=False,
+    num_partitions=None,
+):
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k
+        not in [
+            "ctx",
+            "reads",
+            "num_partitions",
+        ]
+    }
+
+    collate_alignments = ctx.get_action("assembly", "collate_alignments")
+    _map_reads_to_contigs = ctx.get_action("assembly", "_map_reads_to_contigs")
+
+    if reads.type <= SampleData[SequencesWithQuality]:
+        partition_method = ctx.get_action("demux", "partition_samples_single")
+    elif reads.type <= SampleData[PairedEndSequencesWithQuality]:
+        partition_method = ctx.get_action("demux", "partition_samples_paired")
+    else:
+        raise NotImplementedError()
+
+    (partitioned_reads,) = partition_method(reads, num_partitions)
+
+    mapped_reads = []
+    for read in partitioned_reads.values():
+        (mapped_read,) = _map_reads_to_contigs(reads=read, **kwargs)
+        mapped_reads.append(mapped_read)
+
+    (collated_mapped_reads,) = collate_alignments(mapped_reads)
+    return collated_mapped_reads
+
+
+def _map_reads_to_contigs(
+    indexed_contigs: Bowtie2IndexDirFmt,
+    reads: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ],
+    skip: int = 0,
+    qupto: int = "unlimited",
+    trim5: int = 0,
+    trim3: int = 0,
+    trim_to: str = "untrimmed",
+    phred33: bool = False,
+    phred64: bool = False,
+    mode: str = "local",
+    sensitivity: str = "sensitive",
+    n: int = 0,
+    len: int = 22,
+    i: str = "S,1,1.15",
+    n_ceil: str = "L,0,0.15",
+    dpad: int = 15,
+    gbar: int = 4,
+    ignore_quals: bool = False,
+    nofw: bool = False,
+    norc: bool = False,
+    no_1mm_upfront: bool = False,
+    end_to_end: bool = False,
+    local: bool = False,
+    ma: int = 2,
+    mp: int = 6,
+    np: int = 1,
+    rdg: str = "5,3",
+    rfg: str = "5,3",
+    k: int = "off",
+    a: bool = False,
+    d: int = 15,
+    r: int = 2,
+    minins: int = 0,
+    maxins: int = 500,
+    valid_mate_orientations: str = "fr",
+    no_mixed: bool = False,
+    no_discordant: bool = False,
+    dovetail: bool = False,
+    no_contain: bool = False,
+    no_overlap: bool = False,
+    offrate: int = "off",
+    threads: int = 1,
+    reorder: bool = False,
+    mm: bool = False,
+    seed: int = 0,
+    non_deterministic: bool = False,
+) -> BAMDirFmt:
+    if qupto == "unlimited":
+        qupto = None
+    if trim_to == "untrimmed":
+        trim_to = None
+    if k == "off":
+        k = None
+    if offrate == "off":
+        offrate = None
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["indexed_contigs", "reads", "sensitivity", "mode"]
+    }
+    common_args = _process_common_input_params(
+        processing_func=_process_bowtie2_arg, params=kwargs
+    )
+    if mode == "local":
+        common_args.append(f"--{sensitivity}-{mode}")
+    else:
+        common_args.append(f"--{sensitivity}")
+
+    paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
+    manifest = reads.manifest.view(pd.DataFrame)
+
+    full_sample_set = _gather_sample_data(indexed_contigs, manifest, paired)
+
+    result = BAMDirFmt()
+    for samp, props in full_sample_set.items():
+        _map_sample_reads(common_args, paired, samp, props, str(result))
+
+    return result
 
 
 def _map_sample_reads(
@@ -108,86 +276,3 @@ def _gather_sample_data(
                 f"Index files missing for sample {samp}. " f"Please check your input."
             )
     return full_set
-
-
-def map_reads_to_contigs(
-    indexed_contigs: Bowtie2IndexDirFmt,
-    reads: Union[
-        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
-    ],
-    skip: int = 0,
-    qupto: int = "unlimited",
-    trim5: int = 0,
-    trim3: int = 0,
-    trim_to: str = "untrimmed",
-    phred33: bool = False,
-    phred64: bool = False,
-    mode: str = "local",
-    sensitivity: str = "sensitive",
-    n: int = 0,
-    len: int = 22,
-    i: str = "S,1,1.15",
-    n_ceil: str = "L,0,0.15",
-    dpad: int = 15,
-    gbar: int = 4,
-    ignore_quals: bool = False,
-    nofw: bool = False,
-    norc: bool = False,
-    no_1mm_upfront: bool = False,
-    end_to_end: bool = False,
-    local: bool = False,
-    ma: int = 2,
-    mp: int = 6,
-    np: int = 1,
-    rdg: str = "5,3",
-    rfg: str = "5,3",
-    k: int = "off",
-    a: bool = False,
-    d: int = 15,
-    r: int = 2,
-    minins: int = 0,
-    maxins: int = 500,
-    valid_mate_orientations: str = "fr",
-    no_mixed: bool = False,
-    no_discordant: bool = False,
-    dovetail: bool = False,
-    no_contain: bool = False,
-    no_overlap: bool = False,
-    offrate: int = "off",
-    threads: int = 1,
-    reorder: bool = False,
-    mm: bool = False,
-    seed: int = 0,
-    non_deterministic: bool = False,
-) -> BAMDirFmt:
-    if qupto == "unlimited":
-        qupto = None
-    if trim_to == "untrimmed":
-        trim_to = None
-    if k == "off":
-        k = None
-    if offrate == "off":
-        offrate = None
-    kwargs = {
-        k: v
-        for k, v in locals().items()
-        if k not in ["indexed_contigs", "reads", "sensitivity", "mode"]
-    }
-    common_args = _process_common_input_params(
-        processing_func=_process_bowtie2_arg, params=kwargs
-    )
-    if mode == "local":
-        common_args.append(f"--{sensitivity}-{mode}")
-    else:
-        common_args.append(f"--{sensitivity}")
-
-    paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
-    manifest = reads.manifest.view(pd.DataFrame)
-
-    full_sample_set = _gather_sample_data(indexed_contigs, manifest, paired)
-
-    result = BAMDirFmt()
-    for samp, props in full_sample_set.items():
-        _map_sample_reads(common_args, paired, samp, props, str(result))
-
-    return result

@@ -6,6 +6,16 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .megahit import _assemble_megahit, assemble_megahit
+from .helpers import (
+    collate_alignments,
+    collate_contigs,
+    collate_indices,
+    partition_contigs,
+)
 
-__all__ = ["assemble_megahit", "_assemble_megahit"]
+__all__ = [
+    "partition_contigs",
+    "collate_contigs",
+    "collate_indices",
+    "collate_alignments",
+]

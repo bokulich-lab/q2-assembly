@@ -10,14 +10,17 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import List, Union
 import warnings
+from typing import List, Union
 
 import pandas as pd
 from q2_types.per_sample_sequences import (
+    PairedEndSequencesWithQuality,
+    SequencesWithQuality,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from q2_types.sample_data import SampleData
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
 from .._utils import _construct_param, _process_common_input_params, run_command
@@ -86,34 +89,6 @@ def _process_sample(sample, fwd, rev, common_args, out):
         )
 
 
-def _assemble_megahit(seqs, common_args) -> ContigSequencesDirFmt:
-    """Runs the assembly for all available samples.
-
-    Both, paired- and single-end reads can be processed - the output will
-    be adjusted accordingly.
-
-    Args:
-        seqs: Sequences to be processed.
-        common_args: List of common flags and their values for
-            the MEGAHIT command.
-
-    Returns:
-        result (ContigSequencesDirFmt): Assembled contigs.
-
-    """
-
-    paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
-    manifest = seqs.manifest.view(pd.DataFrame)
-    result = ContigSequencesDirFmt()
-
-    for samp in list(manifest.index):
-        fwd = manifest.loc[samp, "forward"]
-        rev = manifest.loc[samp, "reverse"] if paired else None
-
-        _process_sample(samp, fwd, rev, common_args, result)
-    return result
-
-
 def warn_about_presets():
     warning = (
         "The presets parameter overrides settings for the min_count and k_list "
@@ -126,6 +101,57 @@ def warn_about_presets():
 
 
 def assemble_megahit(
+    ctx,
+    seqs,
+    presets=None,
+    min_count=2,
+    k_list=[21, 29, 39, 59, 79, 99, 119, 141],
+    k_min=None,
+    k_max=None,
+    k_step=None,
+    no_mercy=False,
+    bubble_level=2,
+    prune_level=2,
+    prune_depth=2,
+    disconnect_ratio=0.1,
+    low_local_ratio=0.2,
+    max_tip_len="auto",
+    cleaning_rounds=5,
+    no_local=False,
+    kmin_1pass=False,
+    memory=0.9,
+    mem_flag=1,
+    num_cpu_threads=1,
+    no_hw_accel=False,
+    min_contig_len=200,
+    num_partitions=None,
+):
+    kwargs = {
+        k: v for k, v in locals().items() if k not in ["seqs", "num_partitions", "ctx"]
+    }
+
+    _assemble_megahit = ctx.get_action("assembly", "_assemble_megahit")
+    collate_contigs = ctx.get_action("assembly", "collate_contigs")
+
+    if seqs.type <= SampleData[SequencesWithQuality]:
+        partition_method = ctx.get_action("demux", "partition_samples_single")
+    elif seqs.type <= SampleData[PairedEndSequencesWithQuality]:
+        partition_method = ctx.get_action("demux", "partition_samples_paired")
+    else:
+        raise NotImplementedError()
+
+    (partitioned_seqs,) = partition_method(seqs, num_partitions)
+
+    contigs = []
+    for seq in partitioned_seqs.values():
+        (contig,) = _assemble_megahit(seq, **kwargs)
+        contigs.append(contig)
+
+    (collated_contigs,) = collate_contigs(contigs)
+    return collated_contigs
+
+
+def _assemble_megahit(
     seqs: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
@@ -168,4 +194,32 @@ def assemble_megahit(
         processing_func=_process_megahit_arg, params=kwargs
     )
 
-    return _assemble_megahit(seqs=seqs, common_args=common_args)
+    return assemble_megahit_helper(seqs=seqs, common_args=common_args)
+
+
+def assemble_megahit_helper(seqs, common_args) -> ContigSequencesDirFmt:
+    """Runs the assembly for all available samples.
+
+    Both, paired- and single-end reads can be processed - the output will
+    be adjusted accordingly.
+
+    Args:
+        seqs: Sequences to be processed.
+        common_args: List of common flags and their values for
+            the MEGAHIT command.
+
+    Returns:
+        result (ContigSequencesDirFmt): Assembled contigs.
+
+    """
+
+    paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
+    manifest = seqs.manifest.view(pd.DataFrame)
+    result = ContigSequencesDirFmt()
+
+    for samp in list(manifest.index):
+        fwd = manifest.loc[samp, "forward"]
+        rev = manifest.loc[samp, "reverse"] if paired else None
+
+        _process_sample(samp, fwd, rev, common_args, result)
+    return result

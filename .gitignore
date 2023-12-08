@@ -133,4 +133,8 @@ dmypy.json
 
 .DS_Store
 
+# parsl logs
+runinfo/
+
+# Editor junk
 .vscode
