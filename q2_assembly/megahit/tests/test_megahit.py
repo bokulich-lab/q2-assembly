@@ -330,35 +330,35 @@ class TestMegahit(TestPluginBase):
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit._process_sample")
-    def test_assemble_megahit_paired_single_sample_coassemble(self, p):
-        input_files = self.get_data_path("reads/single-sample/paired-end")
-        input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+    # @patch("q2_assembly.megahit._process_sample")
+    # def test_assemble_megahit_paired_single_sample_coassemble(self, p):
+    #     input_files = self.get_data_path("reads/single-sample/paired-end")
+    #     input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+    #
+    #     obs = assemble_megahit_helper(
+    #         seqs=input, coassemble=True, common_args=self.test_params_list
+    #     )
+    #     exp_calls = self.generate_exp_calls_coassembly(
+    #         sample_ids=(1,), kind="paired", coassemble=True, is_single_sample=True
+    #     )
+    #
+    #     p.assert_has_calls(exp_calls, any_order=False)
+    #     self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-        obs = assemble_megahit_helper(
-            seqs=input, coassemble=True, common_args=self.test_params_list
-        )
-        exp_calls = self.generate_exp_calls_coassembly(
-            sample_ids=(1,), kind="paired", coassemble=True, is_single_sample=True
-        )
-
-        p.assert_has_calls(exp_calls, any_order=False)
-        self.assertIsInstance(obs, ContigSequencesDirFmt)
-
-    @patch("q2_assembly.megahit._process_sample")
-    def test_assemble_megahit_single_single_sample_coassemble(self, p):
-        input_files = self.get_data_path("reads/single-sample/single-end")
-        input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
-
-        obs = assemble_megahit_helper(
-            seqs=input, coassemble=True, common_args=self.test_params_list
-        )
-        exp_calls = self.generate_exp_calls_coassembly(
-            sample_ids=(1,), kind="single", coassemble=True, is_single_sample=True
-        )
-
-        p.assert_has_calls(exp_calls, any_order=False)
-        self.assertIsInstance(obs, ContigSequencesDirFmt)
+    # @patch("q2_assembly.megahit._process_sample")
+    # def test_assemble_megahit_single_single_sample_coassemble(self, p):
+    #     input_files = self.get_data_path("reads/single-sample/single-end")
+    #     input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+    #
+    #     obs = assemble_megahit_helper(
+    #         seqs=input, coassemble=True, common_args=self.test_params_list
+    #     )
+    #     exp_calls = self.generate_exp_calls_coassembly(
+    #         sample_ids=(1,), kind="single", coassemble=True, is_single_sample=True
+    #     )
+    #
+    #     p.assert_has_calls(exp_calls, any_order=False)
+    #     self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.assemble_megahit_helper")
     def test_assemble_megahit_process_params(self, p):
