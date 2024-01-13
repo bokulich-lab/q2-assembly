@@ -30,7 +30,7 @@ megahit_params = {
     "num_cpu_threads": Int % Range(1, None),
     "no_hw_accel": Bool,
     "min_contig_len": Int,
-    "co_assemble": Bool,
+    "coassemble": Bool,
 }
 # fmt: off
 megahit_param_descriptions = {
@@ -62,7 +62,7 @@ megahit_param_descriptions = {
     "num_cpu_threads": "Number of CPU threads.",
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
     "min_contig_len": "Minimum length of contigs to output.",
-    "co_assemble": "Co-assemble reads into contigs from all samples."
+    "coassemble": "Co-assemble reads into contigs from all samples."
 }
 # fmt: on
 spades_params = {
