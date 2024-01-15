@@ -27,6 +27,8 @@ setup(
             "data/*",
             "data/reads/paired-end/*",
             "data/reads/single-end/*",
+            "data/reads/single-sample/paired-end/*",
+            "data/reads/single-sample/single-end/*",
             "data/html-files/*",
             "data/html-files/fake-reports/*/*",
             "data/html-files/fake-reports/*",
