@@ -1,2 +1,2 @@
 sample-id,filename,direction
-sample1,reads1_R1.fastq.gz
+sample1,reads1_R1.fastq.gz,forward
