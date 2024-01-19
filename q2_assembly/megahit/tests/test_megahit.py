@@ -113,16 +113,6 @@ class TestMegahit(TestPluginBase):
             )
         return self.get_data_path(f"reads/{kind}-end/reads{sample_id}_R{d}.fastq.gz")
 
-    def generate_exp_calls(self, sample_ids, kind="paired"):
-        exp_calls = []
-        rev = None
-        for s in sample_ids:
-            fwd = self.get_reads_path(kind, s, "fwd")
-            if kind == "paired":
-                rev = self.get_reads_path(kind, s, "rev")
-            exp_calls.append(call(f"sample{s}", fwd, rev, self.test_params_list, ANY))
-        return exp_calls
-
     def get_fwd_rev_paths(self, kind, sample_id, is_single_sample=False):
         rev = None
         fwd = self.get_reads_path(kind, sample_id, "fwd", is_single_sample)
@@ -162,12 +152,6 @@ class TestMegahit(TestPluginBase):
                 )
 
         return exp_calls
-
-    def test_exp_calls(self):
-        exp_calls_1 = self.generate_exp_calls([1, 2], kind="paired")
-        exp_calls_2 = self.generate_exp_calls_coassembly([1, 2], kind="paired")
-
-        self.assertListEqual(exp_calls_1, exp_calls_2)
 
     def test_process_megahit_arg_simple1(self):
         obs = _process_megahit_arg("not_k_list", 123)
