@@ -132,3 +132,16 @@ def get_relative_data_path(package, filename):
         filename (str): The name of the file/dir we are trying to get
     """
     return pkg_resources.resource_filename(package, f"data/{filename}")
+
+
+def concatenate_files(input_files, output_file):
+    """Concatenate the content of the files in input_files and
+    save the content in the output_file.
+
+    Args:
+        input_files (list): list of all files to be concatenated
+        output_file (str): the path to the resulting file
+    """
+    # cmd = f'cat {" ".join(input_files)} > {output_file}'
+    # run_command(cmd, True)
+    os.system(f'cat {" ".join(input_files)} > {output_file}')

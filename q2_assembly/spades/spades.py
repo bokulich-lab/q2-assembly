@@ -19,7 +19,12 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
-from .._utils import _construct_param, _process_common_input_params, run_command
+from .._utils import (
+    _construct_param,
+    _process_common_input_params,
+    concatenate_files,
+    run_command,
+)
 
 
 def _process_spades_arg(arg_key, arg_val):
@@ -89,7 +94,21 @@ def _process_sample(sample, fwd, rev, common_args, out):
         )
 
 
-def _assemble_spades(seqs, meta, common_args) -> ContigSequencesDirFmt:
+def _get_file_extension(file):
+    ext = ""
+    parts = file.split(".")
+    if "fasta" in parts:
+        ext += ".fasta"
+    elif "fastq" in parts:
+        ext += ".fastq"
+    if "gz" in parts:
+        ext += ".gz"
+    return ext
+
+
+def _assemble_spades(
+    seqs, meta, common_args, coassemble=False
+) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
     Both, paired- and single-end reads can be processed - the output will
@@ -100,6 +119,8 @@ def _assemble_spades(seqs, meta, common_args) -> ContigSequencesDirFmt:
         meta: True if it is a metagenomic assembly.
         common_args: List of common flags and their values for
             the metaSPAdes command.
+        coassemble: True if user wants to coassemble reads
+            from all samples.
 
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
@@ -114,11 +135,37 @@ def _assemble_spades(seqs, meta, common_args) -> ContigSequencesDirFmt:
     manifest = seqs.manifest.view(pd.DataFrame)
     result = ContigSequencesDirFmt()
 
-    for samp in list(manifest.index):
-        fwd = manifest.loc[samp, "forward"]
-        rev = manifest.loc[samp, "reverse"] if paired else None
+    if coassemble:
+        print(
+            "WARNING: The co-assembly process includes concatenating contents of all"
+            "read files. This process may take a while to finish!"
+        )
+        fwds = manifest["forward"]  # this will be  a list
+        revs = (
+            manifest["reverse"] if paired else None
+        )  # this will be a list if it exists
 
-        _process_sample(samp, fwd, rev, common_args, result)
+        extension = _get_file_extension(fwds[0])
+        fwd = f"all_samples_fwd{extension}"
+        rev = f"all_samples_rev{extension}" if paired else None
+
+        concatenate_files(fwds, fwd)
+        if paired:
+            print("Inside coassemble-paired")
+            concatenate_files(revs, rev)
+
+        _process_sample("all_samples_spades", fwd, rev, common_args, result)
+
+        # delete the concatenated files created, after the assembly process is done
+        os.remove(fwd)
+        os.remove(rev)
+
+    else:
+        for samp in list(manifest.index):
+            fwd = manifest.loc[samp, "forward"]
+            rev = manifest.loc[samp, "reverse"] if paired else None
+
+            _process_sample(samp, fwd, rev, common_args, result)
     return result
 
 
@@ -143,10 +190,13 @@ def assemble_spades(
     cov_cutoff: Union[float, str] = "off",
     phred_offset: str = "auto-detect",
     debug: bool = False,
+    coassemble: bool = False,
 ) -> ContigSequencesDirFmt:
-    kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
+    kwargs = {k: v for k, v in locals().items() if k not in ["seqs", "coassemble"]}
     common_args = _process_common_input_params(
         processing_func=_process_spades_arg, params=kwargs
     )
 
-    return _assemble_spades(seqs=seqs, meta=meta, common_args=common_args)
+    return _assemble_spades(
+        seqs=seqs, meta=meta, coassemble=coassemble, common_args=common_args
+    )

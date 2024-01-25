@@ -58,6 +58,8 @@ plugin.pipelines.register_function(
     function=q2_assembly.megahit.assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**megahit_params, **partition_params},
+    # TODO: consider modifying this to include the
+    #  FeatureData[Contig] when coassembly is activated
     outputs=[("contigs", SampleData[Contigs])],
     input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
     parameter_descriptions={
@@ -116,6 +118,8 @@ plugin.methods.register_function(
     function=q2_assembly.spades.assemble_spades,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters=spades_params,
+    # TODO: consider modifying this to include the
+    #  FeatureData[Contig] when coassembly is activated
     outputs=[("contigs", SampleData[Contigs])],
     input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
     parameter_descriptions=spades_param_descriptions,

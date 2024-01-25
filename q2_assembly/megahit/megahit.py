@@ -218,7 +218,7 @@ def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDir
         seqs: Sequences to be processed.
         common_args: List of common flags and their values for
             the MEGAHIT command.
-        co_assemble: boolean variable that specifies whether
+        coassemble: boolean variable that specifies whether
             reads are co-assembled into a single contigs.
 
     Returns:
@@ -235,7 +235,6 @@ def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDir
         fwd = ",".join(manifest["forward"])
         rev = ",".join(manifest["reverse"]) if paired else None
 
-        # paths from index one to avoid the first ,
         _process_sample("all_samples", fwd, rev, common_args, result)
     else:
         for samp in list(manifest.index):

@@ -84,6 +84,7 @@ spades_params = {
     | Str % Choices(["auto", "off"]),
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
     "debug": Bool,
+    "coassemble": Bool,
 }
 # fmt: off
 spades_param_descriptions = {
@@ -108,6 +109,7 @@ spades_param_descriptions = {
                   "'off').",
     "phred_offset": "PHRED quality offset in the input reads (33 or 64).",
     "debug": "Runs SPAdes in debug mode.",
+    "coassemble": "Co-assemble reads into contigs from all samples.",
 }
 # fmt: on
 quast_params = {
