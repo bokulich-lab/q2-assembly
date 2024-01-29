@@ -134,6 +134,26 @@ def get_relative_data_path(package, filename):
     return pkg_resources.resource_filename(package, f"data/{filename}")
 
 
+def get_file_extension(file):
+    """Extract the extension of a file to see if it is compressed
+    or not.
+
+    Args:
+        file (str): the path of the file to get the extension
+
+    """
+    ext = ""
+    parts = file.split(".")
+
+    if "gz" in parts:
+        ext += f".{parts[-2]}.gz"
+    else:
+        # take only the last part that
+        # will correspond to the extension
+        ext = f".{parts[-1]}"
+    return ext
+
+
 def concatenate_files(input_files, output_file):
     """Concatenate the content of the files in input_files and
     save the content in the output_file.

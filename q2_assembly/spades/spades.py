@@ -23,6 +23,7 @@ from .._utils import (
     _construct_param,
     _process_common_input_params,
     concatenate_files,
+    get_file_extension,
     run_command,
 )
 
@@ -94,18 +95,6 @@ def _process_sample(sample, fwd, rev, common_args, out):
         )
 
 
-def _get_file_extension(file):
-    ext = ""
-    parts = file.split(".")
-    if "fasta" in parts:
-        ext += ".fasta"
-    elif "fastq" in parts:
-        ext += ".fastq"
-    if "gz" in parts:
-        ext += ".gz"
-    return ext
-
-
 def _assemble_spades(
     seqs, meta, common_args, coassemble=False
 ) -> ContigSequencesDirFmt:
@@ -145,13 +134,12 @@ def _assemble_spades(
             manifest["reverse"] if paired else None
         )  # this will be a list if it exists
 
-        extension = _get_file_extension(fwds[0])
+        extension = get_file_extension(fwds[0])
         fwd = f"all_samples_fwd{extension}"
         rev = f"all_samples_rev{extension}" if paired else None
 
         concatenate_files(fwds, fwd)
         if paired:
-            print("Inside coassemble-paired")
             concatenate_files(revs, rev)
 
         _process_sample("all_samples_spades", fwd, rev, common_args, result)
