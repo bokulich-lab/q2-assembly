@@ -29,7 +29,7 @@ setup(
             "data/reads/single-end/*",
             "data/reads/single-sample/paired-end/*",
             "data/reads/single-sample/single-end/*",
-            "data/reads/single-sample/small-single-end/*",
+            "data/reads/small-single-end/*",
             "data/html-files/*",
             "data/html-files/fake-reports/*/*",
             "data/html-files/fake-reports/*",
