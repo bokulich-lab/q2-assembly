@@ -128,7 +128,7 @@ def assemble_megahit(
     coassemble=False,
 ):
     kwargs = {
-        # removing num_partitions from this list to include it in the parameters
+        # removing num_partitions from this dict to include it in the parameters
         k: v
         for k, v in locals().items()
         if k not in ["seqs", "num_partitions", "ctx"]
@@ -219,7 +219,7 @@ def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDir
         common_args: List of common flags and their values for
             the MEGAHIT command.
         coassemble: boolean variable that specifies whether
-            reads are co-assembled into a single contigs.
+            reads from all samples are co-assembled.
 
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.

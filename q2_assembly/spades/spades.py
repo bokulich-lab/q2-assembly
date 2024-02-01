@@ -126,27 +126,27 @@ def _assemble_spades(
 
     if coassemble:
         print(
-            "WARNING: The co-assembly process includes concatenating contents of all"
+            "WARNING: The co-assembly process includes concatenating contents of all "
             "read files. This process may take a while to finish!"
         )
+
         fwds = manifest["forward"]  # this will be  a list
         revs = (
             manifest["reverse"] if paired else None
         )  # this will be a list if it exists
 
-        extension = get_file_extension(fwds[0])
-        fwd = f"all_samples_fwd{extension}"
-        rev = f"all_samples_rev{extension}" if paired else None
+        with tempfile.TemporaryDirectory() as tmpdir:
+            extension = get_file_extension(fwds[0])
+            fwd = os.path.join(tmpdir, f"all_samples_fwd{extension}")
+            rev = (
+                os.path.join(tmpdir, f"all_samples_rev{extension}") if paired else None
+            )
 
-        concatenate_files(fwds, fwd)
-        if paired:
-            concatenate_files(revs, rev)
+            concatenate_files(fwds, fwd)
+            if paired:
+                concatenate_files(revs, rev)
 
-        _process_sample("all_samples_spades", fwd, rev, common_args, result)
-
-        # delete the concatenated files created, after the assembly process is done
-        os.remove(fwd)
-        os.remove(rev)
+            _process_sample("all_samples", fwd, rev, common_args, result)
 
     else:
         for samp in list(manifest.index):
