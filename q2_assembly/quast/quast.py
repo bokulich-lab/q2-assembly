@@ -15,15 +15,16 @@ import tempfile
 from distutils.dir_util import copy_tree
 from typing import List, Union
 from zipfile import ZipFile
+
 import pandas as pd
 import pkg_resources
 import q2templates
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
+from q2_types.per_sample_data import ContigSequencesDirFmt
 from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
-from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
 from .._utils import (
     _construct_param,
@@ -202,7 +203,7 @@ def _zip_dir(zip_object: ZipFile, directory: str) -> None:
 
 
 def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
-    with ZipFile(output_filename, 'w') as zipf:
+    with ZipFile(output_filename, "w") as zipf:
         for directory in path_to_dirs:
             _zip_dir(zipf, directory)
 
@@ -223,7 +224,7 @@ def evaluate_contigs(
     memory_efficient: bool = False,
     min_alignment: int = 65,
     min_identity: float = 90.0,
-    ambiguity_usage: str = 'one',
+    ambiguity_usage: str = "one",
     ambiguity_score: float = 0.99,
 ):
     kwargs = {
@@ -270,14 +271,14 @@ def evaluate_contigs(
         ]
         output_filename = os.path.join(
             output_dir, "quast_data", "additional_reports.zip"
-            )
+        )
         _zip_additional_reports(zip_these_dirs, output_filename)
 
         context = {
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"}
+                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(samples),
         }

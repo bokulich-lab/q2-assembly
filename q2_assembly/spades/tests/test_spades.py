@@ -13,11 +13,11 @@ import unittest
 from subprocess import CalledProcessError
 from unittest.mock import ANY, call, patch
 
+from q2_types.per_sample_data import ContigSequencesDirFmt
 from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
-from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.spades.spades import (

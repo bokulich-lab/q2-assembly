@@ -14,11 +14,11 @@ from unittest.mock import ANY, call, patch
 
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.per_sample_data import BAMDirFmt
 from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
-from q2_types_genomics.per_sample_data import BAMDirFmt
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 from qiime2.sdk.parallel_config import ParallelConfig
