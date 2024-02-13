@@ -25,6 +25,7 @@ requirements:
     - megahit ==1.2.9
     - pysam
     - qiime2 {{ qiime2_epoch }}.*
+    - q2-types {{ qiime2_epoch }}.*
     - q2templates {{ qiime2_epoch }}.*
     - q2-demux {{ qiime2_epoch }}.*
     - samtools
