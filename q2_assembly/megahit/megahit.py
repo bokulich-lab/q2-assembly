@@ -14,8 +14,8 @@ import warnings
 from typing import List, Union
 
 import pandas as pd
-from q2_types.per_sample_data import ContigSequencesDirFmt
 from q2_types.per_sample_sequences import (
+    ContigSequencesDirFmt,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
     SingleLanePerSamplePairedEndFastqDirFmt,

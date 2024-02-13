@@ -15,8 +15,8 @@ from typing import Union
 
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types.per_sample_data import BAMDirFmt
 from q2_types.per_sample_sequences import (
+    BAMDirFmt,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
     SingleLanePerSamplePairedEndFastqDirFmt,

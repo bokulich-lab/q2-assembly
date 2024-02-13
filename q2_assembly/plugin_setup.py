@@ -8,17 +8,15 @@
 
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_table import FeatureTable, Frequency
-from q2_types.per_sample_data import (
+from q2_types.per_sample_sequences import (
     Contigs,
     MAGs,
     MultiBowtie2Index,
-    SingleBowtie2Index,
-)
-from q2_types.per_sample_data._type import AlignmentMap
-from q2_types.per_sample_sequences import (
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
+    SingleBowtie2Index,
 )
+from q2_types.per_sample_sequences._type import AlignmentMap
 from q2_types.sample_data import SampleData
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 

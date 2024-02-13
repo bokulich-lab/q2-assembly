@@ -13,8 +13,8 @@ import unittest
 from subprocess import CalledProcessError
 from unittest.mock import ANY, call, patch
 
-from q2_types.per_sample_data import ContigSequencesDirFmt
 from q2_types.per_sample_sequences import (
+    ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )

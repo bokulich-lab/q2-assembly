@@ -12,7 +12,7 @@ from copy import deepcopy
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.feature_data import DNAFASTAFormat
-from q2_types.per_sample_data import (
+from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
     MultiBowtie2IndexDirFmt,
     MultiMAGSequencesDirFmt,

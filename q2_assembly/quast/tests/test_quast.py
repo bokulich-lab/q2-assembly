@@ -17,8 +17,8 @@ from unittest.mock import ANY, call, mock_open, patch
 from zipfile import ZipFile
 
 from q2_types.feature_data import DNAFASTAFormat
-from q2_types.per_sample_data import ContigSequencesDirFmt
 from q2_types.per_sample_sequences import (
+    ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )

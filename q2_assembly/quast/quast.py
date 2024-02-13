@@ -20,8 +20,8 @@ import pandas as pd
 import pkg_resources
 import q2templates
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
-from q2_types.per_sample_data import ContigSequencesDirFmt
 from q2_types.per_sample_sequences import (
+    ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
