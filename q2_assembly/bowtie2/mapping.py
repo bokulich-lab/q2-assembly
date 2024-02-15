@@ -16,13 +16,13 @@ from typing import Union
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import (
+    BAMDirFmt,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from q2_types.sample_data import SampleData
-from q2_types_genomics.per_sample_data import BAMDirFmt
 
 from .._utils import _process_common_input_params, run_commands_with_pipe
 from .utils import _process_bowtie2_arg

@@ -14,10 +14,10 @@ from typing import List, Union
 
 import pandas as pd
 from q2_types.per_sample_sequences import (
+    ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
-from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
 from .._utils import _construct_param, _process_common_input_params, run_command
 

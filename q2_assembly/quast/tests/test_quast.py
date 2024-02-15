@@ -11,26 +11,26 @@ import json
 import os
 import tempfile
 import unittest
-from subprocess import CalledProcessError
-from zipfile import ZipFile
 from filecmp import dircmp
+from subprocess import CalledProcessError
 from unittest.mock import ANY, call, mock_open, patch
+from zipfile import ZipFile
 
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
+    ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
-from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
 from ..quast import (
     _evaluate_contigs,
     _process_quast_arg,
     _split_reference,
-    evaluate_contigs,
-    _zip_dir,
     _zip_additional_reports,
+    _zip_dir,
+    evaluate_contigs,
 )
 
 
@@ -394,7 +394,7 @@ class TestQuast(TestPluginBase):
                 "--ambiguity-usage",
                 "one",
                 "--ambiguity-score",
-                "0.99"
+                "0.99",
             ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
@@ -403,7 +403,7 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"}
+                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -464,7 +464,7 @@ class TestQuast(TestPluginBase):
                 "--ambiguity-usage",
                 "one",
                 "--ambiguity-score",
-                "0.99"
+                "0.99",
             ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
@@ -473,7 +473,7 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"}
+                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -534,7 +534,7 @@ class TestQuast(TestPluginBase):
                 "--ambiguity-usage",
                 "one",
                 "--ambiguity-score",
-                "0.99"
+                "0.99",
             ],
         )
         p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
@@ -543,7 +543,7 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"}
+                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -557,16 +557,15 @@ class TestQuast(TestPluginBase):
         with tempfile.TemporaryDirectory() as tmp:
             # Open ZipFile context and call _zip_dir
             output_filename = os.path.join(tmp, "this_is_a.zip")
-            with ZipFile(output_filename, 'w') as zipf:
+            with ZipFile(output_filename, "w") as zipf:
                 _zip_dir(zipf, data_path)
 
-            with ZipFile(output_filename, 'r') as zipf:
+            with ZipFile(output_filename, "r") as zipf:
                 zipf.extractall(path=os.path.join(tmp, "observed"))
 
             # Instantiate compare directory object
             compare = dircmp(
-                a=os.path.join(data_path, "expected"),
-                b=os.path.join(tmp, "observed")
+                a=os.path.join(data_path, "expected"), b=os.path.join(tmp, "observed")
             )
 
             # Should return an empty list
@@ -580,22 +579,17 @@ class TestQuast(TestPluginBase):
         with tempfile.TemporaryDirectory() as tmp:
             # Open ZipFile context and call _zip_dir
             output_filename = os.path.join(tmp, "this_is_a.zip")
-            path_to_dirs = [
-                os.path.join(root_path, f"folder_{i}") for i in range(3)
-            ]
+            path_to_dirs = [os.path.join(root_path, f"folder_{i}") for i in range(3)]
             _zip_additional_reports(
                 path_to_dirs=path_to_dirs, output_filename=output_filename
             )
 
             # Extract zip
-            with ZipFile(output_filename, 'r') as zipf:
+            with ZipFile(output_filename, "r") as zipf:
                 zipf.extractall(path=os.path.join(tmp, "observed"))
 
             # Instantiate compare directory object
-            compare = dircmp(
-                a=root_path,
-                b=os.path.join(tmp, "observed")
-            )
+            compare = dircmp(a=root_path, b=os.path.join(tmp, "observed"))
 
             # Should return an empty list
             self.assertFalse(compare.diff_files)
