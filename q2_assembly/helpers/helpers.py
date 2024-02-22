@@ -11,7 +11,7 @@ import warnings
 
 import numpy as np
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types_genomics.per_sample_data import BAMDirFmt, ContigSequencesDirFmt
+from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
 
