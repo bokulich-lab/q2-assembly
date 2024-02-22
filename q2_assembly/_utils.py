@@ -165,6 +165,5 @@ def concatenate_files(input_files, output_file):
         input_files (list): list of all files to be concatenated
         output_file (str): the path to the resulting file
     """
-    # cmd = ["cat", *list(input_files), ">", output_file]
-    # run_command(cmd, True, concat=True)
-    os.system(f'cat {" ".join(input_files)} > {output_file}')
+    cmd = ["cat", *input_files]
+    subprocess.run(cmd, stdout=open(output_file, "w"), check=True)
