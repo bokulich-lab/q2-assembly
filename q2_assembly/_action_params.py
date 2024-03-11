@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
+from qiime2.plugin import Metadata
 
 megahit_params = {
     "presets": Str % Choices(["meta", "meta-sensitive", "meta-large", "disabled"]),
@@ -449,5 +450,32 @@ partition_param_descriptions = {
     "num_partitions": "The number of partitions to split the contigs"
                       " into. Defaults to partitioning into individual"
                       " samples."
+}
+# fmt: on
+
+filter_contigs_params = {
+    "metadata": Metadata,
+    "where": Str,
+    "exclude_ids": Bool,
+    "remove_empty": Bool,
+    "length_threshold": Int % Range(0, None),
+}
+# fmt: off
+filter_contigs_param_descriptions = {
+    "metadata": "Sample metadata indicating which sample ids to filter. "
+                "The optional `where` parameter may be used to filter ids "
+                "based on specified conditions in the metadata. The "
+                "optional `exclude_ids` parameter may be used to exclude "
+                "the ids specified in the metadata from the filter.",
+    "where": "Optional SQLite WHERE clause specifying sample metadata "
+             "criteria that must be met to be included in the filtered "
+             "data. If not provided, all samples in `metadata` that are "
+             "also in the contig data will be retained.",
+    "exclude_ids": "Defaults to False. If True, the samples selected by "
+                   "the `metadata` and optional `where` parameter will be "
+                   "excluded from the filtered data.",
+    "remove_empty": "If True, samples with no contigs will be removed from "
+                    "the filtered data.",
+    "length_threshold": "Only keep contigs of the given length and longer."
 }
 # fmt: on
