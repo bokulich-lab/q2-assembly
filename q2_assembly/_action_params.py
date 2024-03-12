@@ -121,6 +121,7 @@ quast_params = {
     "min_identity": Float % Range(80.0, 100.0),
     "ambiguity_usage": Str % Choices(["none", "one", "all"]),
     "ambiguity_score": Float % Range(0.8, 1.0),
+    "no_icarus": Bool,
 }
 # fmt: off
 quast_param_descriptions = {
@@ -149,6 +150,9 @@ quast_param_descriptions = {
                        "significant increase of # mismatches.",
     "ambiguity_score": "Score for defining equally good alignments of a "
                        "single contig (see --ambiguity-usage).",
+    "no_icarus": "Do not draw Icarus visualizations. This option is useful "
+                 "when evaluating large genomes across multiple samples, "
+                 "as this step can be very time-consuming.",
 }
 # fmt: on
 iss_params = {

@@ -549,6 +549,77 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
+    @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast._fix_html_reports", return_value=None)
+    @patch("q2templates.render")
+    @patch("tempfile.TemporaryDirectory")
+    def test_evaluate_contigs_action_paired_end_no_icarus(self, p1, p2, p3, p4):
+        test_temp_dir = MockTempDir()
+        os.mkdir(os.path.join(test_temp_dir.name, "results"))
+        p1.return_value = test_temp_dir
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        reads = SingleLanePerSamplePairedEndFastqDirFmt(
+            self.get_data_path("reads/paired-end"), "r"
+        )
+
+        evaluate_contigs(
+            output_dir=self._tmp,
+            contigs=contigs,
+            reads=reads,
+            min_contig=150,
+            threads=1,
+            k_mer_size=101,
+            contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+            no_icarus=True,
+        )
+
+        exp_reads_dict = {
+            "sample1": {
+                "fwd": self.get_data_path("reads/paired-end/reads1_R1.fastq.gz"),
+                "rev": self.get_data_path("reads/paired-end/reads1_R2.fastq.gz"),
+            },
+            "sample2": {
+                "fwd": self.get_data_path("reads/paired-end/reads2_R1.fastq.gz"),
+                "rev": self.get_data_path("reads/paired-end/reads2_R2.fastq.gz"),
+            },
+        }
+        p4.assert_called_once_with(
+            os.path.join(test_temp_dir.name, "results"),
+            contigs,
+            exp_reads_dict,
+            True,
+            None,
+            [
+                "--min-contig",
+                "150",
+                "--threads",
+                "1",
+                "--k-mer-size",
+                "101",
+                "--contig-thresholds",
+                "0,1000,5000,10000,25000,50000",
+                "--min-alignment",
+                "65",
+                "--min-identity",
+                "90.0",
+                "--ambiguity-usage",
+                "one",
+                "--ambiguity-score",
+                "0.99",
+                "--no-icarus",
+            ],
+        )
+        p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
+
+        exp_context = {
+            "tabs": [
+                {"title": "QC report", "url": "index.html"},
+                {"title": "Krona charts", "url": "q2_krona_charts.html"},
+            ],
+            "samples": json.dumps(["sample1", "sample2"]),
+        }
+        p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
+
     def test_zip_dir(self):
         # Get path to test data
         data_path = self.get_data_path("zip_test_data")
