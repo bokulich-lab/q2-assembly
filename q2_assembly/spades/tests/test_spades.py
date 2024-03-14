@@ -220,12 +220,13 @@ class TestSpades(TestPluginBase):
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
+    @patch("q2_assembly.spades.concatenate_files")
     @patch(
         "tempfile.TemporaryDirectory",
         return_value=MagicMock(__enter__=MagicMock(return_value="/tmp/mock_tmp_dir")),
     )
     @patch("q2_assembly.spades._process_sample")
-    def test_assemble_spades_paired_coassemble(self, p1, p2):
+    def test_assemble_spades_paired_coassemble(self, p1, p2, p3):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
@@ -234,19 +235,20 @@ class TestSpades(TestPluginBase):
         )
         # to be modified accordingly
         # if reads type change in the tests/data/reads/paired_end directory
-        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_samples_fwd.fastq.gz")
-        rev = os.path.join("/tmp", "mock_tmp_dir", "all_samples_rev.fastq.gz")
-        exp_calls = [call("all_samples", fwd, rev, self.test_params_list, ANY)]
+        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_fwd.fastq.gz")
+        rev = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_rev.fastq.gz")
+        exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
 
         p1.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
+    @patch("q2_assembly.spades.concatenate_files")
     @patch(
         "tempfile.TemporaryDirectory",
         return_value=MagicMock(__enter__=MagicMock(return_value="/tmp/mock_tmp_dir")),
     )
     @patch("q2_assembly.spades._process_sample")
-    def test_assemble_spades_paired_single_sample_coassemble(self, p1, p2):
+    def test_assemble_spades_paired_single_sample_coassemble(self, p1, p2, p3):
         input_files = self.get_data_path("reads/single-sample/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
@@ -256,10 +258,10 @@ class TestSpades(TestPluginBase):
         # to be modified accordingly
         # if reads type change in the
         # tests/data/reads/single-samples/paired_end directory
-        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_samples_fwd.fastq.gz")
-        rev = os.path.join("/tmp", "mock_tmp_dir", "all_samples_rev.fastq.gz")
+        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_fwd.fastq.gz")
+        rev = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_rev.fastq.gz")
 
-        exp_calls = [call("all_samples", fwd, rev, self.test_params_list, ANY)]
+        exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
         p1.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 

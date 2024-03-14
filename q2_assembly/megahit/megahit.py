@@ -235,7 +235,7 @@ def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDir
         fwd = ",".join(manifest["forward"])
         rev = ",".join(manifest["reverse"]) if paired else None
 
-        _process_sample("all_samples", fwd, rev, common_args, result)
+        _process_sample("all_contigs", fwd, rev, common_args, result)
     else:
         for samp in list(manifest.index):
             fwd = manifest.loc[samp, "forward"]

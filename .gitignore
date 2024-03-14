@@ -141,6 +141,6 @@ runinfo/
 
 # additional
 test_megahit.py
-exported_contigs*
+exported_*
 reads/*
 *.qza

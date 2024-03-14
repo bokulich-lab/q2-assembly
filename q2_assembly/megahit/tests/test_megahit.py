@@ -135,7 +135,7 @@ class TestMegahit(TestPluginBase):
                     rev.append(self.get_fwd_rev_paths(kind, s, is_single_sample)[1])
             exp_calls.append(
                 call(
-                    "all_samples",
+                    "all_contigs",
                     ",".join(fwd),
                     (",".join(rev) if len(rev) != 0 else None),
                     self.test_params_list,

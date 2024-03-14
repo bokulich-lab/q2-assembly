@@ -137,16 +137,16 @@ def _assemble_spades(
 
         with tempfile.TemporaryDirectory() as tmpdir:
             extension = get_file_extension(fwds[0])
-            fwd = os.path.join(tmpdir, f"all_samples_fwd{extension}")
+            fwd = os.path.join(tmpdir, f"all_contigs_fwd{extension}")
             rev = (
-                os.path.join(tmpdir, f"all_samples_rev{extension}") if paired else None
+                os.path.join(tmpdir, f"all_contigs_rev{extension}") if paired else None
             )
 
             concatenate_files(fwds, fwd)
             if paired:
                 concatenate_files(revs, rev)
 
-            _process_sample("all_samples", fwd, rev, common_args, result)
+            _process_sample("all_contigs", fwd, rev, common_args, result)
 
     else:
         for samp in list(manifest.index):
