@@ -21,12 +21,15 @@ EXTERNAL_CMD_WARNING = (
 )
 
 
-def run_command(cmd, verbose=True):
+def run_command(cmd, verbose=True, concat=False):
     if verbose:
         print(EXTERNAL_CMD_WARNING)
         print("\nCommand:", end=" ")
         print(" ".join(cmd), end="\n\n")
-    subprocess.run(cmd, check=True)
+    if concat:
+        subprocess.run(cmd, shell=True, check=True)
+    else:
+        subprocess.run(cmd, check=True)
 
 
 def run_commands_with_pipe(cmd1, cmd2, verbose=True):
@@ -132,3 +135,35 @@ def get_relative_data_path(package, filename):
         filename (str): The name of the file/dir we are trying to get
     """
     return pkg_resources.resource_filename(package, f"data/{filename}")
+
+
+def get_file_extension(filepath):
+    """Extract the extension of a file to see if it is compressed
+    or not.
+
+    Args:
+        filepath (str): the path of the file to get the extension
+
+    """
+    ext = ""
+    parts = filepath.split(".")
+
+    if parts[-1] == "gz":
+        ext += f".{parts[-2]}.gz"
+    else:
+        # take only the last part that
+        # will correspond to the extension
+        ext = f".{parts[-1]}"
+    return ext
+
+
+def concatenate_files(input_files, output_file):
+    """Concatenate the content of the files in input_files and
+    save the content in the output_file.
+
+    Args:
+        input_files (list): list of all files to be concatenated
+        output_file (str): the path to the resulting file
+    """
+    cmd = ["cat", *input_files]
+    subprocess.run(cmd, stdout=open(output_file, "w"), check=True)

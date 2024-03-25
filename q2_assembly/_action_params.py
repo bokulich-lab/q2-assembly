@@ -61,6 +61,7 @@ megahit_param_descriptions = {
     "num_cpu_threads": "Number of CPU threads.",
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
     "min_contig_len": "Minimum length of contigs to output.",
+    "coassemble": "Co-assemble reads into contigs from all samples."
 }
 # fmt: on
 spades_params = {
@@ -106,6 +107,7 @@ spades_param_descriptions = {
                   "'off').",
     "phred_offset": "PHRED quality offset in the input reads (33 or 64).",
     "debug": "Runs SPAdes in debug mode.",
+    "coassemble": "Co-assemble reads into contigs from all samples.",
 }
 # fmt: on
 quast_params = {

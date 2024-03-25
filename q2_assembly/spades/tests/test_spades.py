@@ -11,7 +11,7 @@ import shutil
 import tempfile
 import unittest
 from subprocess import CalledProcessError
-from unittest.mock import ANY, call, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
@@ -75,8 +75,14 @@ class TestSpades(TestPluginBase):
             "--debug",
         ]
 
-    def get_reads_path(self, kind="paired", sample_id=1, direction="fwd"):
+    def get_reads_path(
+        self, kind="paired", sample_id=1, direction="fwd", is_single_sample=False
+    ):
         d = 1 if direction == "fwd" else 2
+        if is_single_sample:
+            return self.get_data_path(
+                f"reads/single-sample/{kind}-end/reads{sample_id}_R{d}.fastq.gz"
+            )
         return self.get_data_path(f"reads/{kind}-end/reads{sample_id}_R{d}.fastq.gz")
 
     def generate_exp_calls(self, sample_ids, kind="paired"):
@@ -214,6 +220,51 @@ class TestSpades(TestPluginBase):
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
+    @patch("q2_assembly.spades.concatenate_files")
+    @patch(
+        "tempfile.TemporaryDirectory",
+        return_value=MagicMock(__enter__=MagicMock(return_value="/tmp/mock_tmp_dir")),
+    )
+    @patch("q2_assembly.spades._process_sample")
+    def test_assemble_spades_paired_coassemble(self, p1, p2, p3):
+        input_files = self.get_data_path("reads/paired-end")
+        input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+
+        obs = _assemble_spades(
+            seqs=input, meta=False, coassemble=True, common_args=self.test_params_list
+        )
+        # to be modified accordingly
+        # if reads type change in the tests/data/reads/paired_end directory
+        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_fwd.fastq.gz")
+        rev = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_rev.fastq.gz")
+        exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
+
+        p1.assert_has_calls(exp_calls, any_order=False)
+        self.assertIsInstance(obs, ContigSequencesDirFmt)
+
+    @patch("q2_assembly.spades.concatenate_files")
+    @patch(
+        "tempfile.TemporaryDirectory",
+        return_value=MagicMock(__enter__=MagicMock(return_value="/tmp/mock_tmp_dir")),
+    )
+    @patch("q2_assembly.spades._process_sample")
+    def test_assemble_spades_paired_single_sample_coassemble(self, p1, p2, p3):
+        input_files = self.get_data_path("reads/single-sample/paired-end")
+        input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+
+        obs = _assemble_spades(
+            seqs=input, meta=False, coassemble=True, common_args=self.test_params_list
+        )
+        # to be modified accordingly
+        # if reads type change in the
+        # tests/data/reads/single-samples/paired_end directory
+        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_fwd.fastq.gz")
+        rev = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_rev.fastq.gz")
+
+        exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
+        p1.assert_has_calls(exp_calls, any_order=False)
+        self.assertIsInstance(obs, ContigSequencesDirFmt)
+
     @patch("q2_assembly.spades._process_sample")
     def test_assemble_spades_single(self, p):
         input_files = self.get_data_path("reads/single-end")
@@ -223,6 +274,36 @@ class TestSpades(TestPluginBase):
             NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
         ):
             _assemble_spades(seqs=input, meta=True, common_args=self.test_params_list)
+
+    @patch("q2_assembly.spades._process_sample")
+    def test_assemble_spades_single_coassemble(self, p):
+        input_files = self.get_data_path("reads/single-end")
+        input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+
+        with self.assertRaisesRegex(
+            NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
+        ):
+            _assemble_spades(
+                seqs=input,
+                meta=True,
+                coassemble=True,
+                common_args=self.test_params_list,
+            )
+
+    @patch("q2_assembly.spades._process_sample")
+    def test_assemble_spades_single_single_sample_coassemble(self, p):
+        input_files = self.get_data_path("reads/single-sample/single-end")
+        input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+
+        with self.assertRaisesRegex(
+            NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
+        ):
+            _assemble_spades(
+                seqs=input,
+                meta=True,
+                coassemble=True,
+                common_args=self.test_params_list,
+            )
 
     @patch("q2_assembly.spades._assemble_spades")
     def test_assemble_spades_process_params(self, p):
@@ -243,7 +324,9 @@ class TestSpades(TestPluginBase):
             "--cov-cutoff",
             "off",
         ]
-        p.assert_called_with(seqs=input, meta=True, common_args=exp_args)
+        p.assert_called_with(
+            seqs=input, meta=True, coassemble=False, common_args=exp_args
+        )
 
 
 if __name__ == "__main__":

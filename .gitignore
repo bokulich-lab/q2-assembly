@@ -138,3 +138,9 @@ runinfo/
 
 # Editor junk
 .vscode
+
+# additional
+test_megahit.py
+exported_*
+reads/*
+*.qza
