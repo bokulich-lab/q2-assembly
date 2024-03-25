@@ -30,7 +30,6 @@ megahit_params = {
     "num_cpu_threads": Int % Range(1, None),
     "no_hw_accel": Bool,
     "min_contig_len": Int,
-    "coassemble": Bool,
 }
 # fmt: off
 megahit_param_descriptions = {
@@ -84,7 +83,6 @@ spades_params = {
     | Str % Choices(["auto", "off"]),
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
     "debug": Bool,
-    "coassemble": Bool,
 }
 # fmt: off
 spades_param_descriptions = {

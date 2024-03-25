@@ -147,6 +147,8 @@ def assemble_megahit(
     if coassemble:
         num_partitions = 1
         print("WARNING: num_partitions set to 1 since co_assemble is used!")
+        (contig,) = _assemble_megahit(seqs, **kwargs)
+        return contig
 
     (partitioned_seqs,) = partition_method(seqs, num_partitions)
 

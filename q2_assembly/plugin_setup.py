@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from q2_types.feature_data import FeatureData, Sequence
+from q2_types.feature_data_mag import Contig
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.per_sample_sequences import (
     Contigs,
@@ -18,6 +19,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.per_sample_sequences._type import AlignmentMap
 from q2_types.sample_data import SampleData
+from qiime2.core.type import Bool, Choices, TypeMap
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 
 import q2_assembly
@@ -52,13 +54,18 @@ plugin = Plugin(
     short_description="QIIME 2 plugin for (meta)genome assembly.",
 )
 
+P_coassemble, T_coassembled_seqs = TypeMap(
+    {
+        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(False): SampleData[Contigs],
+    }
+)
+
 plugin.pipelines.register_function(
     function=q2_assembly.megahit.assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
-    parameters={**megahit_params, **partition_params},
-    # TODO: consider modifying this to include the
-    #  FeatureData[Contig] when coassembly is activated
-    outputs=[("contigs", SampleData[Contigs])],
+    parameters={**megahit_params, "coassemble": P_coassemble, **partition_params},
+    outputs=[("contigs", T_coassembled_seqs)],
     input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
     parameter_descriptions={
         **megahit_param_descriptions,
@@ -74,8 +81,8 @@ plugin.pipelines.register_function(
 plugin.methods.register_function(
     function=q2_assembly.megahit._assemble_megahit,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
-    parameters=megahit_params,
-    outputs=[("contigs", SampleData[Contigs])],
+    parameters={**megahit_params, "coassemble": P_coassemble},  # megahit_params,
+    outputs=[("contigs", T_coassembled_seqs)],
     input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
     parameter_descriptions=megahit_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled contigs."},
@@ -115,10 +122,8 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2_assembly.spades.assemble_spades,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
-    parameters=spades_params,
-    # TODO: consider modifying this to include the
-    #  FeatureData[Contig] when coassembly is activated
-    outputs=[("contigs", SampleData[Contigs])],
+    parameters={**spades_params, "coassemble": P_coassemble},
+    outputs=[("contigs", T_coassembled_seqs)],
     input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
     parameter_descriptions=spades_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled contigs."},
