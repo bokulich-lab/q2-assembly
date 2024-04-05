@@ -21,6 +21,7 @@ import pkg_resources
 import q2templates
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
 from q2_types.per_sample_sequences import (
+    BAMDirFmt,
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -85,6 +86,7 @@ def _evaluate_contigs(
     reads: dict,
     paired: bool,
     references: List[DNAFASTAFormat],
+    reads_to_contigs_map: BAMDirFmt,
     common_args: list,
 ) -> List[str]:
     """Runs the contig assembly QC using QUAST.
@@ -151,6 +153,15 @@ def _evaluate_contigs(
             all_ref_fps.extend(_split_reference(ref, all_refs_dir))
         for fp in all_ref_fps:
             cmd.extend(["-r", fp])
+
+    if reads_to_contigs_map:
+        dir_path = str(reads_to_contigs_map)
+        list_of_files = os.listdir(dir_path)
+        list_of_maps_paths = ",".join(
+            [os.path.join(dir_path, file) for file in list_of_files]
+        )
+        cmd.extend(["--bam", list_of_maps_paths])
+
     try:
         run_command(cmd, verbose=True)
     except subprocess.CalledProcessError as e:
@@ -216,6 +227,7 @@ def evaluate_contigs(
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
     references: DNAFASTAFormat = None,
+    reads_to_contigs_map: BAMDirFmt = None,
     min_contig: int = 500,
     threads: int = 1,
     k_mer_stats: bool = False,
@@ -230,7 +242,8 @@ def evaluate_contigs(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["output_dir", "contigs", "reads", "references"]
+        if k
+        not in ["output_dir", "contigs", "reads", "references", "reads_to_contigs_map"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
@@ -252,7 +265,13 @@ def evaluate_contigs(
 
         # run quast
         samples = _evaluate_contigs(
-            results_dir, contigs, reads_fps, paired, references, common_args
+            results_dir,
+            contigs,
+            reads_fps,
+            paired,
+            references,
+            reads_to_contigs_map,
+            common_args,
         )
 
         # fix/remove some URLs
