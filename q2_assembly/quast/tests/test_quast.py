@@ -192,7 +192,10 @@ class TestQuast(TestPluginBase):
             reads_to_contigs_map=alignment_map,
             common_args=["-m", "10", "-t", "1"],
         )
-
+        list_of_maps = os.listdir(str(alignment_map))
+        list_of_maps_paths = ",".join(
+            [os.path.join(str(alignment_map), file) for file in list_of_maps]
+        )
         exp_command = [
             "metaquast.py",
             "-o",
@@ -204,9 +207,7 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "--bam",
-            os.path.join(str(alignment_map), "sample1_alignment.bam")
-            + ","
-            + os.path.join(str(alignment_map), "sample2_alignment.bam"),
+            list_of_maps_paths,
         ]
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p.assert_called_once_with(exp_command, check=True)
@@ -229,6 +230,11 @@ class TestQuast(TestPluginBase):
             common_args=["-m", "10", "-t", "1"],
         )
 
+        list_of_maps = os.listdir(str(alignment_map))
+        list_of_maps_paths = ",".join(
+            [os.path.join(str(alignment_map), file) for file in list_of_maps]
+        )
+
         exp_command = [
             "metaquast.py",
             "-o",
@@ -240,9 +246,7 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "--bam",
-            os.path.join(str(alignment_map), "sample1_alignment.bam")
-            + ","
-            + os.path.join(str(alignment_map), "sample2_alignment.bam"),
+            list_of_maps_paths,
         ]
 
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
