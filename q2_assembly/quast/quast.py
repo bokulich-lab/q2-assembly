@@ -99,6 +99,7 @@ def _evaluate_contigs(
         reads (dict): Dictionary containing mapping of samples to their
             forward and reverse reads, e.g.:
             {'sample1': {'fwd': '/path/to/reads', 'rev': '/path/to/reads'}}.
+        reads_to_contigs_map (BAMDirFmt): the mapping of reads to contigs
         common_args (list): List of common flags and their values for
             the QUAST command.
 
@@ -111,6 +112,13 @@ def _evaluate_contigs(
     cmd = ["metaquast.py", "-o", results_dir]
     cmd.extend(common_args)
     samples = []
+
+    if reads and reads_to_contigs_map:
+        reads = None
+        print(
+            "Both reads and reads_to_contigs map are provided."
+            " In this case, the reads are ignored!"
+        )
 
     for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
         cmd.append(fp)
