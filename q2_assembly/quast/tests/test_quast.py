@@ -108,7 +108,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
-            reads_to_contigs_map=None,
+            mapped_reads=None,
             common_args=["-t", "1"],
         )
 
@@ -133,7 +133,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
-            reads_to_contigs_map=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -160,7 +160,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
-            reads_to_contigs_map=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1", "--memory-efficient"],
         )
 
@@ -189,7 +189,7 @@ class TestQuast(TestPluginBase):
             reads=None,
             paired=False,
             references=None,
-            reads_to_contigs_map=alignment_map,
+            mapped_reads=alignment_map,
             common_args=["-m", "10", "-t", "1"],
         )
         list_of_maps = os.listdir(str(alignment_map))
@@ -226,7 +226,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=False,
             references=None,
-            reads_to_contigs_map=alignment_map,
+            mapped_reads=alignment_map,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -265,7 +265,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=False,
             references=None,
-            reads_to_contigs_map=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -300,7 +300,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=True,
             references=None,
-            reads_to_contigs_map=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -340,7 +340,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
-                reads_to_contigs_map=None,
+                mapped_reads=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -359,7 +359,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
-                reads_to_contigs_map=None,
+                mapped_reads=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -381,7 +381,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
-                reads_to_contigs_map=None,
+                mapped_reads=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -405,7 +405,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=[ref1, ref2],
-            reads_to_contigs_map=None,
+            mapped_reads=None,
             common_args=["-t", "1"],
         )
 

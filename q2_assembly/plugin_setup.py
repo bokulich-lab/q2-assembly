@@ -139,14 +139,14 @@ plugin.visualizers.register_function(
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
         "references": List[FeatureData[Sequence]],
-        "reads_to_contigs_map": SampleData[AlignmentMap],
+        "mapped_reads": SampleData[AlignmentMap],
     },
     parameters=quast_params,
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
         "references": "Reference genomes to align the assembled contigs against.",
-        "reads_to_contigs_map": "Pre-generated alignment maps that can be used "
+        "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
         "directly.",
     },
     parameter_descriptions=quast_param_descriptions,

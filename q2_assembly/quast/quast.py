@@ -86,7 +86,7 @@ def _evaluate_contigs(
     reads: dict,
     paired: bool,
     references: List[DNAFASTAFormat],
-    reads_to_contigs_map: BAMDirFmt,
+    mapped_reads: BAMDirFmt,
     common_args: list,
 ) -> List[str]:
     """Runs the contig assembly QC using QUAST.
@@ -99,7 +99,7 @@ def _evaluate_contigs(
         reads (dict): Dictionary containing mapping of samples to their
             forward and reverse reads, e.g.:
             {'sample1': {'fwd': '/path/to/reads', 'rev': '/path/to/reads'}}.
-        reads_to_contigs_map (BAMDirFmt): the mapping of reads to contigs
+        mapped_reads (BAMDirFmt): the mapping of reads to contigs
         common_args (list): List of common flags and their values for
             the QUAST command.
 
@@ -113,18 +113,22 @@ def _evaluate_contigs(
     cmd.extend(common_args)
     samples = []
 
-    if reads and reads_to_contigs_map:
+    if reads and mapped_reads:
         reads = None
-        print(
-            "Both reads and reads_to_contigs map are provided."
-            " In this case, the reads are ignored!"
-        )
+        print("Both reads and mapped_reads are provided. " "Reads will be ignored.")
 
     for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
         cmd.append(fp)
         samples.append(_get_sample_from_path(fp))
 
-    if reads:
+    if mapped_reads:
+        dir_path = str(mapped_reads)
+        list_of_files = os.listdir(dir_path)
+        list_of_maps_paths = ",".join(
+            [os.path.join(dir_path, file) for file in list_of_files]
+        )
+        cmd.extend(["--bam", list_of_maps_paths])
+    elif reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
         # TODO: this is a strange statement which most likely
         #  doesn't do what it should - check and fix
@@ -149,6 +153,7 @@ def _evaluate_contigs(
                     "Some samples are missing from the reads file. "
                     "Please check your input files."
                 )
+
     if references:
         all_refs_dir = os.path.join(results_dir, "references")
         os.makedirs(all_refs_dir, exist_ok=True)
@@ -161,14 +166,6 @@ def _evaluate_contigs(
             all_ref_fps.extend(_split_reference(ref, all_refs_dir))
         for fp in all_ref_fps:
             cmd.extend(["-r", fp])
-
-    if reads_to_contigs_map:
-        dir_path = str(reads_to_contigs_map)
-        list_of_files = os.listdir(dir_path)
-        list_of_maps_paths = ",".join(
-            [os.path.join(dir_path, file) for file in list_of_files]
-        )
-        cmd.extend(["--bam", list_of_maps_paths])
 
     try:
         run_command(cmd, verbose=True)
@@ -235,7 +232,7 @@ def evaluate_contigs(
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
     references: DNAFASTAFormat = None,
-    reads_to_contigs_map: BAMDirFmt = None,
+    mapped_reads: BAMDirFmt = None,
     min_contig: int = 500,
     threads: int = 1,
     k_mer_stats: bool = False,
@@ -250,8 +247,7 @@ def evaluate_contigs(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k
-        not in ["output_dir", "contigs", "reads", "references", "reads_to_contigs_map"]
+        if k not in ["output_dir", "contigs", "reads", "references", "mapped_reads"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
@@ -278,7 +274,7 @@ def evaluate_contigs(
             reads_fps,
             paired,
             references,
-            reads_to_contigs_map,
+            mapped_reads,
             common_args,
         )
 
