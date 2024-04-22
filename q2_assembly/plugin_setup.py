@@ -6,6 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import importlib
+
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import Contig
 from q2_types.feature_table import FeatureTable, Frequency
@@ -39,6 +41,11 @@ from q2_assembly._action_params import (
     quast_params,
     spades_param_descriptions,
     spades_params,
+)
+from q2_assembly.quast.types import (
+    QUASTResults,
+    QUASTResultsDirectoryFormat,
+    QUASTResultsFormat,
 )
 
 citations = Citations.load("citations.bib", package="q2_assembly")
@@ -294,3 +301,10 @@ plugin.methods.register_function(
     name="Map reads to contigs helper.",
     description="Not to be called directly. Used by map_reads_to_contigs.",
 )
+
+plugin.register_semantic_types(QUASTResults)
+plugin.register_semantic_type_to_format(
+    QUASTResults, artifact_format=QUASTResultsDirectoryFormat
+)
+plugin.register_formats(QUASTResultsFormat, QUASTResultsDirectoryFormat)
+importlib.import_module("q2_moshpit.busco.types._transformer")
