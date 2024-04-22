@@ -115,7 +115,7 @@ def _evaluate_contigs(
 
     if reads and mapped_reads:
         reads = None
-        print("Both reads and mapped_reads are provided. " "Reads will be ignored.")
+        print("Both reads and mapped reads are provided. Reads will be ignored.")
 
     for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
         cmd.append(fp)
