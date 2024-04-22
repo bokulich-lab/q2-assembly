@@ -30,6 +30,7 @@ setup(
             "data/reads/single-sample/paired-end/*",
             "data/reads/single-sample/single-end/*",
             "data/reads/small-single-end/*",
+            "data/alignment_map/*",
             "data/html-files/*",
             "data/html-files/fake-reports/*/*",
             "data/html-files/fake-reports/*",
