@@ -18,6 +18,7 @@ from zipfile import ZipFile
 
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
+    BAMDirFmt,
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -107,6 +108,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
+            mapped_reads=None,
             common_args=["-t", "1"],
         )
 
@@ -131,6 +133,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -157,6 +160,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1", "--memory-efficient"],
         )
 
@@ -176,6 +180,79 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
+    def test_evaluate_contigs_with_map(self, p):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        alignment_map = BAMDirFmt(self.get_data_path("alignment_map"), "r")
+        obs_samples = _evaluate_contigs(
+            results_dir="some/dir",
+            contigs=contigs,
+            reads=None,
+            paired=False,
+            references=None,
+            mapped_reads=alignment_map,
+            common_args=["-m", "10", "-t", "1"],
+        )
+        list_of_maps = os.listdir(str(alignment_map))
+        list_of_maps_paths = ",".join(
+            [os.path.join(str(alignment_map), file) for file in list_of_maps]
+        )
+        exp_command = [
+            "metaquast.py",
+            "-o",
+            "some/dir",
+            "-m",
+            "10",
+            "-t",
+            "1",
+            os.path.join(str(contigs), "sample1_contigs.fa"),
+            os.path.join(str(contigs), "sample2_contigs.fa"),
+            "--bam",
+            list_of_maps_paths,
+        ]
+        self.assertListEqual(obs_samples, ["sample1", "sample2"])
+        p.assert_called_once_with(exp_command, check=True)
+
+    @patch("subprocess.run")
+    def test_evaluate_contigs_with_map_and_reads(self, p):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        alignment_map = BAMDirFmt(self.get_data_path("alignment_map"), "r")
+        reads = {
+            "sample1": {"fwd": "path/to/s1fwd", "rev": None},
+            "sample2": {"fwd": "path/to/s2fwd", "rev": None},
+        }
+        obs_samples = _evaluate_contigs(
+            results_dir="some/dir",
+            contigs=contigs,
+            reads=reads,
+            paired=False,
+            references=None,
+            mapped_reads=alignment_map,
+            common_args=["-m", "10", "-t", "1"],
+        )
+
+        list_of_maps = os.listdir(str(alignment_map))
+        list_of_maps_paths = ",".join(
+            [os.path.join(str(alignment_map), file) for file in list_of_maps]
+        )
+
+        exp_command = [
+            "metaquast.py",
+            "-o",
+            "some/dir",
+            "-m",
+            "10",
+            "-t",
+            "1",
+            os.path.join(str(contigs), "sample1_contigs.fa"),
+            os.path.join(str(contigs), "sample2_contigs.fa"),
+            "--bam",
+            list_of_maps_paths,
+        ]
+
+        self.assertListEqual(obs_samples, ["sample1", "sample2"])
+        p.assert_called_once_with(exp_command, check=True)
+
+    @patch("subprocess.run")
     def test_evaluate_contigs_single_end(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = {
@@ -188,6 +265,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=False,
             references=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -222,6 +300,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=True,
             references=None,
+            mapped_reads=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -261,6 +340,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
+                mapped_reads=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -279,6 +359,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
+                mapped_reads=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -300,6 +381,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
+                mapped_reads=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -323,6 +405,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=[ref1, ref2],
+            mapped_reads=None,
             common_args=["-t", "1"],
         )
 
@@ -377,6 +460,7 @@ class TestQuast(TestPluginBase):
             contigs,
             {},
             False,
+            None,
             None,
             [
                 "--min-contig",
@@ -447,6 +531,7 @@ class TestQuast(TestPluginBase):
             exp_reads_dict,
             False,
             None,
+            None,
             [
                 "--min-contig",
                 "150",
@@ -515,6 +600,7 @@ class TestQuast(TestPluginBase):
             contigs,
             exp_reads_dict,
             True,
+            None,
             None,
             [
                 "--min-contig",
