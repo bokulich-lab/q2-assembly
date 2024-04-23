@@ -674,6 +674,7 @@ class TestQuast(TestPluginBase):
             exp_reads_dict,
             True,
             None,
+            None,
             [
                 "--min-contig",
                 "150",
@@ -699,7 +700,6 @@ class TestQuast(TestPluginBase):
         exp_context = {
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
