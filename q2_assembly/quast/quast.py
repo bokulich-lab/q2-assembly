@@ -301,10 +301,14 @@ def evaluate_contigs(
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(samples),
         }
+
+        if os.path.isdir(os.path.join(output_dir, "quast_data", "krona_charts")):
+            context["tabs"].append(
+                {"title": "Krona charts", "url": "q2_krona_charts.html"}
+            )
 
         index = os.path.join(TEMPLATES, "quast", "index.html")
         icarus = os.path.join(TEMPLATES, "quast", "q2_icarus.html")

@@ -487,7 +487,6 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -500,6 +499,7 @@ class TestQuast(TestPluginBase):
     def test_evaluate_contigs_action_single_end(self, p1, p2, p3, p4):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
+        os.mkdir(os.path.join(test_temp_dir.name, "results", "krona_charts"))
         p1.return_value = test_temp_dir
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = SingleLanePerSampleSingleEndFastqDirFmt(
@@ -629,7 +629,6 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
