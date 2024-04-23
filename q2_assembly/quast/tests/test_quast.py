@@ -403,7 +403,6 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -473,7 +472,6 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
@@ -543,7 +541,6 @@ class TestQuast(TestPluginBase):
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
                 {"title": "Contig browser", "url": "q2_icarus.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
         }
