@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import contextlib
+import hashlib
 import os
 import shutil
 import tempfile
@@ -16,15 +17,16 @@ from distutils.dir_util import copy_tree
 from bs4 import BeautifulSoup as BS
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.quast.quast import _fix_html_reports
-
-from .._utils import (
+from q2_assembly._utils import (
     _construct_param,
     _get_sample_from_path,
     _modify_links,
     _process_common_input_params,
     _remove_html_element,
+    concatenate_files,
+    get_file_extension,
 )
+from q2_assembly.quast.quast import _fix_html_reports
 
 
 def fake_processing_func(key, val):
@@ -119,6 +121,46 @@ class TestUtils(TestPluginBase):
             f"{self._tmp}/icarus_viewers/contig_size_viewer.html",
             f"{self._tmp}/expected/contig_size_viewer.html",
         )
+
+    def test_get_file_extension_from_path(self):
+
+        # note that these files do not exist,
+        # the file paths are used only for testing purposes
+        obs1 = get_file_extension("sample_1.fastq.gz")
+        exp1 = ".fastq.gz"
+        obs2 = get_file_extension("sample_2.fasta.gz")
+        exp2 = ".fasta.gz"
+        obs3 = get_file_extension("sample_3.fastq")
+        exp3 = ".fastq"
+        obs4 = get_file_extension("sample_4.fa")
+        exp4 = ".fa"
+
+        self.assertEqual(obs1, exp1)
+        self.assertEqual(obs2, exp2)
+        self.assertEqual(obs3, exp3)
+        self.assertEqual(obs4, exp4)
+
+    def test_file_concatenation(self):
+        file1 = self.get_data_path(
+            "reads/small-single-end/sample1_00_L001_R1_001.fastq"
+        )
+        file2 = self.get_data_path(
+            "reads/small-single-end/sample2_00_L001_R1_001.fastq"
+        )
+
+        # ground truth
+        concat_file = self.get_data_path("reads/small-single-end/concat_samples.fastq")
+        hash_original = hashlib.md5(open(concat_file, mode="rb").read()).hexdigest()
+
+        # output of our method
+        output_file = self.get_data_path(
+            "reads/small-single-end/file1_file2_concat.fastq"
+        )
+        concatenate_files([file1, file2], output_file)
+        hash_test_file = hashlib.md5(open(output_file, "rb").read()).hexdigest()
+
+        self.assertEqual(hash_original, hash_test_file)
+        os.remove(output_file)
 
     def test_get_sample_from_path(self):
         obs = _get_sample_from_path("test/path/sample_1_contigs.fa")

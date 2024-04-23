@@ -103,18 +103,54 @@ class TestMegahit(TestPluginBase):
             "100",
         ]
 
-    def get_reads_path(self, kind="paired", sample_id=1, direction="fwd"):
+    def get_reads_path(
+        self, kind="paired", sample_id=1, direction="fwd", is_single_sample=False
+    ):
         d = 1 if direction == "fwd" else 2
+        if is_single_sample:
+            return self.get_data_path(
+                f"reads/single-sample/{kind}-end/reads{sample_id}_R{d}.fastq.gz"
+            )
         return self.get_data_path(f"reads/{kind}-end/reads{sample_id}_R{d}.fastq.gz")
 
-    def generate_exp_calls(self, sample_ids, kind="paired"):
-        exp_calls = []
+    def get_fwd_rev_paths(self, kind, sample_id, is_single_sample=False):
         rev = None
-        for s in sample_ids:
-            fwd = self.get_reads_path(kind, s, "fwd")
-            if kind == "paired":
-                rev = self.get_reads_path(kind, s, "rev")
-            exp_calls.append(call(f"sample{s}", fwd, rev, self.test_params_list, ANY))
+        fwd = self.get_reads_path(kind, sample_id, "fwd", is_single_sample)
+        if kind == "paired":
+            rev = self.get_reads_path(kind, sample_id, "rev", is_single_sample)
+
+        return fwd, rev
+
+    def generate_exp_calls_coassembly(
+        self, sample_ids, kind="paired", coassemble=False, is_single_sample=False
+    ):
+        exp_calls = []
+        fwd = []
+        rev = []
+        if coassemble:
+            for s in sample_ids:
+                # collect paths in 2 lists, then make a single call
+                fwd.append(self.get_fwd_rev_paths(kind, s, is_single_sample)[0])
+                if kind == "paired":
+                    rev.append(self.get_fwd_rev_paths(kind, s, is_single_sample)[1])
+            exp_calls.append(
+                call(
+                    "all_contigs",
+                    ",".join(fwd),
+                    (",".join(rev) if len(rev) != 0 else None),
+                    self.test_params_list,
+                    ANY,
+                )
+            )
+        else:
+            for s in sample_ids:
+                # make a list of calls, each call has separate
+                # samples and respective paths
+                fwd, rev = self.get_fwd_rev_paths(kind, s, is_single_sample)
+                exp_calls.append(
+                    call(f"sample{s}", fwd, rev, self.test_params_list, ANY)
+                )
+
         return exp_calls
 
     def test_process_megahit_arg_simple1(self):
@@ -221,8 +257,12 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
-        obs = assemble_megahit_helper(seqs=input, common_args=self.test_params_list)
-        exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="paired")
+        obs = assemble_megahit_helper(
+            seqs=input, coassemble=False, common_args=self.test_params_list
+        )
+        exp_calls = self.generate_exp_calls_coassembly(
+            sample_ids=(1, 2), kind="paired", coassemble=False
+        )
 
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
@@ -232,8 +272,74 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        obs = assemble_megahit_helper(seqs=input, common_args=self.test_params_list)
-        exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="single")
+        obs = assemble_megahit_helper(
+            seqs=input,
+            coassemble=False,
+            common_args=self.test_params_list,
+        )
+        exp_calls = self.generate_exp_calls_coassembly(
+            sample_ids=(1, 2), kind="single", coassemble=False
+        )
+
+        p.assert_has_calls(exp_calls, any_order=False)
+        self.assertIsInstance(obs, ContigSequencesDirFmt)
+
+    @patch("q2_assembly.megahit._process_sample")
+    def test_assemble_megahit_paired_coassemble(self, p):
+        input_files = self.get_data_path("reads/paired-end")
+        input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+
+        obs = assemble_megahit_helper(
+            seqs=input, coassemble=True, common_args=self.test_params_list
+        )
+        exp_calls = self.generate_exp_calls_coassembly(
+            sample_ids=(1, 2), kind="paired", coassemble=True
+        )
+
+        p.assert_has_calls(exp_calls, any_order=False)
+        self.assertIsInstance(obs, ContigSequencesDirFmt)
+
+    @patch("q2_assembly.megahit._process_sample")
+    def test_assemble_megahit_single_coassemble(self, p):
+        input_files = self.get_data_path("reads/single-end")
+        input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+
+        obs = assemble_megahit_helper(
+            seqs=input, coassemble=True, common_args=self.test_params_list
+        )
+        exp_calls = self.generate_exp_calls_coassembly(
+            sample_ids=(1, 2), kind="single", coassemble=True
+        )
+
+        p.assert_has_calls(exp_calls, any_order=False)
+        self.assertIsInstance(obs, ContigSequencesDirFmt)
+
+    @patch("q2_assembly.megahit._process_sample")
+    def test_assemble_megahit_paired_single_sample_coassemble(self, p):
+        input_files = self.get_data_path("reads/single-sample/paired-end")
+        input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+
+        obs = assemble_megahit_helper(
+            seqs=input, coassemble=True, common_args=self.test_params_list
+        )
+        exp_calls = self.generate_exp_calls_coassembly(
+            sample_ids=(1,), kind="paired", coassemble=True, is_single_sample=True
+        )
+
+        p.assert_has_calls(exp_calls, any_order=False)
+        self.assertIsInstance(obs, ContigSequencesDirFmt)
+
+    @patch("q2_assembly.megahit._process_sample")
+    def test_assemble_megahit_single_single_sample_coassemble(self, p):
+        input_files = self.get_data_path("reads/single-sample/single-end")
+        input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+
+        obs = assemble_megahit_helper(
+            seqs=input, coassemble=True, common_args=self.test_params_list
+        )
+        exp_calls = self.generate_exp_calls_coassembly(
+            sample_ids=(1,), kind="single", coassemble=True, is_single_sample=True
+        )
 
         p.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
@@ -279,7 +385,7 @@ class TestMegahit(TestPluginBase):
             "--min-contig-len",
             "200",
         ]
-        p.assert_called_with(seqs=input, common_args=exp_args)
+        p.assert_called_with(seqs=input, coassemble=False, common_args=exp_args)
 
     def test_assemble_megahit_parallel_paired(self):
         input_files = self.get_data_path("formatted-reads/paired-end")

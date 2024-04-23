@@ -125,9 +125,13 @@ def assemble_megahit(
     no_hw_accel=False,
     min_contig_len=200,
     num_partitions=None,
+    coassemble=False,
 ):
     kwargs = {
-        k: v for k, v in locals().items() if k not in ["seqs", "num_partitions", "ctx"]
+        # removing num_partitions from this dict to include it in the parameters
+        k: v
+        for k, v in locals().items()
+        if k not in ["seqs", "num_partitions", "ctx"]
     }
 
     _assemble_megahit = ctx.get_action("assembly", "_assemble_megahit")
@@ -139,6 +143,12 @@ def assemble_megahit(
         partition_method = ctx.get_action("demux", "partition_samples_paired")
     else:
         raise NotImplementedError()
+
+    if coassemble:
+        num_partitions = 1
+        print("WARNING: num_partitions set to 1 since co_assemble is used!")
+        (contig,) = _assemble_megahit(seqs, **kwargs)
+        return contig
 
     (partitioned_seqs,) = partition_method(seqs, num_partitions)
 
@@ -176,6 +186,7 @@ def _assemble_megahit(
     num_cpu_threads: int = 1,
     no_hw_accel: bool = False,
     min_contig_len: int = 200,
+    coassemble: bool = False,
 ) -> ContigSequencesDirFmt:
     if max_tip_len == "auto":
         max_tip_len = None
@@ -189,15 +200,17 @@ def _assemble_megahit(
             "then all must be explicitly set."
         )
 
-    kwargs = {k: v for k, v in locals().items() if k not in ["seqs"]}
+    kwargs = {k: v for k, v in locals().items() if k not in ["seqs", "coassemble"]}
     common_args = _process_common_input_params(
         processing_func=_process_megahit_arg, params=kwargs
     )
 
-    return assemble_megahit_helper(seqs=seqs, common_args=common_args)
+    return assemble_megahit_helper(
+        seqs=seqs, coassemble=coassemble, common_args=common_args
+    )
 
 
-def assemble_megahit_helper(seqs, common_args) -> ContigSequencesDirFmt:
+def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
     Both, paired- and single-end reads can be processed - the output will
@@ -207,6 +220,8 @@ def assemble_megahit_helper(seqs, common_args) -> ContigSequencesDirFmt:
         seqs: Sequences to be processed.
         common_args: List of common flags and their values for
             the MEGAHIT command.
+        coassemble: boolean variable that specifies whether
+            reads from all samples are co-assembled.
 
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
@@ -217,9 +232,17 @@ def assemble_megahit_helper(seqs, common_args) -> ContigSequencesDirFmt:
     manifest = seqs.manifest.view(pd.DataFrame)
     result = ContigSequencesDirFmt()
 
-    for samp in list(manifest.index):
-        fwd = manifest.loc[samp, "forward"]
-        rev = manifest.loc[samp, "reverse"] if paired else None
+    if coassemble:
+        print("Co-assembling reads from all samples.")
+        fwd = ",".join(manifest["forward"])
+        rev = ",".join(manifest["reverse"]) if paired else None
 
-        _process_sample(samp, fwd, rev, common_args, result)
+        _process_sample("all_contigs", fwd, rev, common_args, result)
+    else:
+        for samp in list(manifest.index):
+            fwd = manifest.loc[samp, "forward"]
+            rev = manifest.loc[samp, "reverse"] if paired else None
+
+            _process_sample(samp, fwd, rev, common_args, result)
+
     return result

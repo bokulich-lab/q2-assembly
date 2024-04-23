@@ -21,6 +21,7 @@ import pkg_resources
 import q2templates
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
 from q2_types.per_sample_sequences import (
+    BAMDirFmt,
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
@@ -85,6 +86,7 @@ def _evaluate_contigs(
     reads: dict,
     paired: bool,
     references: List[DNAFASTAFormat],
+    mapped_reads: BAMDirFmt,
     common_args: list,
 ) -> List[str]:
     """Runs the contig assembly QC using QUAST.
@@ -97,6 +99,7 @@ def _evaluate_contigs(
         reads (dict): Dictionary containing mapping of samples to their
             forward and reverse reads, e.g.:
             {'sample1': {'fwd': '/path/to/reads', 'rev': '/path/to/reads'}}.
+        mapped_reads (BAMDirFmt): Mapping of reads to contigs
         common_args (list): List of common flags and their values for
             the QUAST command.
 
@@ -110,11 +113,22 @@ def _evaluate_contigs(
     cmd.extend(common_args)
     samples = []
 
+    if reads and mapped_reads:
+        reads = None
+        print("Both reads and mapped reads are provided. Reads will be ignored.")
+
     for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
         cmd.append(fp)
         samples.append(_get_sample_from_path(fp))
 
-    if reads:
+    if mapped_reads:
+        dir_path = str(mapped_reads)
+        list_of_files = os.listdir(dir_path)
+        list_of_maps_paths = ",".join(
+            [os.path.join(dir_path, file) for file in list_of_files]
+        )
+        cmd.extend(["--bam", list_of_maps_paths])
+    elif reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
         # TODO: this is a strange statement which most likely
         #  doesn't do what it should - check and fix
@@ -139,6 +153,7 @@ def _evaluate_contigs(
                     "Some samples are missing from the reads file. "
                     "Please check your input files."
                 )
+
     if references:
         all_refs_dir = os.path.join(results_dir, "references")
         os.makedirs(all_refs_dir, exist_ok=True)
@@ -151,6 +166,7 @@ def _evaluate_contigs(
             all_ref_fps.extend(_split_reference(ref, all_refs_dir))
         for fp in all_ref_fps:
             cmd.extend(["-r", fp])
+
     try:
         run_command(cmd, verbose=True)
     except subprocess.CalledProcessError as e:
@@ -217,6 +233,7 @@ def evaluate_contigs(
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
     references: DNAFASTAFormat = None,
+    mapped_reads: BAMDirFmt = None,
     min_contig: int = 500,
     threads: int = 1,
     k_mer_stats: bool = False,
@@ -232,7 +249,7 @@ def evaluate_contigs(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["output_dir", "contigs", "reads", "references"]
+        if k not in ["output_dir", "contigs", "reads", "references", "mapped_reads"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
@@ -254,7 +271,13 @@ def evaluate_contigs(
 
         # run quast
         samples = _evaluate_contigs(
-            results_dir, contigs, reads_fps, paired, references, common_args
+            results_dir,
+            contigs,
+            reads_fps,
+            paired,
+            references,
+            mapped_reads,
+            common_args,
         )
 
         # fix/remove some URLs
@@ -279,19 +302,20 @@ def evaluate_contigs(
         context = {
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
-                {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(samples),
         }
 
         templates = [
             os.path.join(TEMPLATES, "quast", "index.html"),
-            os.path.join(TEMPLATES, "quast", "q2_krona_charts.html"),
         ]
         if not no_icarus:
-            templates.insert(1, os.path.join(TEMPLATES, "quast", "q2_icarus.html"))
-            context["tabs"].insert(
-                1, {"title": "Contig browser", "url": "q2_icarus.html"}
+            templates.append(os.path.join(TEMPLATES, "quast", "q2_icarus.html"))
+            context["tabs"].append({"title": "Contig browser", "url": "q2_icarus.html"})
+        if os.path.isdir(os.path.join(output_dir, "quast_data", "krona_charts")):
+            templates.append(os.path.join(TEMPLATES, "quast", "q2_krona_charts.html"))
+            context["tabs"].append(
+                {"title": "Krona charts", "url": "q2_krona_charts.html"}
             )
 
         q2templates.render(templates, output_dir, context=context)
