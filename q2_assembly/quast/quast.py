@@ -224,8 +224,118 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
             _zip_dir(zipf, directory)
 
 
+def _visualize_quast(output_dir: str, results_dir: str, samples: List[str]) -> None:
+    # fix/remove some URLs
+    _fix_html_reports(results_dir)
+
+    # Copy templates to output dir
+    copy_tree(os.path.join(TEMPLATES, "quast"), output_dir)
+
+    # Copy results to output dir
+    copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
+
+    # Zip summary, not_aligned and runs_per_reference dirs for download
+    dirnames = ["not_aligned", "runs_per_reference", "summary"]
+    zip_these_dirs = [
+        os.path.join(output_dir, "quast_data", f"{dirname}") for dirname in dirnames
+    ]
+    output_filename = os.path.join(output_dir, "quast_data", "additional_reports.zip")
+    _zip_additional_reports(zip_these_dirs, output_filename)
+
+    context = {
+        "tabs": [
+            {"title": "QC report", "url": "index.html"},
+            {"title": "Contig browser", "url": "q2_icarus.html"},
+        ],
+        "samples": json.dumps(samples),
+    }
+
+    if os.path.isdir(os.path.join(output_dir, "quast_data", "krona_charts")):
+        context["tabs"].append({"title": "Krona charts", "url": "q2_krona_charts.html"})
+
+    index = os.path.join(TEMPLATES, "quast", "index.html")
+    icarus = os.path.join(TEMPLATES, "quast", "q2_icarus.html")
+    krona = os.path.join(TEMPLATES, "quast", "q2_krona_charts.html")
+
+    templates = [index, icarus, krona]
+    q2templates.render(templates, output_dir, context=context)
+
+
+def _create_tabular_results(results_dir: str, all_stats: bool = False) -> pd.DataFrame:
+    filename = "transposed_report.tsv"
+    filepath = os.path.join(results_dir, "combined_references", filename)
+    transposed_report = pd.read_csv(filepath, sep="\t")
+    mandatory_cols = [
+        "id",
+        "input_file",
+        "total_length",
+        "no_contigs_0",
+        "no_contigs",
+        "longest_contig",
+        "n50",
+        "l50",
+        "n90",
+        "l90",
+    ]
+    columns_map = {
+        "Assembly": "id",
+        "# contigs (>= 0 bp)": "no_contigs_0",
+        "# contigs (>= 1000 bp)": "no_contigs",
+        "# contigs (>= 5000 bp)": "no_contigs_5000",
+        "# contigs (>= 10000 bp)": "no_contigs_10000",
+        "# contigs (>= 25000 bp)": "no_contigs_25000",
+        "# contigs (>= 50000 bp)": "no_contigs_50000",
+        "Total length (>= 0 bp)": "total_length_0",
+        "Total length (>= 1000 bp)": "total_length_1000",
+        "Total length (>= 5000 bp)": "total_length_5000",
+        "Total length (>= 10000 bp)": "total_length_10000",
+        "Total length (>= 25000 bp)": "total_length_25000",
+        "Total length (>= 50000 bp)": "total_length_50000",
+        "# contigs": "no_contigs",
+        "Largest contig": "longest_contig",
+        "Total length": "total_length",
+        "Reference length": "reference_length",
+        "N50": "n50",
+        "N90": "n90",
+        "auN": "auN",
+        "L50": "l50",
+        "L90": "l90",
+        "# misassemblies": "no_misassemblies",
+        "# misassembled contigs": "no_misassembled_contigs",
+        "Misassembled contigs length": "misassembled_contigs_length",
+        "# local misassemblies": "no_local_misassemblies",
+        "# scaffold gap ext. mis.": "no_scaffold_gap_ext_mis",
+        "# scaffold gap loc. mis.": "no_scaffold_gap_loc_mis",
+        "# unaligned mis. contigs": "no_unaligned_mis_contigs",
+        "# unaligned contigs": "no_unaligned_contigs",
+        "Unaligned length": "unaligned_length",
+        "Genome fraction (%)": "genome_fraction_percentage",
+        "Duplication ratio": "duplication_ratio",
+        "# N's per 100 kbp": "no_Ns_per100_kbp",
+        "# mismatches per 100 kbp": "no_mismatches_per100_kbp",
+        "# indels per 100 kbp": "no_indels_per100_kbp",
+        "Largest alignment": "largest_alignment",
+        "Total aligned length": "total_aligned_length",
+        "NA50": "na50",
+        "NA90": "na90",
+        "auNA": "auNA",
+        "LA50": "la50",
+        "LA90": "la90",
+    }
+
+    transposed_report_newcols = transposed_report.rename(columns=columns_map)
+    transposed_report_newcols["input_file"] = filepath
+    transposed_report_newcols = transposed_report_newcols.set_index("id")
+
+    if not all_stats:
+        transposed_report_newcols = transposed_report_newcols[[mandatory_cols]]
+
+    return transposed_report_newcols
+
+
 def evaluate_contigs(
     # TODO: expose more parameters
+    ctx,
     output_dir: str,
     contigs: ContigSequencesDirFmt,
     reads: Union[
@@ -243,11 +353,13 @@ def evaluate_contigs(
     min_identity: float = 90.0,
     ambiguity_usage: str = "one",
     ambiguity_score: float = 0.99,
+    all_stats: bool = False,
 ):
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["output_dir", "contigs", "reads", "references", "mapped_reads"]
+        if k
+        not in ["output_dir", "contigs", "reads", "references", "mapped_reads", "ctx"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
@@ -278,41 +390,11 @@ def evaluate_contigs(
             common_args,
         )
 
-        # fix/remove some URLs
-        _fix_html_reports(results_dir)
+        tabular_results = _create_tabular_results(results_dir, all_stats)
+        _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
 
-        # Copy templates to output dir
-        copy_tree(os.path.join(TEMPLATES, "quast"), output_dir)
-
-        # Copy results to output dir
-        copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
-
-        # Zip summary, not_aligned and runs_per_reference dirs for download
-        dirnames = ["not_aligned", "runs_per_reference", "summary"]
-        zip_these_dirs = [
-            os.path.join(output_dir, "quast_data", f"{dirname}") for dirname in dirnames
-        ]
-        output_filename = os.path.join(
-            output_dir, "quast_data", "additional_reports.zip"
+        (visualization,) = _visualize_quast(
+            output_dir=output_dir, results_dir=results_dir, samples=samples
         )
-        _zip_additional_reports(zip_these_dirs, output_filename)
 
-        context = {
-            "tabs": [
-                {"title": "QC report", "url": "index.html"},
-                {"title": "Contig browser", "url": "q2_icarus.html"},
-            ],
-            "samples": json.dumps(samples),
-        }
-
-        if os.path.isdir(os.path.join(output_dir, "quast_data", "krona_charts")):
-            context["tabs"].append(
-                {"title": "Krona charts", "url": "q2_krona_charts.html"}
-            )
-
-        index = os.path.join(TEMPLATES, "quast", "index.html")
-        icarus = os.path.join(TEMPLATES, "quast", "q2_icarus.html")
-        krona = os.path.join(TEMPLATES, "quast", "q2_krona_charts.html")
-
-        templates = [index, icarus, krona]
-        q2templates.render(templates, output_dir, context=context)
+        return tabular_results, visualization

@@ -57,7 +57,7 @@ megahit_param_descriptions = {
     "memory": "Max memory in byte to be used in SdBG construction (if set between 0-1, "
               "fraction of the machine's total memory).",
     "mem_flag": "SdBG builder memory mode. 0: minimum; 1: moderate; "
-    "others: use all memory specified by '-m/--memory'.",
+                "others: use all memory specified by '-m/--memory'.",
     "num_cpu_threads": "Number of CPU threads.",
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
     "min_contig_len": "Minimum length of contigs to output.",
@@ -109,6 +109,19 @@ spades_param_descriptions = {
     "debug": "Runs SPAdes in debug mode.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
 }
+
+visualize_quast_params = {
+    "output_dir": Str,
+    "results_dir": Str,
+    "sampples": List[Str]
+}
+
+visualize_quast_param_descriptions = {
+    "output_dir": "The directory where the final results will be saved.",
+    "results_dir": "The directory where QUAST report was saved.",
+    "samples": "List of sample names that were processed."
+}
+
 # fmt: on
 quast_params = {
     # TODO: add eukaryote, fungal and large when alignment
@@ -123,6 +136,7 @@ quast_params = {
     "min_identity": Float % Range(80.0, 100.0),
     "ambiguity_usage": Str % Choices(["none", "one", "all"]),
     "ambiguity_score": Float % Range(0.8, 1.0),
+    "all_stats": Bool,
 }
 # fmt: off
 quast_param_descriptions = {
@@ -151,6 +165,12 @@ quast_param_descriptions = {
                        "significant increase of # mismatches.",
     "ambiguity_score": "Score for defining equally good alignments of a "
                        "single contig (see --ambiguity-usage).",
+    "all_stats": "Flag to indicate whether all statistics should be "
+                 "included in the tabular report or not."
+                 "If False, only these statistics will be included: sample id, "
+                 "input file path, total length, number of contigs (>=0 kbp), "
+                 "number of contigs (>=1000 kbp), longest contig, n50, l50, "
+                 "n90 and l90. The default value is False.",
 }
 # fmt: on
 iss_params = {
@@ -441,8 +461,8 @@ bowtie2_mapping_param_descriptions = {
 }
 partition_params = {"num_partitions": Int % Range(1, None)}
 partition_param_descriptions = {
-        "num_partitions": "The number of partitions to split the contigs"
-        " into. Defaults to partitioning into individual"
-        " samples."
+    "num_partitions": "The number of partitions to split the contigs"
+                      " into. Defaults to partitioning into individual"
+                      " samples."
 }
 # fmt: on
