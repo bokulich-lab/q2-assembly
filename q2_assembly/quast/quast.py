@@ -13,7 +13,7 @@ import platform
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
-from typing import List, Union
+from typing import List
 from zipfile import ZipFile
 
 import pandas as pd
@@ -24,8 +24,9 @@ from q2_types.per_sample_sequences import (
     BAMDirFmt,
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
-    SingleLanePerSampleSingleEndFastqDirFmt,
 )
+
+from q2_assembly.quast.utils import _parse_columns
 
 from .._utils import (
     _construct_param,
@@ -116,6 +117,8 @@ def _evaluate_contigs(
     if reads and mapped_reads:
         reads = None
         print("Both reads and mapped reads are provided. Reads will be ignored.")
+    print("***********************************************************")
+    print(os.listdir(str(contigs)))
 
     for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
         cmd.append(fp)
@@ -261,99 +264,43 @@ def _visualize_quast(output_dir: str, results_dir: str, samples: List[str]) -> N
     q2templates.render(templates, output_dir, context=context)
 
 
-def _create_tabular_results(results_dir: str, all_stats: bool = False) -> pd.DataFrame:
+def _create_tabular_results(results_dir: str) -> pd.DataFrame:
+    """
+    This function will create the tabular results after QUAST has been run.
+
+    Args:
+        - results_dir(str): The directory were the results of QUAST are saved.
+        - all_stats(bool): The flag indicating which stats should be included in the
+        tabular report.
+
+    Returns:
+        a Pandas dataframe with the tabular data.
+    """
     filename = "transposed_report.tsv"
     filepath = os.path.join(results_dir, "combined_references", filename)
+
     transposed_report = pd.read_csv(filepath, sep="\t")
-    mandatory_cols = [
-        "id",
-        "input_file",
-        "total_length",
-        "no_contigs_0",
-        "no_contigs",
-        "longest_contig",
-        "n50",
-        "l50",
-        "n90",
-        "l90",
-    ]
-    columns_map = {
-        "Assembly": "id",
-        "# contigs (>= 0 bp)": "no_contigs_0",
-        "# contigs (>= 1000 bp)": "no_contigs",
-        "# contigs (>= 5000 bp)": "no_contigs_5000",
-        "# contigs (>= 10000 bp)": "no_contigs_10000",
-        "# contigs (>= 25000 bp)": "no_contigs_25000",
-        "# contigs (>= 50000 bp)": "no_contigs_50000",
-        "Total length (>= 0 bp)": "total_length_0",
-        "Total length (>= 1000 bp)": "total_length_1000",
-        "Total length (>= 5000 bp)": "total_length_5000",
-        "Total length (>= 10000 bp)": "total_length_10000",
-        "Total length (>= 25000 bp)": "total_length_25000",
-        "Total length (>= 50000 bp)": "total_length_50000",
-        "# contigs": "no_contigs",
-        "Largest contig": "longest_contig",
-        "Total length": "total_length",
-        "Reference length": "reference_length",
-        "N50": "n50",
-        "N90": "n90",
-        "auN": "auN",
-        "L50": "l50",
-        "L90": "l90",
-        "# misassemblies": "no_misassemblies",
-        "# misassembled contigs": "no_misassembled_contigs",
-        "Misassembled contigs length": "misassembled_contigs_length",
-        "# local misassemblies": "no_local_misassemblies",
-        "# scaffold gap ext. mis.": "no_scaffold_gap_ext_mis",
-        "# scaffold gap loc. mis.": "no_scaffold_gap_loc_mis",
-        "# unaligned mis. contigs": "no_unaligned_mis_contigs",
-        "# unaligned contigs": "no_unaligned_contigs",
-        "Unaligned length": "unaligned_length",
-        "Genome fraction (%)": "genome_fraction_percentage",
-        "Duplication ratio": "duplication_ratio",
-        "# N's per 100 kbp": "no_Ns_per100_kbp",
-        "# mismatches per 100 kbp": "no_mismatches_per100_kbp",
-        "# indels per 100 kbp": "no_indels_per100_kbp",
-        "Largest alignment": "largest_alignment",
-        "Total aligned length": "total_aligned_length",
-        "NA50": "na50",
-        "NA90": "na90",
-        "auNA": "auNA",
-        "LA50": "la50",
-        "LA90": "la90",
-    }
-
-    transposed_report_newcols = transposed_report.rename(columns=columns_map)
-    transposed_report_newcols["input_file"] = filepath
-    transposed_report_newcols = transposed_report_newcols.set_index("id")
-
-    if not all_stats:
-        transposed_report_newcols = transposed_report_newcols[[mandatory_cols]]
-
-    return transposed_report_newcols
+    transposed_report_parsed = _parse_columns(transposed_report, filepath)
+    return transposed_report_parsed
 
 
 def evaluate_contigs(
     # TODO: expose more parameters
     ctx,
-    output_dir: str,
-    contigs: ContigSequencesDirFmt,
-    reads: Union[
-        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
-    ] = None,
-    references: DNAFASTAFormat = None,
-    mapped_reads: BAMDirFmt = None,
-    min_contig: int = 500,
-    threads: int = 1,
-    k_mer_stats: bool = False,
-    k_mer_size: int = 101,
-    contig_thresholds: List[int] = [0, 1000, 5000, 10000, 25000, 50000],
-    memory_efficient: bool = False,
-    min_alignment: int = 65,
-    min_identity: float = 90.0,
-    ambiguity_usage: str = "one",
-    ambiguity_score: float = 0.99,
-    all_stats: bool = False,
+    contigs,
+    reads=None,
+    references=None,
+    mapped_reads=None,
+    min_contig=500,
+    threads=1,
+    k_mer_stats=False,
+    k_mer_size=101,
+    contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+    memory_efficient=False,
+    min_alignment=65,
+    min_identity=90.0,
+    ambiguity_usage="one",
+    ambiguity_score=0.99,
 ):
     kwargs = {
         k: v
@@ -376,6 +323,9 @@ def evaluate_contigs(
                 "rev": manifest.loc[samp, "reverse"] if paired else None,
             }
 
+    print("***********************************************************")
+    print(os.listdir(str(contigs)))
+
     with tempfile.TemporaryDirectory() as tmp:
         results_dir = os.path.join(tmp, "results")
 
@@ -390,11 +340,9 @@ def evaluate_contigs(
             common_args,
         )
 
-        tabular_results = _create_tabular_results(results_dir, all_stats)
+        tabular_results = _create_tabular_results(results_dir)
         _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
 
-        (visualization,) = _visualize_quast(
-            output_dir=output_dir, results_dir=results_dir, samples=samples
-        )
+        (visualization,) = _visualize_quast(results_dir=results_dir, samples=samples)
 
         return tabular_results, visualization

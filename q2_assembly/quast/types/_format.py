@@ -29,17 +29,19 @@ class QUASTResultsFormat(model.TextFileFormat):
         with self.open() as fh:
             reader = csv.reader(fh, delimiter="\t")
             headers = next(reader)
+            n_headers = len(headers)
 
-            if set(headers) != set(self.HEADER):
+            if not set(headers).issuperset(set(self.HEADER)):
                 raise ValidationError(
-                    f"Invalid header: {headers}, expected: {self.HEADER}"
+                    f"Invalid header: {headers}, do not contain "
+                    f"all headers in: {self.HEADER}"
                 )
 
             for i, row in enumerate(reader, start=2):
-                if len(row) != len(self.HEADER):
+                if len(row) != n_headers:
                     raise ValidationError(
                         f"Line {i} has {len(row)} columns, "
-                        f"expected {len(self.HEADER)}"
+                        f"expected {len(n_headers)}"
                     )
 
                 if n_records is not None and i - 1 >= n_records:

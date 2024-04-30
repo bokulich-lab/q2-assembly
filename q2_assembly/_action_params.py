@@ -111,13 +111,11 @@ spades_param_descriptions = {
 }
 
 visualize_quast_params = {
-    "output_dir": Str,
     "results_dir": Str,
-    "sampples": List[Str]
+    "samples": List[Str]
 }
 
 visualize_quast_param_descriptions = {
-    "output_dir": "The directory where the final results will be saved.",
     "results_dir": "The directory where QUAST report was saved.",
     "samples": "List of sample names that were processed."
 }
@@ -136,7 +134,6 @@ quast_params = {
     "min_identity": Float % Range(80.0, 100.0),
     "ambiguity_usage": Str % Choices(["none", "one", "all"]),
     "ambiguity_score": Float % Range(0.8, 1.0),
-    "all_stats": Bool,
 }
 # fmt: off
 quast_param_descriptions = {
@@ -165,12 +162,6 @@ quast_param_descriptions = {
                        "significant increase of # mismatches.",
     "ambiguity_score": "Score for defining equally good alignments of a "
                        "single contig (see --ambiguity-usage).",
-    "all_stats": "Flag to indicate whether all statistics should be "
-                 "included in the tabular report or not."
-                 "If False, only these statistics will be included: sample id, "
-                 "input file path, total length, number of contigs (>=0 kbp), "
-                 "number of contigs (>=1000 kbp), longest contig, n50, l50, "
-                 "n90 and l90. The default value is False.",
 }
 # fmt: on
 iss_params = {
