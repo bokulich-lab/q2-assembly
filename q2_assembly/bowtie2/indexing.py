@@ -8,15 +8,18 @@
 import glob
 import os
 import subprocess
+import tempfile
 from copy import deepcopy
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.feature_data import DNAFASTAFormat
+from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
     MultiBowtie2IndexDirFmt,
     MultiMAGSequencesDirFmt,
 )
+from skbio import io
 
 from q2_assembly._utils import _process_common_input_params, run_command
 from q2_assembly.bowtie2.utils import (
@@ -47,9 +50,8 @@ def _index_seqs(
     base_cmd.extend(common_args)
 
     for fp in fasta_fps:
-
         sample_dp = os.path.join(result_fp, _get_subdir_from_path(fp, input_type))
-        os.makedirs(sample_dp)
+        os.makedirs(sample_dp, exist_ok=True)
 
         cmd = deepcopy(base_cmd)
         cmd.extend([fp, os.path.join(sample_dp, "index")])
@@ -167,3 +169,65 @@ def index_mags(
     _index_seqs(mag_fps, str(result), common_args, "mags")
 
     return result
+
+
+def index_derep_mags(
+    mags: MAGSequencesDirFmt,
+    merge: bool = True,
+    large_index: bool = False,
+    debug: bool = False,
+    sanitized: bool = False,
+    verbose: bool = False,
+    noauto: bool = False,
+    packed: bool = False,
+    bmax: int = "auto",
+    bmaxdivn: int = 4,
+    dcv: int = 1024,
+    nodc: bool = False,
+    offrate: int = 5,
+    ftabchars: int = 10,
+    threads: int = 1,
+    seed: int = 0,
+) -> Bowtie2IndexDirFmt:
+    if bmax == "auto":
+        bmax = None
+    kwargs = {k: v for k, v in locals().items() if k not in ["mags", "merge"]}
+    common_args = _process_common_input_params(
+        processing_func=_process_bowtie2build_arg, params=kwargs
+    )
+
+    result = Bowtie2IndexDirFmt()
+
+    if merge:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            merged_fp = _merge_mags(mags, temp_dir)
+            _index_seqs([merged_fp], str(result), common_args, "mags-merged")
+    else:
+        mag_fps = list(mags.feature_dict().values())
+        _index_seqs(mag_fps, str(result), common_args, "mags")
+
+    return result
+
+
+def _merge_mags(mags: MAGSequencesDirFmt, result_dir: str):
+    """
+    Merge multiple MAG sequences into a single FASTA file.
+
+    This function iterates over all the MAGs provided, reads each sequence,
+    modifies its ID to include the MAG ID, and writes the sequence to a new
+    merged FASTA file.
+
+    Args:
+        mags (MAGSequencesDirFmt): The input MAGs.
+        result_dir (str): The directory where the merged MAGs will be saved.2q
+
+    Returns:
+        str: The file path of the merged FASTA file.
+    """
+    merged_fp = os.path.join(result_dir, "merged.fasta")
+    with io.open(merged_fp, "w") as merged_f:
+        for mag_id, mag_fp in mags.feature_dict().items():
+            for seq in io.read(str(mag_fp), format="fasta"):
+                seq.metadata["id"] = f"{mag_id}_{seq.metadata['id']}"
+                io.write(seq, into=merged_f, format="fasta")
+    return merged_fp

@@ -11,26 +11,31 @@ import shutil
 import subprocess
 import tempfile
 from copy import deepcopy
-from typing import Union
+from typing import List, Union
 
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.feature_data import FeatureData
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
+    MultiBowtie2Index,
+    MultiBowtie2IndexDirFmt,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
+    SingleBowtie2Index,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from q2_types.sample_data import SampleData
+from qiime2.core.type import Properties
 
 from .._utils import _process_common_input_params, run_commands_with_pipe
 from .utils import _process_bowtie2_arg
 
 
-def map_reads_to_contigs(
+def map_reads(
     ctx,
-    indexed_contigs,
+    index,
     reads,
     skip=0,
     qupto="unlimited",
@@ -90,7 +95,6 @@ def map_reads_to_contigs(
     }
 
     collate_alignments = ctx.get_action("assembly", "collate_alignments")
-    _map_reads_to_contigs = ctx.get_action("assembly", "_map_reads_to_contigs")
 
     if reads.type <= SampleData[SequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_single")
@@ -99,11 +103,22 @@ def map_reads_to_contigs(
     else:
         raise NotImplementedError()
 
+    if index.type <= SampleData[SingleBowtie2Index % Properties("contigs")]:
+        _map_reads = ctx.get_action("assembly", "_map_reads_to_contigs")
+    elif index.type <= SampleData[MultiBowtie2Index % Properties("mags")]:
+        _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
+    elif index.type <= FeatureData[SingleBowtie2Index % Properties("mags")]:
+        _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
+    # TODO: we need a new property to indicate the index that is from
+    #  all MAGs together?
+    else:
+        raise NotImplementedError()
+
     (partitioned_reads,) = partition_method(reads, num_partitions)
 
     mapped_reads = []
     for read in partitioned_reads.values():
-        (mapped_read,) = _map_reads_to_contigs(reads=read, **kwargs)
+        (mapped_read,) = _map_reads(reads=read, **kwargs)
         mapped_reads.append(mapped_read)
 
     (collated_mapped_reads,) = collate_alignments(mapped_reads)
@@ -111,7 +126,7 @@ def map_reads_to_contigs(
 
 
 def _map_reads_to_contigs(
-    indexed_contigs: Bowtie2IndexDirFmt,
+    index: Bowtie2IndexDirFmt,
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
@@ -171,7 +186,7 @@ def _map_reads_to_contigs(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["indexed_contigs", "reads", "sensitivity", "mode"]
+        if k not in ["index", "reads", "sensitivity", "mode"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2_arg, params=kwargs
@@ -184,7 +199,90 @@ def _map_reads_to_contigs(
     paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
     manifest = reads.manifest.view(pd.DataFrame)
 
-    full_sample_set = _gather_sample_data(indexed_contigs, manifest, paired)
+    full_sample_set = _gather_sample_data(index, manifest, paired)
+
+    result = BAMDirFmt()
+    for samp, props in full_sample_set.items():
+        _map_sample_reads(common_args, paired, samp, props, str(result))
+
+    return result
+
+
+def _map_reads_to_mags(
+    index: Bowtie2IndexDirFmt,
+    reads: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ],
+    skip: int = 0,
+    qupto: int = "unlimited",
+    trim5: int = 0,
+    trim3: int = 0,
+    trim_to: str = "untrimmed",
+    phred33: bool = False,
+    phred64: bool = False,
+    mode: str = "local",
+    sensitivity: str = "sensitive",
+    n: int = 0,
+    len: int = 22,
+    i: str = "S,1,1.15",
+    n_ceil: str = "L,0,0.15",
+    dpad: int = 15,
+    gbar: int = 4,
+    ignore_quals: bool = False,
+    nofw: bool = False,
+    norc: bool = False,
+    no_1mm_upfront: bool = False,
+    end_to_end: bool = False,
+    local: bool = False,
+    ma: int = 2,
+    mp: int = 6,
+    np: int = 1,
+    rdg: str = "5,3",
+    rfg: str = "5,3",
+    k: int = "off",
+    a: bool = False,
+    d: int = 15,
+    r: int = 2,
+    minins: int = 0,
+    maxins: int = 500,
+    valid_mate_orientations: str = "fr",
+    no_mixed: bool = False,
+    no_discordant: bool = False,
+    dovetail: bool = False,
+    no_contain: bool = False,
+    no_overlap: bool = False,
+    offrate: int = "off",
+    threads: int = 1,
+    reorder: bool = False,
+    mm: bool = False,
+    seed: int = 0,
+    non_deterministic: bool = False,
+) -> BAMDirFmt:
+    if qupto == "unlimited":
+        qupto = None
+    if trim_to == "untrimmed":
+        trim_to = None
+    if k == "off":
+        k = None
+    if offrate == "off":
+        offrate = None
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["index", "reads", "sensitivity", "mode"]
+    }
+    common_args = _process_common_input_params(
+        processing_func=_process_bowtie2_arg, params=kwargs
+    )
+    if mode == "local":
+        common_args.append(f"--{sensitivity}-{mode}")
+    else:
+        common_args.append(f"--{sensitivity}")
+
+    paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
+    manifest = reads.manifest.view(pd.DataFrame)
+
+    full_sample_set = _gather_feature_data(index, manifest, paired)
 
     result = BAMDirFmt()
     for samp, props in full_sample_set.items():
@@ -248,12 +346,69 @@ def _map_sample_reads(
 
 
 def _gather_sample_data(
-    indexed_contigs: Bowtie2IndexDirFmt, reads_manifest: pd.DataFrame, paired: bool
+    index: Union[Bowtie2IndexDirFmt, MultiBowtie2IndexDirFmt],
+    reads_manifest: pd.DataFrame,
+    paired: bool,
+    mag_ids: List[str] = None,
 ):
     """Collects reads and indices for all the samples.
 
+    Bowtie2IndexDirFmt represents contig indices per sample (generated
+    from SampleData[Contigs]) or MAG indices per sample (generated
+    from SampleData[MAGs]), while MultiBowtie2IndexDirFmt represents
+    MAG indices per sample per MAG (also generated from SampleData[MAGs]).
+    In all cases mapping would be performed per sample.
+
     Args:
-        indexed_contigs (Bowtie2IndexDirFmt): Indices for all contigs.
+        index (Bowtie2IndexDirFmt | MultiBowtie2IndexDirFmt):
+            Indices for all contigs/MAGs.
+        reads_manifest (pd.DataFrame): Manifest with forward and
+            reverse (if paired) reads.
+        paired (bool): Indicates whether reads are paired-end.
+        mag_ids (list): List of MAG IDs to be processed.
+
+    Returns:
+        full_set (dict): Dictionary with read and index information per sample.
+    """
+    full_set = {}
+    for samp in list(reads_manifest.index):
+        full_set[samp] = {
+            "fwd": reads_manifest.loc[samp, "forward"],
+            "rev": reads_manifest.loc[samp, "reverse"] if paired else None,
+        }
+    for samp in full_set.keys():
+        # case 1: indices per sample
+        if isinstance(index, Bowtie2IndexDirFmt):
+            indpath = os.path.join(str(index), samp)
+        # case 2: indices per sample per MAG
+        elif isinstance(index, MultiBowtie2IndexDirFmt):
+            raise NotImplementedError(
+                "Mapping to MAGs on a MAG-by-MAG basis is not yet supported."
+            )
+        else:
+            raise NotImplementedError()
+
+        if os.path.exists(indpath):
+            full_set[samp]["index"] = os.path.join(indpath, "index")
+        else:
+            raise Exception(
+                f"Index files missing for sample {samp}. " f"Please check your input."
+            )
+    return full_set
+
+
+def _gather_feature_data(
+    index: Bowtie2IndexDirFmt,
+    reads_manifest: pd.DataFrame,
+    paired: bool,
+):
+    """Collects reads and indices for all MAGs.
+
+    We assume that all MAGs were indexed together - there will be only
+    one set of Bowtie2 index files.
+
+    Args:
+        index (Bowtie2IndexDirFmt): Indices for all dereplicated MAGs.
         reads_manifest (pd.DataFrame): Manifest with forward and
             reverse (if paired) reads.
         paired (bool): Indicates whether reads are paired-end.
@@ -267,12 +422,6 @@ def _gather_sample_data(
             "fwd": reads_manifest.loc[samp, "forward"],
             "rev": reads_manifest.loc[samp, "reverse"] if paired else None,
         }
-    for samp in full_set.keys():
-        indpath = os.path.join(str(indexed_contigs), samp)
-        if os.path.exists(indpath):
-            full_set[samp]["index"] = os.path.join(indpath, "index")
-        else:
-            raise Exception(
-                f"Index files missing for sample {samp}. " f"Please check your input."
-            )
+        full_set[samp]["index"] = os.path.join(str(index), "index")
+
     return full_set
