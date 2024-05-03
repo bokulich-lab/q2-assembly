@@ -173,7 +173,6 @@ def index_mags(
 
 def index_derep_mags(
     mags: MAGSequencesDirFmt,
-    merge: bool = True,
     large_index: bool = False,
     debug: bool = False,
     sanitized: bool = False,
@@ -198,13 +197,9 @@ def index_derep_mags(
 
     result = Bowtie2IndexDirFmt()
 
-    if merge:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            merged_fp = _merge_mags(mags, temp_dir)
-            _index_seqs([merged_fp], str(result), common_args, "mags-merged")
-    else:
-        mag_fps = list(mags.feature_dict().values())
-        _index_seqs(mag_fps, str(result), common_args, "mags")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        merged_fp = _merge_mags(mags, temp_dir)
+        _index_seqs([merged_fp], str(result), common_args, "mags-derep")
 
     return result
 

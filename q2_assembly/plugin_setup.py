@@ -214,13 +214,10 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2_assembly.indexing.index_derep_mags,
     inputs={"mags": FeatureData[MAG]},
-    parameters={"merge": Bool, **bowtie2_indexing_params},
+    parameters={**bowtie2_indexing_params},
     outputs=[("index", FeatureData[SingleBowtie2Index % Properties("mags")])],
     input_descriptions={"mags": "Dereplicated MAGs to be indexed."},
-    parameter_descriptions={
-        "merge": "Generate a single index from all the MAGs.",
-        **bowtie2_indexing_param_descriptions,
-    },
+    parameter_descriptions=bowtie2_indexing_param_descriptions,
     output_descriptions={"index": "Bowtie2 indices generated for input sequences."},
     name="Index dereplicated MAGs using Bowtie2.",
     description="This method uses Bowtie2 to generate indices of provided MAGs.",
