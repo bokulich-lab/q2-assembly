@@ -23,7 +23,9 @@ requirements:
     - gridss
     - insilicoseq
     - megahit ==1.2.9
-    - pysam
+    # commenting this out for testing purposes to see if the metagenome
+    # environment will solve without this package
+    # - pysam
     - qiime2 {{ qiime2_epoch }}.*
     - q2-types {{ qiime2_epoch }}.*
     - q2templates {{ qiime2_epoch }}.*
