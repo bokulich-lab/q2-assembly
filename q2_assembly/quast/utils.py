@@ -20,7 +20,7 @@ def _parse_columns(report_df: pd.DataFrame, filepath: str) -> pd.DataFrame:
         a Pandas dataframe with the renamed columns.
     """
     report_df_newcols = report_df.copy()
-    report_df_newcols.rename(columns=MANDATORY_COLS_MAP)
+    report_df_newcols.rename(columns=MANDATORY_COLS_MAP, inplace=True)
     report_df_newcols["input_file"] = filepath
     optional_cols = []
 
@@ -35,7 +35,7 @@ def _parse_columns(report_df: pd.DataFrame, filepath: str) -> pd.DataFrame:
     # make sure that in the final table we have the values we
     # specify in the dicts in a certain order
     all_cols = RESHUFFLED_COLUMNS + optional_cols
-    report_df_newcols = report_df_newcols[[all_cols]]
+    report_df_newcols = report_df_newcols[all_cols]
 
     report_df_newcols = report_df_newcols.set_index("id")
 

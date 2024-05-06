@@ -41,8 +41,6 @@ from q2_assembly._action_params import (
     quast_params,
     spades_param_descriptions,
     spades_params,
-    visualize_quast_param_descriptions,
-    visualize_quast_params,
 )
 from q2_assembly.quast.types import (
     QUASTResults,
@@ -144,10 +142,21 @@ plugin.methods.register_function(
 
 plugin.visualizers.register_function(
     function=q2_assembly.quast._visualize_quast,
-    inputs={},
-    parameters=visualize_quast_params,
-    input_descriptions={},
-    parameter_descriptions=visualize_quast_param_descriptions,
+    inputs={
+        "contigs": SampleData[Contigs],
+        "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
+        "references": List[FeatureData[Sequence]],
+        "mapped_reads": SampleData[AlignmentMap],
+    },
+    parameters=quast_params,
+    input_descriptions={
+        "contigs": "Assembled contigs to be analyzed.",
+        "reads": "Original single- or paired-end reads.",
+        "references": "Reference genomes to align the assembled contigs against.",
+        "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
+        "directly.",
+    },
+    parameter_descriptions=quast_param_descriptions,
     name="Visualize the quality of the assembled contigs after using metaQUAST.",
     description="This method visualizes the results of metaQUAST after "
     "assessing the quality of assembled metagenomes.",

@@ -13,7 +13,7 @@ import platform
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
-from typing import List
+from typing import List, Union
 from zipfile import ZipFile
 
 import pandas as pd
@@ -24,6 +24,7 @@ from q2_types.per_sample_sequences import (
     BAMDirFmt,
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
+    SingleLanePerSampleSingleEndFastqDirFmt,
 )
 
 from q2_assembly.quast.utils import _parse_columns
@@ -117,8 +118,6 @@ def _evaluate_contigs(
     if reads and mapped_reads:
         reads = None
         print("Both reads and mapped reads are provided. Reads will be ignored.")
-    print("***********************************************************")
-    print(os.listdir(str(contigs)))
 
     for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
         cmd.append(fp)
@@ -227,41 +226,104 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
             _zip_dir(zipf, directory)
 
 
-def _visualize_quast(output_dir: str, results_dir: str, samples: List[str]) -> None:
-    # fix/remove some URLs
-    _fix_html_reports(results_dir)
-
-    # Copy templates to output dir
-    copy_tree(os.path.join(TEMPLATES, "quast"), output_dir)
-
-    # Copy results to output dir
-    copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
-
-    # Zip summary, not_aligned and runs_per_reference dirs for download
-    dirnames = ["not_aligned", "runs_per_reference", "summary"]
-    zip_these_dirs = [
-        os.path.join(output_dir, "quast_data", f"{dirname}") for dirname in dirnames
-    ]
-    output_filename = os.path.join(output_dir, "quast_data", "additional_reports.zip")
-    _zip_additional_reports(zip_these_dirs, output_filename)
-
-    context = {
-        "tabs": [
-            {"title": "QC report", "url": "index.html"},
-            {"title": "Contig browser", "url": "q2_icarus.html"},
-        ],
-        "samples": json.dumps(samples),
+def _visualize_quast(
+    output_dir: str,
+    contigs: ContigSequencesDirFmt,
+    min_contig: int,
+    threads: int,
+    k_mer_stats: bool,
+    k_mer_size: int,
+    contig_thresholds: List[int],
+    memory_efficient: bool,
+    min_alignment: int,
+    min_identity: float,
+    ambiguity_usage: str,
+    ambiguity_score: float,
+    reads: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ] = None,
+    references: DNAFASTAFormat = None,
+    mapped_reads: BAMDirFmt = None,
+) -> None:
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k
+        not in ["output_dir", "contigs", "reads", "references", "mapped_reads", "ctx"]
     }
 
-    if os.path.isdir(os.path.join(output_dir, "quast_data", "krona_charts")):
-        context["tabs"].append({"title": "Krona charts", "url": "q2_krona_charts.html"})
+    common_args = _process_common_input_params(
+        processing_func=_process_quast_arg, params=kwargs
+    )
 
-    index = os.path.join(TEMPLATES, "quast", "index.html")
-    icarus = os.path.join(TEMPLATES, "quast", "q2_icarus.html")
-    krona = os.path.join(TEMPLATES, "quast", "q2_krona_charts.html")
+    reads_fps = {}
+    paired = False
+    if reads:
+        paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
+        manifest = reads.manifest.view(pd.DataFrame)
+        for samp in list(manifest.index):
+            reads_fps[samp] = {
+                "fwd": manifest.loc[samp, "forward"],
+                "rev": manifest.loc[samp, "reverse"] if paired else None,
+            }
 
-    templates = [index, icarus, krona]
-    q2templates.render(templates, output_dir, context=context)
+    with tempfile.TemporaryDirectory() as tmp:
+        results_dir = os.path.join(tmp, "results")
+
+        # run quast
+        samples = _evaluate_contigs(
+            results_dir,
+            contigs,
+            reads_fps,
+            paired,
+            references,
+            mapped_reads,
+            common_args,
+        )
+
+        tabular_results = _create_tabular_results(results_dir)
+        tabular_results.to_csv(
+            os.path.join(results_dir, "enhanced_tabular_results.tsv"), sep="\t"
+        )
+
+        # fix/remove some URLs
+        _fix_html_reports(results_dir)
+
+        # Copy templates to output dir
+        copy_tree(os.path.join(TEMPLATES, "quast"), output_dir)
+
+        # Copy results to output dir
+        copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
+
+        # Zip summary, not_aligned and runs_per_reference dirs for download
+        dirnames = ["not_aligned", "runs_per_reference", "summary"]
+        zip_these_dirs = [
+            os.path.join(output_dir, "quast_data", f"{dirname}") for dirname in dirnames
+        ]
+        output_filename = os.path.join(
+            output_dir, "quast_data", "additional_reports.zip"
+        )
+        _zip_additional_reports(zip_these_dirs, output_filename)
+
+        context = {
+            "tabs": [
+                {"title": "QC report", "url": "index.html"},
+                {"title": "Contig browser", "url": "q2_icarus.html"},
+            ],
+            "samples": json.dumps(samples),
+        }
+
+        if os.path.isdir(os.path.join(output_dir, "quast_data", "krona_charts")):
+            context["tabs"].append(
+                {"title": "Krona charts", "url": "q2_krona_charts.html"}
+            )
+
+        index = os.path.join(TEMPLATES, "quast", "index.html")
+        icarus = os.path.join(TEMPLATES, "quast", "q2_icarus.html")
+        krona = os.path.join(TEMPLATES, "quast", "q2_krona_charts.html")
+
+        templates = [index, icarus, krona]
+        q2templates.render(templates, output_dir, context=context)
 
 
 def _create_tabular_results(results_dir: str) -> pd.DataFrame:
@@ -277,9 +339,9 @@ def _create_tabular_results(results_dir: str) -> pd.DataFrame:
         a Pandas dataframe with the tabular data.
     """
     filename = "transposed_report.tsv"
-    filepath = os.path.join(results_dir, "combined_references", filename)
+    filepath = os.path.join(results_dir, "combined_reference", filename)
 
-    transposed_report = pd.read_csv(filepath, sep="\t")
+    transposed_report = pd.read_csv(filepath, sep="\t", header=0)
     transposed_report_parsed = _parse_columns(transposed_report, filepath)
     return transposed_report_parsed
 
@@ -302,47 +364,35 @@ def evaluate_contigs(
     ambiguity_usage="one",
     ambiguity_score=0.99,
 ):
-    kwargs = {
-        k: v
-        for k, v in locals().items()
-        if k
-        not in ["output_dir", "contigs", "reads", "references", "mapped_reads", "ctx"]
-    }
-    common_args = _process_common_input_params(
-        processing_func=_process_quast_arg, params=kwargs
-    )
-
-    reads_fps = {}
-    paired = False
-    if reads:
-        paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
-        manifest = reads.manifest.view(pd.DataFrame)
-        for samp in list(manifest.index):
-            reads_fps[samp] = {
-                "fwd": manifest.loc[samp, "forward"],
-                "rev": manifest.loc[samp, "reverse"] if paired else None,
-            }
-
-    print("***********************************************************")
-    print(os.listdir(str(contigs)))
-
     with tempfile.TemporaryDirectory() as tmp:
-        results_dir = os.path.join(tmp, "results")
-
-        # run quast
-        samples = _evaluate_contigs(
-            results_dir,
-            contigs,
-            reads_fps,
-            paired,
-            references,
-            mapped_reads,
-            common_args,
+        # 1. generate the visualization
+        _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
+        (visualization,) = _visualize_quast(
+            contigs=contigs,
+            reads=reads,
+            references=references,
+            mapped_reads=mapped_reads,
+            min_contig=min_contig,
+            threads=threads,
+            k_mer_stats=k_mer_stats,
+            k_mer_size=k_mer_size,
+            contig_thresholds=contig_thresholds,
+            memory_efficient=memory_efficient,
+            min_alignment=min_alignment,
+            min_identity=min_identity,
+            ambiguity_usage=ambiguity_usage,
+            ambiguity_score=ambiguity_score,
         )
 
-        tabular_results = _create_tabular_results(results_dir)
-        _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
+        # 2. after the visualization is generated we need to export the files
+        visualization_files_path = os.path.join(tmp, "vis_files")
+        visualization.export_data(visualization_files_path)
+        report_path = os.path.join(
+            visualization_files_path, "quast_data", "enhanced_tabular_results.tsv"
+        )
+        report_df = pd.read_csv(report_path, sep="\t", header=0)
 
-        (visualization,) = _visualize_quast(results_dir=results_dir, samples=samples)
+        # 3. read it as a pandas dataframe then we create the QUASTResults
+        tabular_results = ctx.make_artifact("QUASTResults", report_df)
 
-        return tabular_results, visualization
+    return tabular_results, visualization

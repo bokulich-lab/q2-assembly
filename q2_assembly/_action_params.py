@@ -110,16 +110,6 @@ spades_param_descriptions = {
     "coassemble": "Co-assemble reads into contigs from all samples.",
 }
 
-visualize_quast_params = {
-    "results_dir": Str,
-    "samples": List[Str]
-}
-
-visualize_quast_param_descriptions = {
-    "results_dir": "The directory where QUAST report was saved.",
-    "samples": "List of sample names that were processed."
-}
-
 # fmt: on
 quast_params = {
     # TODO: add eukaryote, fungal and large when alignment
