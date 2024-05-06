@@ -18,7 +18,8 @@ requirements:
   run:
     - quast
     - beautifulsoup4
-    - biopython <=1.78
+    # removing this pin because biopython needs 1.83 to be compatible with python 3.9
+    - biopython
     - bowtie2 {{ bowtie2 }}
     - gridss
     - insilicoseq
