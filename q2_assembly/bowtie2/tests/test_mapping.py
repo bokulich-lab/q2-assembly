@@ -420,7 +420,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
     @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
     @patch("q2_assembly.bowtie2.mapping._gather_feature_data")
-    def test_map_reads_to_mags_paired(self, p1, p2):
+    def test_map_reads_to_mags_derep_paired(self, p1, p2):
         input_reads = self.get_data_path("reads/paired-end")
         input_index = self.get_data_path("indices/from_mags_derep")
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
@@ -451,7 +451,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
     @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
     @patch("q2_assembly.bowtie2.mapping._gather_feature_data")
-    def test_map_reads_to_mags_single(self, p1, p2):
+    def test_map_reads_to_mags_derep_single(self, p1, p2):
         input_reads = self.get_data_path("reads/single-end")
         input_index = self.get_data_path("indices/from_mags_derep")
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
@@ -520,6 +520,128 @@ class TestBowtie2Mapping(TestPluginBase):
         index = Bowtie2IndexDirFmt(input_index, mode="r")
         index = Artifact.import_data(
             "FeatureData[SingleBowtie2Index % Properties('mags')]", index
+        )
+
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
+
+        with ParallelConfig():
+            (out,) = self.map_reads.parallel(
+                index=index,
+                reads=reads,
+                trim5=10,
+                n=1,
+                i="L,1,0.5",
+                valid_mate_orientations="ff",
+                mode="local",
+                sensitivity="very-fast",
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, BAMDirFmt)
+
+    @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
+    @patch("q2_assembly.bowtie2.mapping._gather_sample_data")
+    def test_map_reads_to_mags_paired(self, p1, p2):
+        input_reads = self.get_data_path("reads/paired-end")
+        input_index = self.get_data_path("indices/from_mags")
+        reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+
+        p1.return_value = self.test_samples
+
+        _map_reads_to_mags(
+            index=index,
+            reads=reads,
+            trim5=10,
+            n=1,
+            i="L,1,0.5",
+            valid_mate_orientations="ff",
+            mode="global",
+            sensitivity="very-fast",
+        )
+
+        p1.assert_called_with(index, ANY, True)
+        pd.testing.assert_frame_equal(
+            p1.call_args[0][1], reads.manifest.view(pd.DataFrame)
+        )
+
+        exp_calls = []
+        for s, s_props in self.test_samples.items():
+            exp_calls.append(call(self.test_params_list, True, s, s_props, ANY))
+        p2.assert_has_calls(exp_calls)
+
+    @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
+    @patch("q2_assembly.bowtie2.mapping._gather_sample_data")
+    def test_map_reads_to_mags_single(self, p1, p2):
+        input_reads = self.get_data_path("reads/single-end")
+        input_index = self.get_data_path("indices/from_mags")
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+
+        for s in self.test_samples_for_features:
+            self.test_samples[s]["rev"] = None
+        p1.return_value = self.test_samples
+
+        _map_reads_to_mags(
+            index=index,
+            reads=reads,
+            trim5=10,
+            n=1,
+            i="L,1,0.5",
+            valid_mate_orientations="ff",
+            mode="global",
+            sensitivity="very-fast",
+        )
+
+        p1.assert_called_with(index, ANY, False)
+        pd.testing.assert_frame_equal(
+            p1.call_args[0][1], reads.manifest.view(pd.DataFrame)
+        )
+
+        exp_calls = []
+        for s, s_props in self.test_samples.items():
+            exp_calls.append(call(self.test_params_list, False, s, s_props, ANY))
+        p2.assert_has_calls(exp_calls)
+
+    def test_map_reads_to_mags_paired_parallel(self):
+        input_index = self.get_data_path("indices/from_mags")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/paired-end"
+        )
+
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data(
+            "SampleData[SingleBowtie2Index % Properties('mags')]", index
+        )
+
+        reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
+
+        with ParallelConfig():
+            (out,) = self.map_reads.parallel(
+                index=index,
+                reads=reads,
+                trim5=10,
+                n=1,
+                i="L,1,0.5",
+                valid_mate_orientations="ff",
+                mode="local",
+                sensitivity="very-fast",
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, BAMDirFmt)
+
+    def test_map_reads_to_mags_single_parallel(self):
+        input_index = self.get_data_path("indices/from_mags")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/single-end"
+        )
+
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data(
+            "SampleData[SingleBowtie2Index % Properties('mags')]", index
         )
 
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")

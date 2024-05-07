@@ -16,6 +16,7 @@ from q2_assembly.bowtie2.utils import (
     _construct_double_list_param_value,
     _construct_function_param_value,
     _get_subdir_from_path,
+    _is_flat_dir,
     _merge_mags,
     _process_bowtie2_arg,
     _process_bowtie2build_arg,
@@ -201,6 +202,12 @@ class TestBowtie2Utils(TestPluginBase):
                 obs_fps[0], self.get_data_path("mags-derep-merged.fasta"), shallow=False
             )
         )
+
+    def test_is_flat_dir_false(self):
+        self.assertFalse(_is_flat_dir(self.get_data_path("indices/from_mags")))
+
+    def test_is_flat_dir_true(self):
+        self.assertFalse(_is_flat_dir(self.get_data_path("indices/from_mags_derep")))
 
 
 if __name__ == "__main__":

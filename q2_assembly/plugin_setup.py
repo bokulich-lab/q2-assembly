@@ -12,7 +12,6 @@ from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.per_sample_sequences import (
     Contigs,
     MAGs,
-    MultiBowtie2Index,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
     SingleBowtie2Index,
@@ -209,12 +208,13 @@ plugin.methods.register_function(
     function=q2_assembly.indexing.index_mags,
     inputs={"mags": SampleData[MAGs]},
     parameters=bowtie2_indexing_params,
-    outputs=[("index", SampleData[MultiBowtie2Index % Properties("mags")])],
+    outputs=[("index", SampleData[SingleBowtie2Index % Properties("mags")])],
     input_descriptions={"mags": "MAGs to be indexed."},
     parameter_descriptions=bowtie2_indexing_param_descriptions,
     output_descriptions={"index": "Bowtie2 indices generated for input sequences."},
     name="Index MAGs using Bowtie2.",
-    description="This method uses Bowtie2 to generate indices of provided MAGs.",
+    description="This method uses Bowtie2 to generate indices of provided MAGs. One "
+    "index per sample will be generated from all the MAGs belonging to that sample.",
     citations=[citations["Langmead2012"]],
 )
 

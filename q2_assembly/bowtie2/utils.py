@@ -229,3 +229,20 @@ def _merge_mags(
             _merge_mags_helper(mags_dict, merged_fp)
             all_fps.append(merged_fp)
         return all_fps
+
+
+def _is_flat_dir(directory: str) -> bool:
+    """
+    Check if the specified directory contains any subdirectories.
+
+    Args::
+        directory (str): The path to the directory to check.
+
+    Returns:
+        bool: True if the directory is flat (no subdirectories), False otherwise.
+    """
+    for entry in os.listdir(directory):
+        entry_path = os.path.join(directory, entry)
+        if os.path.isdir(entry_path):
+            return False
+    return True

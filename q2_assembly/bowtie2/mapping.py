@@ -18,7 +18,6 @@ from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.feature_data import FeatureData
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
-    MultiBowtie2Index,
     MultiBowtie2IndexDirFmt,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
@@ -30,7 +29,7 @@ from q2_types.sample_data import SampleData
 from qiime2.core.type import Properties
 
 from .._utils import _process_common_input_params, run_commands_with_pipe
-from .utils import _process_bowtie2_arg
+from .utils import _is_flat_dir, _process_bowtie2_arg
 
 
 def map_reads(
@@ -105,7 +104,7 @@ def map_reads(
 
     if index.type <= SampleData[SingleBowtie2Index % Properties("contigs")]:
         _map_reads = ctx.get_action("assembly", "_map_reads_to_contigs")
-    elif index.type <= SampleData[MultiBowtie2Index % Properties("mags")]:
+    elif index.type <= SampleData[SingleBowtie2Index % Properties("mags")]:
         _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
     elif index.type <= FeatureData[SingleBowtie2Index % Properties("mags")]:
         _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
@@ -280,7 +279,15 @@ def _map_reads_to_mags(
     paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
     manifest = reads.manifest.view(pd.DataFrame)
 
-    full_sample_set = _gather_feature_data(index, manifest, paired)
+    if isinstance(index, Bowtie2IndexDirFmt):
+        if _is_flat_dir(str(index)):
+            # we have a single index from dereplicated MAGs
+            full_sample_set = _gather_feature_data(index, manifest, paired)
+        else:
+            # we have indices per sample
+            full_sample_set = _gather_sample_data(index, manifest, paired)
+    else:
+        raise NotImplementedError(f'Input type "{type(index)}" is not supported.')
 
     result = BAMDirFmt()
     for samp, props in full_sample_set.items():

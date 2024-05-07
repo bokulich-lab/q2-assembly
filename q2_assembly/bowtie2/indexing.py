@@ -13,11 +13,7 @@ from copy import deepcopy
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.feature_data_mag import MAGSequencesDirFmt
-from q2_types.per_sample_sequences import (
-    ContigSequencesDirFmt,
-    MultiBowtie2IndexDirFmt,
-    MultiMAGSequencesDirFmt,
-)
+from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
 
 from q2_assembly._utils import _process_common_input_params, run_command
 from q2_assembly.bowtie2.utils import (
@@ -154,7 +150,7 @@ def index_mags(
     ftabchars: int = 10,
     threads: int = 1,
     seed: int = 0,
-) -> MultiBowtie2IndexDirFmt:
+) -> Bowtie2IndexDirFmt:
     if bmax == "auto":
         bmax = None
     kwargs = {k: v for k, v in locals().items() if k not in ["mags"]}
@@ -162,7 +158,7 @@ def index_mags(
         processing_func=_process_bowtie2build_arg, params=kwargs
     )
 
-    result = MultiBowtie2IndexDirFmt()
+    result = Bowtie2IndexDirFmt()
 
     with tempfile.TemporaryDirectory() as temp_dir:
         merged_fps = _merge_mags(mags, temp_dir)
