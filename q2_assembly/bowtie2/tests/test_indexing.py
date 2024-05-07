@@ -54,7 +54,9 @@ class TestBowtie2Indexing(TestPluginBase):
             input_type="contigs",
         )
 
-        p1.assert_has_calls([call("/there/samp1"), call("/there/samp2")])
+        p1.assert_has_calls(
+            [call("/there/samp1", exist_ok=True), call("/there/samp2", exist_ok=True)]
+        )
         p2.assert_has_calls(
             [
                 call(
@@ -113,7 +115,12 @@ class TestBowtie2Indexing(TestPluginBase):
             input_type="mags",
         )
 
-        p1.assert_has_calls([call("/there/smp1/mag1"), call("/there/smp1/mag2")])
+        p1.assert_has_calls(
+            [
+                call("/there/smp1/mag1", exist_ok=True),
+                call("/there/smp1/mag2", exist_ok=True),
+            ]
+        )
         p2.assert_has_calls(
             [
                 call(

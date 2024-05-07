@@ -41,7 +41,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
     def setUp(self):
         super().setUp()
-        self.map_reads_to_contigs = self.plugin.pipelines["map_reads_to_contigs"]
+        self.map_reads_to_contigs = self.plugin.pipelines["map_reads"]
         self.test_params_list = [
             "--trim5",
             "10",
@@ -103,7 +103,7 @@ class TestBowtie2Mapping(TestPluginBase):
             os.makedirs(os.path.join(str(self.test_index), s))
 
         obs = _gather_sample_data(
-            indexed_contigs=self.test_index, reads_manifest=manifest, paired=True
+            index=self.test_index, reads_manifest=manifest, paired=True
         )
         exp = self.test_samples
         self.assertDictEqual(obs, exp)
@@ -114,7 +114,7 @@ class TestBowtie2Mapping(TestPluginBase):
             os.makedirs(os.path.join(str(self.test_index), s))
 
         obs = _gather_sample_data(
-            indexed_contigs=self.test_index, reads_manifest=manifest, paired=False
+            index=self.test_index, reads_manifest=manifest, paired=False
         )
         exp = self.test_samples
         for s in exp:
@@ -130,7 +130,7 @@ class TestBowtie2Mapping(TestPluginBase):
             Exception, "Index files missing for sample sample3."
         ):
             _gather_sample_data(
-                indexed_contigs=self.test_index, reads_manifest=manifest, paired=True
+                index=self.test_index, reads_manifest=manifest, paired=True
             )
 
     @patch("shutil.move")
@@ -239,7 +239,7 @@ class TestBowtie2Mapping(TestPluginBase):
         p1.return_value = self.test_samples
 
         _map_reads_to_contigs(
-            indexed_contigs=index,
+            index=index,
             reads=reads,
             trim5=10,
             n=1,
@@ -272,7 +272,7 @@ class TestBowtie2Mapping(TestPluginBase):
         p1.return_value = self.test_samples
 
         _map_reads_to_contigs(
-            indexed_contigs=index,
+            index=index,
             reads=reads,
             trim5=10,
             n=1,
@@ -305,7 +305,7 @@ class TestBowtie2Mapping(TestPluginBase):
         p1.return_value = self.test_samples
 
         _map_reads_to_contigs(
-            indexed_contigs=index,
+            index=index,
             reads=reads,
             trim5=10,
             n=1,
@@ -333,14 +333,16 @@ class TestBowtie2Mapping(TestPluginBase):
         )
 
         index = Bowtie2IndexDirFmt(input_index, mode="r")
-        index = Artifact.import_data("SampleData[SingleBowtie2Index]", index)
+        index = Artifact.import_data(
+            "SampleData[SingleBowtie2Index % Properties('contigs')]", index
+        )
 
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
         with ParallelConfig():
             (out,) = self.map_reads_to_contigs.parallel(
-                indexed_contigs=index,
+                index=index,
                 reads=reads,
                 trim5=10,
                 n=1,
@@ -360,14 +362,16 @@ class TestBowtie2Mapping(TestPluginBase):
         )
 
         index = Bowtie2IndexDirFmt(input_index, mode="r")
-        index = Artifact.import_data("SampleData[SingleBowtie2Index]", index)
+        index = Artifact.import_data(
+            "SampleData[SingleBowtie2Index % Properties('contigs')]", index
+        )
 
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
         with ParallelConfig():
             (out,) = self.map_reads_to_contigs.parallel(
-                indexed_contigs=index,
+                index=index,
                 reads=reads,
                 trim5=10,
                 n=1,

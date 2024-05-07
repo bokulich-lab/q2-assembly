@@ -185,11 +185,18 @@ plugin.methods.register_function(
     citations=[citations["Langmead2012"]],
 )
 
+I_property, O_property = TypeMap(
+    {
+        Properties(["mags", "contigs"]): Properties(["mags", "contigs"]),
+        Properties("contigs"): Properties("contigs"),
+        Properties("mags"): Properties("mags"),
+    }
+)
 plugin.methods.register_function(
     function=q2_assembly.helpers.collate_indices,
-    inputs={"indices": List[SampleData[SingleBowtie2Index]]},
+    inputs={"indices": List[SampleData[SingleBowtie2Index % I_property]]},
     parameters={},
-    outputs={"collated_indices": SampleData[SingleBowtie2Index]},
+    outputs={"collated_indices": SampleData[SingleBowtie2Index % O_property]},
     input_descriptions={"indices": "A collection of indices to be collated."},
     name="Collate indices",
     description=(

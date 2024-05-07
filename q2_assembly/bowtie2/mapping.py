@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import tempfile
 from copy import deepcopy
-from typing import List, Union
+from typing import Union
 
 import pandas as pd
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
@@ -349,7 +349,6 @@ def _gather_sample_data(
     index: Union[Bowtie2IndexDirFmt, MultiBowtie2IndexDirFmt],
     reads_manifest: pd.DataFrame,
     paired: bool,
-    mag_ids: List[str] = None,
 ):
     """Collects reads and indices for all the samples.
 
@@ -365,7 +364,6 @@ def _gather_sample_data(
         reads_manifest (pd.DataFrame): Manifest with forward and
             reverse (if paired) reads.
         paired (bool): Indicates whether reads are paired-end.
-        mag_ids (list): List of MAG IDs to be processed.
 
     Returns:
         full_set (dict): Dictionary with read and index information per sample.
