@@ -353,5 +353,5 @@ plugin.methods.register_function(
         "collated_alignments": "The alignemnts collated into one artifact."
     },
     name="Map reads to contigs helper.",
-    description="Not to be called directly. Used by map_reads_to_contigs.",
+    description="Not to be called directly. Used by map_reads.",
 )

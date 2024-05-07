@@ -25,8 +25,10 @@ from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly._utils import get_relative_data_path
 from q2_assembly.bowtie2.mapping import (
+    _gather_feature_data,
     _gather_sample_data,
     _map_reads_to_contigs,
+    _map_reads_to_mags,
     _map_sample_reads,
 )
 
@@ -41,7 +43,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
     def setUp(self):
         super().setUp()
-        self.map_reads_to_contigs = self.plugin.pipelines["map_reads"]
+        self.map_reads = self.plugin.pipelines["map_reads"]
         self.test_params_list = [
             "--trim5",
             "10",
@@ -92,6 +94,18 @@ class TestBowtie2Mapping(TestPluginBase):
                 "index": os.path.join(str(self.test_index), "sample2", "index"),
             },
         }
+        self.test_samples_for_features = {
+            "sample1": {
+                "fwd": "sample1_00_L001_R1_001.fastq.gz",
+                "rev": "sample1_00_L001_R2_001.fastq.gz",
+                "index": os.path.join(str(self.test_index), "index"),
+            },
+            "sample2": {
+                "fwd": "sample2_00_L001_R1_001.fastq.gz",
+                "rev": "sample2_00_L001_R2_001.fastq.gz",
+                "index": os.path.join(str(self.test_index), "index"),
+            },
+        }
 
     def read_manifest_file(self, manifest_type):
         fp = self.get_data_path(f"manifest-{manifest_type}.csv")
@@ -132,6 +146,26 @@ class TestBowtie2Mapping(TestPluginBase):
             _gather_sample_data(
                 index=self.test_index, reads_manifest=manifest, paired=True
             )
+
+    def test_gather_feature_data_paired(self):
+        manifest = self.read_manifest_file("paired")
+
+        obs = _gather_feature_data(
+            index=self.test_index, reads_manifest=manifest, paired=True
+        )
+        exp = self.test_samples_for_features
+        self.assertDictEqual(obs, exp)
+
+    def test_gather_feature_data_single(self):
+        manifest = self.read_manifest_file("single")
+
+        obs = _gather_feature_data(
+            index=self.test_index, reads_manifest=manifest, paired=False
+        )
+        exp = self.test_samples_for_features
+        for s in exp:
+            exp[s]["rev"] = None
+        self.assertDictEqual(obs, exp)
 
     @patch("shutil.move")
     @patch("subprocess.run")
@@ -341,7 +375,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
         with ParallelConfig():
-            (out,) = self.map_reads_to_contigs.parallel(
+            (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
                 trim5=10,
@@ -370,7 +404,129 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
         with ParallelConfig():
-            (out,) = self.map_reads_to_contigs.parallel(
+            (out,) = self.map_reads.parallel(
+                index=index,
+                reads=reads,
+                trim5=10,
+                n=1,
+                i="L,1,0.5",
+                valid_mate_orientations="ff",
+                mode="local",
+                sensitivity="very-fast",
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, BAMDirFmt)
+
+    @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
+    @patch("q2_assembly.bowtie2.mapping._gather_feature_data")
+    def test_map_reads_to_mags_paired(self, p1, p2):
+        input_reads = self.get_data_path("reads/paired-end")
+        input_index = self.get_data_path("indices/from_mags_derep")
+        reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+
+        p1.return_value = self.test_samples_for_features
+
+        _map_reads_to_mags(
+            index=index,
+            reads=reads,
+            trim5=10,
+            n=1,
+            i="L,1,0.5",
+            valid_mate_orientations="ff",
+            mode="global",
+            sensitivity="very-fast",
+        )
+
+        p1.assert_called_with(index, ANY, True)
+        pd.testing.assert_frame_equal(
+            p1.call_args[0][1], reads.manifest.view(pd.DataFrame)
+        )
+
+        exp_calls = []
+        for s, s_props in self.test_samples_for_features.items():
+            exp_calls.append(call(self.test_params_list, True, s, s_props, ANY))
+        p2.assert_has_calls(exp_calls)
+
+    @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
+    @patch("q2_assembly.bowtie2.mapping._gather_feature_data")
+    def test_map_reads_to_mags_single(self, p1, p2):
+        input_reads = self.get_data_path("reads/single-end")
+        input_index = self.get_data_path("indices/from_mags_derep")
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+
+        for s in self.test_samples_for_features:
+            self.test_samples[s]["rev"] = None
+        p1.return_value = self.test_samples_for_features
+
+        _map_reads_to_mags(
+            index=index,
+            reads=reads,
+            trim5=10,
+            n=1,
+            i="L,1,0.5",
+            valid_mate_orientations="ff",
+            mode="global",
+            sensitivity="very-fast",
+        )
+
+        p1.assert_called_with(index, ANY, False)
+        pd.testing.assert_frame_equal(
+            p1.call_args[0][1], reads.manifest.view(pd.DataFrame)
+        )
+
+        exp_calls = []
+        for s, s_props in self.test_samples_for_features.items():
+            exp_calls.append(call(self.test_params_list, False, s, s_props, ANY))
+        p2.assert_has_calls(exp_calls)
+
+    def test_map_reads_to_mags_derep_paired_parallel(self):
+        input_index = self.get_data_path("indices/from_mags_derep")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/paired-end"
+        )
+
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data(
+            "FeatureData[SingleBowtie2Index % Properties('mags')]", index
+        )
+
+        reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
+
+        with ParallelConfig():
+            (out,) = self.map_reads.parallel(
+                index=index,
+                reads=reads,
+                trim5=10,
+                n=1,
+                i="L,1,0.5",
+                valid_mate_orientations="ff",
+                mode="local",
+                sensitivity="very-fast",
+            )._result()
+
+        out.validate()
+        self.assertIs(out.format, BAMDirFmt)
+
+    def test_map_reads_to_mags_derep_single_parallel(self):
+        input_index = self.get_data_path("indices/from_mags_derep")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/single-end"
+        )
+
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data(
+            "FeatureData[SingleBowtie2Index % Properties('mags')]", index
+        )
+
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
+
+        with ParallelConfig():
+            (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
                 trim5=10,

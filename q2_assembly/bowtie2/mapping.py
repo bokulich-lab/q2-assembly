@@ -109,8 +109,6 @@ def map_reads(
         _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
     elif index.type <= FeatureData[SingleBowtie2Index % Properties("mags")]:
         _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
-    # TODO: we need a new property to indicate the index that is from
-    #  all MAGs together?
     else:
         raise NotImplementedError()
 
