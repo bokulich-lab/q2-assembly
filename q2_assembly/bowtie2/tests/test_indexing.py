@@ -13,12 +13,18 @@ from subprocess import CalledProcessError
 from unittest.mock import ANY, call, patch
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 from qiime2.sdk.parallel_config import ParallelConfig
 
-from q2_assembly.bowtie2.indexing import _index_contigs, _index_seqs, index_mags
+from q2_assembly.bowtie2.indexing import (
+    _index_contigs,
+    _index_seqs,
+    index_derep_mags,
+    index_mags,
+)
 
 
 class TestBowtie2Indexing(TestPluginBase):
@@ -169,6 +175,40 @@ class TestBowtie2Indexing(TestPluginBase):
         )
 
     @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
+    @patch("subprocess.run")
+    @patch("os.makedirs")
+    def test_index_seqs_mags_derep(self, p1, p2, p3):
+        _index_seqs(
+            fasta_fps=["/here/merged.fasta"],
+            result_fp="/there/",
+            common_args=self.test_params_list,
+            input_type="mags-derep",
+        )
+
+        p1.assert_called_once_with("/there/", exist_ok=True)
+        p2.assert_called_once_with(
+            [
+                "bowtie2-build",
+                "--large-index",
+                "--bmax",
+                "11",
+                "--bmaxdivn",
+                "4",
+                "--dcv",
+                "1024",
+                "--offrate",
+                "5",
+                "--ftabchars",
+                "10",
+                "--threads",
+                "1",
+                "/here/merged.fasta",
+                "/there/index",
+            ],
+            check=True,
+        )
+
+    @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
     @patch(
         "subprocess.run", side_effect=CalledProcessError(returncode=123, cmd="some cmd")
     )
@@ -264,6 +304,28 @@ class TestBowtie2Indexing(TestPluginBase):
             for y in range(2)
         ]
         p.assert_called_with(exp_mags, ANY, self.test_params_list, "mags")
+
+    @patch(
+        "q2_assembly.bowtie2.indexing._merge_mags", return_value="/path/to/merged.fasta"
+    )
+    @patch("q2_assembly.bowtie2.indexing._index_seqs")
+    def test_index_mags_derep(self, p1, p2):
+        input_mags = MAGSequencesDirFmt(self.get_data_path("mags-derep"), "r")
+        index_derep_mags(
+            input_mags,
+            large_index=True,
+            bmax=11,
+            bmaxdivn=4,
+            dcv=1024,
+            offrate=5,
+            ftabchars=10,
+            threads=1,
+        )
+
+        p1.assert_called_once_with(
+            ["/path/to/merged.fasta"], ANY, self.test_params_list, "mags-derep"
+        )
+        p2.assert_called_once_with(input_mags, ANY)
 
     def test_empty_fasta_input(self):
         with self.assertRaisesRegex(

@@ -9,6 +9,9 @@
 import os
 from pathlib import Path
 
+from q2_types.feature_data_mag import MAGSequencesDirFmt
+from skbio import io
+
 from q2_assembly._utils import _construct_param, _get_sample_from_path
 
 
@@ -163,3 +166,27 @@ def _assert_inputs_not_empty(fasta_fps: list):
             "Please filter these files from your input and try again."
         )
         raise ValueError(msg)
+
+
+def _merge_mags(mags: MAGSequencesDirFmt, result_dir: str) -> str:
+    """
+    Merge multiple MAG sequences into a single FASTA file.
+
+    This function iterates over all the MAGs provided, reads each sequence,
+    modifies its ID to include the MAG ID, and writes the sequence to a new
+    merged FASTA file.
+
+    Args:
+        mags (MAGSequencesDirFmt): The input MAGs.
+        result_dir (str): The directory where the merged MAGs will be saved.2q
+
+    Returns:
+        str: The file path of the merged FASTA file.
+    """
+    merged_fp = os.path.join(result_dir, "merged.fasta")
+    with io.open(merged_fp, "w") as merged_f:
+        for mag_id, mag_fp in mags.feature_dict().items():
+            for seq in io.read(str(mag_fp), format="fasta"):
+                seq.metadata["id"] = f"{mag_id}_{seq.metadata['id']}"
+                io.write(seq, into=merged_f, format="fasta")
+    return merged_fp

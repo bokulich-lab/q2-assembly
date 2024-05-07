@@ -49,6 +49,7 @@ setup(
             "data/empty_contigs/*",
             "data/indices/*/*/*",
             "data/mags/*/*",
+            "data/mags-derep/*",
             "data/maps/*/*",
             "data/reads/*/*",
         ],
