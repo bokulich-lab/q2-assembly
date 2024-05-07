@@ -42,7 +42,7 @@ def _index_seqs(
             will be created.
         common_args (list): List of common flags and their values for
             the bowtie2-build command.
-        input_type (str): Type of input sequences. Can be mags or contigs.
+        input_type (str): Type of input sequences. Can be mags, mags-derep or contigs.
     """
     _assert_inputs_not_empty(fasta_fps)
 
@@ -190,7 +190,14 @@ def index_derep_mags(
 ) -> Bowtie2IndexDirFmt:
     if bmax == "auto":
         bmax = None
-    kwargs = {k: v for k, v in locals().items() if k not in ["mags", "merge"]}
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k
+        not in [
+            "mags",
+        ]
+    }
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2build_arg, params=kwargs
     )

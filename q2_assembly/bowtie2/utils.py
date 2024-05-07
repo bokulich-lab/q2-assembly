@@ -55,7 +55,7 @@ def _construct_function_param_value(arg_key: str, arg_val: str):
     param_split = [x.strip() for x in arg_val.split(",")]
     if len(param_split) != 3:
         raise Exception(
-            "Invalid number of elements in function definition " f'of "{arg_key}".'
+            "Invalid number of elements in function definition " f"of '{arg_key}'."
         )
     elif param_split[0] not in "CLSG":
         raise Exception(
