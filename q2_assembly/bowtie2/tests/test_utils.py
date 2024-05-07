@@ -207,7 +207,7 @@ class TestBowtie2Utils(TestPluginBase):
         self.assertFalse(_is_flat_dir(self.get_data_path("indices/from_mags")))
 
     def test_is_flat_dir_true(self):
-        self.assertFalse(_is_flat_dir(self.get_data_path("indices/from_mags_derep")))
+        self.assertTrue(_is_flat_dir(self.get_data_path("indices/from_mags_derep")))
 
 
 if __name__ == "__main__":
