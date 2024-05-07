@@ -50,6 +50,7 @@ setup(
             "data/indices/*/*/*",
             "data/mags/*/*",
             "data/mags-derep/*",
+            "data/mags-merged/*",
             "data/maps/*/*",
             "data/reads/*/*",
         ],

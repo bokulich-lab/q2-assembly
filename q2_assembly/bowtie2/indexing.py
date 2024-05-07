@@ -5,7 +5,6 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-import glob
 import os
 import subprocess
 import tempfile
@@ -165,8 +164,9 @@ def index_mags(
 
     result = MultiBowtie2IndexDirFmt()
 
-    mag_fps = sorted(glob.glob(os.path.join(str(mags), "*", "*.fa*")))
-    _index_seqs(mag_fps, str(result), common_args, "mags")
+    with tempfile.TemporaryDirectory() as temp_dir:
+        merged_fps = _merge_mags(mags, temp_dir)
+        _index_seqs(merged_fps, str(result), common_args, "mags")
 
     return result
 
@@ -205,7 +205,7 @@ def index_derep_mags(
     result = Bowtie2IndexDirFmt()
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        merged_fp = _merge_mags(mags, temp_dir)
-        _index_seqs([merged_fp], str(result), common_args, "mags-derep")
+        merged_fps = _merge_mags(mags, temp_dir)
+        _index_seqs(merged_fps, str(result), common_args, "mags-derep")
 
     return result

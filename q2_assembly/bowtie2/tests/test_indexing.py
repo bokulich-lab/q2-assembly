@@ -115,7 +115,7 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("os.makedirs")
     def test_index_seqs_mags(self, p1, p2, p3):
         _index_seqs(
-            fasta_fps=["/here/smp1/mag1.fa", "/here/smp1/mag2.fa"],
+            fasta_fps=["/here/smp1/merged.fasta", "/here/smp2/merged.fasta"],
             result_fp="/there/",
             common_args=self.test_params_list,
             input_type="mags",
@@ -123,8 +123,8 @@ class TestBowtie2Indexing(TestPluginBase):
 
         p1.assert_has_calls(
             [
-                call("/there/smp1/mag1", exist_ok=True),
-                call("/there/smp1/mag2", exist_ok=True),
+                call("/there/smp1", exist_ok=True),
+                call("/there/smp2", exist_ok=True),
             ]
         )
         p2.assert_has_calls(
@@ -145,8 +145,8 @@ class TestBowtie2Indexing(TestPluginBase):
                         "10",
                         "--threads",
                         "1",
-                        "/here/smp1/mag1.fa",
-                        "/there/smp1/mag1/index",
+                        "/here/smp1/merged.fasta",
+                        "/there/smp1/index",
                     ],
                     check=True,
                 ),
@@ -166,8 +166,8 @@ class TestBowtie2Indexing(TestPluginBase):
                         "10",
                         "--threads",
                         "1",
-                        "/here/smp1/mag2.fa",
-                        "/there/smp1/mag2/index",
+                        "/here/smp2/merged.fasta",
+                        "/there/smp2/index",
                     ],
                     check=True,
                 ),
@@ -298,15 +298,15 @@ class TestBowtie2Indexing(TestPluginBase):
             threads=1,
         )
 
-        exp_mags = [
-            f"{str(input_mags)}/sample{x+1}/mag{y+1}.fa"
-            for x in range(2)
-            for y in range(2)
-        ]
-        p.assert_called_with(exp_mags, ANY, self.test_params_list, "mags")
+        p.assert_called_with(ANY, ANY, self.test_params_list, "mags")
+        self.assertListEqual(
+            ["/".join(x.split("/")[-2:]) for x in p.call_args.args[0]],
+            ["sample1/merged.fasta", "sample2/merged.fasta"],
+        )
 
     @patch(
-        "q2_assembly.bowtie2.indexing._merge_mags", return_value="/path/to/merged.fasta"
+        "q2_assembly.bowtie2.indexing._merge_mags",
+        return_value=["/path/to/merged.fasta"],
     )
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
     def test_index_mags_derep(self, p1, p2):
