@@ -229,16 +229,16 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
 def _visualize_quast(
     output_dir: str,
     contigs: ContigSequencesDirFmt,
-    min_contig: int,
-    threads: int,
-    k_mer_stats: bool,
-    k_mer_size: int,
-    contig_thresholds: List[int],
-    memory_efficient: bool,
-    min_alignment: int,
-    min_identity: float,
-    ambiguity_usage: str,
-    ambiguity_score: float,
+    min_contig: int = 500,
+    threads: int = 1,
+    k_mer_stats: bool = False,
+    k_mer_size: int = 101,
+    contig_thresholds: List[int] = [0, 1000, 5000, 10000, 250000, 500000],
+    memory_efficient: bool = False,
+    min_alignment: int = 65,
+    min_identity: float = 90.0,
+    ambiguity_usage: str = "one",
+    ambiguity_score: float = 0.99,
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
@@ -328,7 +328,7 @@ def _visualize_quast(
 
 def _create_tabular_results(results_dir: str) -> pd.DataFrame:
     """
-    This function will create the tabular results after QUAST has been run.
+    This function will create the tabular results after QUAST has run.
 
     Args:
         - results_dir(str): The directory were the results of QUAST are saved.
@@ -342,7 +342,7 @@ def _create_tabular_results(results_dir: str) -> pd.DataFrame:
     filepath = os.path.join(results_dir, "combined_reference", filename)
 
     transposed_report = pd.read_csv(filepath, sep="\t", header=0)
-    transposed_report_parsed = _parse_columns(transposed_report, filepath)
+    transposed_report_parsed = _parse_columns(transposed_report)
     return transposed_report_parsed
 
 

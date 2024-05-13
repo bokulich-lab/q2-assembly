@@ -56,7 +56,6 @@ OPTIONAL_COLS_MAP = {
 
 RESHUFFLED_COLUMNS = [
     "id",
-    "input_file",
     "total_length",
     "no_contigs_0",
     "no_contigs",

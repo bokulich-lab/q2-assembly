@@ -14,7 +14,6 @@ from qiime2.plugin import model
 class QUASTResultsFormat(model.TextFileFormat):
     HEADER = [
         "id",
-        "input_file",
         "total_length",
         "no_contigs_0",
         "no_contigs",
