@@ -32,6 +32,7 @@ setup(
             "data/reads/small-single-end/*",
             "data/alignment_map/*",
             "data/html-files/*",
+            "data/quast-results/*",
             "data/html-files/fake-reports/*/*",
             "data/html-files/fake-reports/*",
             "data/contigs/*",
