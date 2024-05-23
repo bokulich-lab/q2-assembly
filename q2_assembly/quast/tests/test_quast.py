@@ -691,21 +691,34 @@ class TestQuast(TestPluginBase):
         enhanced_tabular_results_path = os.path.join(
             self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
         )
-        side_lambda = (
-            lambda contigs, reads, references, mapped_reads, min_contig, \
-                   threads, k_mer_stats, k_mer_size,\
-                   contig_thresholds, memory_efficient, min_alignment,\
-                   min_identity, ambiguity_usage, ambiguity_score: (exp_vis, )
-        )
+
+        contigs="contigs"
+        reads="reads"
+        references="references"
+        mapped_reads="mapped_reads"
+        min_contig="min_contig"
+        threads="threads"
+        k_mer_stats="k_mer_stats"
+        k_mer_size="k_mer_size"
+        contig_thresholds="contig_thresholds"
+        memory_efficient="memory_efficient"
+        min_alignment="min_alignment"
+        min_identity="min_identity"
+        ambiguity_usage="ambiguity_usage"
+        ambiguity_score="ambiguity_score"
+
+        params_list_lambda = [contigs, reads, references, mapped_reads, min_contig,
+                       threads, k_mer_stats, k_mer_size, contig_thresholds,
+                       memory_efficient, min_alignment, min_identity, ambiguity_usage,
+                       ambiguity_score]
+
+        side_lambda = (lambda params_list_lambda:( exp_vis,))
+
         with tempfile.TemporaryDirectory() as tmp:
             test_enhance_path = os.path.join(tmp, "vis_files", "quast_data")
             exp_vis = MagicMock()
             # mocking the _visualize_quast from the ctx.get_action
-            mock_action = MagicMock(
-                side_effect=[
-                    side_lambda
-                ]
-            )
+            mock_action = MagicMock(side_effect=[side_lambda])
 
             # mocking the context
             mock_ctx = MagicMock(get_action=mock_action)
