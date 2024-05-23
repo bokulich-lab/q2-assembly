@@ -101,7 +101,7 @@ def _evaluate_contigs(
         reads (dict): Dictionary containing mapping of samples to their
             forward and reverse reads, e.g.:
             {'sample1': {'fwd': '/path/to/reads', 'rev': '/path/to/reads'}}.
-        mapped_reads (BAMDirFmt): the mapping of reads to contigs
+        mapped_reads (BAMDirFmt): Mapping of reads to contigs
         common_args (list): List of common flags and their values for
             the QUAST command.
 
@@ -206,7 +206,8 @@ def _fix_html_reports(results_dp: str):
     contig_browser_fp = os.path.join(
         results_dp, "icarus_viewers", "contig_size_viewer.html"
     )
-    _remove_html_element(contig_browser_fp, "div", elem_id="to_main_menu_button")
+    if os.path.exists(contig_browser_fp):
+        _remove_html_element(contig_browser_fp, "div", elem_id="to_main_menu_button")
 
     # make all the external links open in a new tab
     _modify_links(report_fp)
@@ -239,6 +240,7 @@ def _visualize_quast(
     min_identity: float = 90.0,
     ambiguity_usage: str = "one",
     ambiguity_score: float = 0.99,
+    no_icarus: bool = False,
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
@@ -308,21 +310,22 @@ def _visualize_quast(
         context = {
             "tabs": [
                 {"title": "QC report", "url": "index.html"},
-                {"title": "Contig browser", "url": "q2_icarus.html"},
             ],
             "samples": json.dumps(samples),
         }
 
+        templates = [
+            os.path.join(TEMPLATES, "quast", "index.html"),
+        ]
+        if not no_icarus:
+            templates.append(os.path.join(TEMPLATES, "quast", "q2_icarus.html"))
+            context["tabs"].append({"title": "Contig browser", "url": "q2_icarus.html"})
         if os.path.isdir(os.path.join(output_dir, "quast_data", "krona_charts")):
+            templates.append(os.path.join(TEMPLATES, "quast", "q2_krona_charts.html"))
             context["tabs"].append(
                 {"title": "Krona charts", "url": "q2_krona_charts.html"}
             )
 
-        index = os.path.join(TEMPLATES, "quast", "index.html")
-        icarus = os.path.join(TEMPLATES, "quast", "q2_icarus.html")
-        krona = os.path.join(TEMPLATES, "quast", "q2_krona_charts.html")
-
-        templates = [index, icarus, krona]
         q2templates.render(templates, output_dir, context=context)
 
 
@@ -361,8 +364,9 @@ def evaluate_contigs(
     memory_efficient=False,
     min_alignment=65,
     min_identity=90.0,
+        no_icarus=False,
     ambiguity_usage="one",
-    ambiguity_score=0.99,
+    ambiguity_score=0.99
 ):
     with tempfile.TemporaryDirectory() as tmp:
         # 1. generate the visualization
@@ -382,6 +386,7 @@ def evaluate_contigs(
             min_identity=min_identity,
             ambiguity_usage=ambiguity_usage,
             ambiguity_score=ambiguity_score,
+            no_icarus=no_icarus,
         )
 
         # 2. after the visualization is generated we need to export the files

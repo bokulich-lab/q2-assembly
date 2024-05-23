@@ -346,7 +346,7 @@ class TestQuast(TestPluginBase):
             "sample1": {"fwd": "path/to/s1fwd", "rev": "path/to/s1rev"},
         }
         with self.assertRaisesRegex(
-            Exception, r".*reverse reads \(1\) does not match.*contig files \(2\).*"
+                Exception, r".*reverse reads \(1\) does not match.*contig files \(2\).*"
         ):
             _ = _evaluate_contigs(
                 results_dir="some/dir",
@@ -365,7 +365,7 @@ class TestQuast(TestPluginBase):
             "sample3": {"fwd": "path/to/s3fwd", "rev": "path/to/s3rev"},
         }
         with self.assertRaisesRegex(
-            Exception, "Some samples are missing from the reads file."
+                Exception, "Some samples are missing from the reads file."
         ):
             _ = _evaluate_contigs(
                 results_dir="some/dir",
@@ -387,7 +387,7 @@ class TestQuast(TestPluginBase):
             "sample2": {"fwd": "path/to/s2fwd", "rev": "path/to/s2rev"},
         }
         with self.assertRaisesRegex(
-            Exception, r"An error.*while running QUAST.*code 123"
+                Exception, r"An error.*while running QUAST.*code 123"
         ):
             _ = _evaluate_contigs(
                 results_dir="some/dir",
@@ -660,6 +660,77 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
+    @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast._fix_html_reports", return_value=None)
+    @patch("q2templates.render")
+    @patch("tempfile.TemporaryDirectory")
+    def test_evaluate_contigs_action_paired_end_no_icarus(self, p1, p2, p3, p4):
+        test_temp_dir = MockTempDir()
+        os.mkdir(os.path.join(test_temp_dir.name, "results"))
+        p1.return_value = test_temp_dir
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        reads = SingleLanePerSamplePairedEndFastqDirFmt(
+            self.get_data_path("reads/paired-end"), "r"
+        )
+
+        evaluate_contigs(
+            output_dir=self._tmp,
+            contigs=contigs,
+            reads=reads,
+            min_contig=150,
+            threads=1,
+            k_mer_size=101,
+            contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+            no_icarus=True,
+        )
+
+        exp_reads_dict = {
+            "sample1": {
+                "fwd": self.get_data_path("reads/paired-end/reads1_R1.fastq.gz"),
+                "rev": self.get_data_path("reads/paired-end/reads1_R2.fastq.gz"),
+            },
+            "sample2": {
+                "fwd": self.get_data_path("reads/paired-end/reads2_R1.fastq.gz"),
+                "rev": self.get_data_path("reads/paired-end/reads2_R2.fastq.gz"),
+            },
+        }
+        p4.assert_called_once_with(
+            os.path.join(test_temp_dir.name, "results"),
+            contigs,
+            exp_reads_dict,
+            True,
+            None,
+            None,
+            [
+                "--min-contig",
+                "150",
+                "--threads",
+                "1",
+                "--k-mer-size",
+                "101",
+                "--contig-thresholds",
+                "0,1000,5000,10000,25000,50000",
+                "--min-alignment",
+                "65",
+                "--min-identity",
+                "90.0",
+                "--ambiguity-usage",
+                "one",
+                "--ambiguity-score",
+                "0.99",
+                "--no-icarus",
+            ],
+        )
+        p3.assert_called_once_with(os.path.join(test_temp_dir.name, "results"))
+
+        exp_context = {
+            "tabs": [
+                {"title": "QC report", "url": "index.html"},
+            ],
+            "samples": json.dumps(["sample1", "sample2"]),
+        }
+        p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
+
     @patch("pandas.read_csv")
     @patch("q2_assembly.quast._parse_columns")
     def test_create_tabular_results(self, p1, p2):
@@ -692,27 +763,21 @@ class TestQuast(TestPluginBase):
             self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
         )
 
-        contigs="contigs"
-        reads="reads"
-        references="references"
-        mapped_reads="mapped_reads"
-        min_contig="min_contig"
-        threads="threads"
-        k_mer_stats="k_mer_stats"
-        k_mer_size="k_mer_size"
-        contig_thresholds="contig_thresholds"
-        memory_efficient="memory_efficient"
-        min_alignment="min_alignment"
-        min_identity="min_identity"
-        ambiguity_usage="ambiguity_usage"
-        ambiguity_score="ambiguity_score"
-
-        params_list_lambda = [contigs, reads, references, mapped_reads, min_contig,
-                       threads, k_mer_stats, k_mer_size, contig_thresholds,
-                       memory_efficient, min_alignment, min_identity, ambiguity_usage,
-                       ambiguity_score]
-
-        side_lambda = (lambda params_list_lambda:( exp_vis,))
+        side_lambda = (lambda contigs,
+                              reads,
+                              references,
+                              mapped_reads,
+                              min_contig,
+                              threads,
+                              k_mer_stats,
+                              k_mer_size,
+                              contig_thresholds,
+                              memory_efficient,
+                              min_alignment,
+                              min_identity,
+                              ambiguity_usage,
+                              ambiguity_score,
+                              no_icarus: (exp_vis,))
 
         with tempfile.TemporaryDirectory() as tmp:
             test_enhance_path = os.path.join(tmp, "vis_files", "quast_data")
