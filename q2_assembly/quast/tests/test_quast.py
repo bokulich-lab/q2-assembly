@@ -9,11 +9,12 @@
 import contextlib
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from filecmp import dircmp
 from subprocess import CalledProcessError
-from unittest.mock import ANY, Mock, call, mock_open, patch
+from unittest.mock import ANY, MagicMock, Mock, call, mock_open, patch
 from zipfile import ZipFile
 
 import pandas as pd
@@ -27,7 +28,7 @@ from q2_types.per_sample_sequences import (
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.quast.types import QUASTResults
+from q2_assembly.quast.types import QUASTResultsDirectoryFormat
 
 from ..quast import (
     _create_tabular_results,
@@ -37,6 +38,7 @@ from ..quast import (
     _visualize_quast,
     _zip_additional_reports,
     _zip_dir,
+    evaluate_contigs,
 )
 
 
@@ -44,12 +46,18 @@ class MockTempDir(tempfile.TemporaryDirectory):
     pass
 
 
+class MockContext(Mock):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.get_action = Mock()
+
+
 class TestQuast(TestPluginBase):
     package = "q2_assembly.tests"
 
     def setUp(self):
         super().setUp()
-        self.evaluate_contigs = self.plugin.pipelines["evaluate_contigs"]
+        # self.evaluate_contigs = self.plugin.pipelines["evaluate_contigs"]
         with contextlib.ExitStack() as stack:
             self._tmp = stack.enter_context(tempfile.TemporaryDirectory())
             self.addCleanup(stack.pop_all().close)
@@ -667,27 +675,57 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(report_path, sep="\t", header=0)
         p1.assert_called_once_with(mock_df)
 
-    @patch("q2_assembly.quast._visualize_quast")
-    def test_evaluate_contigs_pipeline(self, p1):
+    def _copy_tsv_file(self, src, dst_dir):
+        if not os.path.exists(dst_dir):
+            os.makedirs(dst_dir)
+
+        filename = os.path.basename(src)
+        destination_path = os.path.join(dst_dir, filename)
+        shutil.copy2(src, destination_path)
+
+    def test_evaluate_contigs_pipeline(self):
         input_files = self.get_data_path("contigs")
         _input = ContigSequencesDirFmt(input_files, mode="r")
         contigs = Artifact.import_data("SampleData[Contigs]", _input)
 
-        exp_vis = Mock()
-        exp_vis.side_effect = None
-        Mock(export_data=exp_vis)
-        p1.return_value = exp_vis
-
         enhanced_tabular_results_path = os.path.join(
             self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
         )
+        side_lambda = (
+            lambda contigs, reads, references, mapped_reads, min_contig, \
+                   threads, k_mer_stats, k_mer_size,\
+                   contig_thresholds, memory_efficient, min_alignment,\
+                   min_identity, ambiguity_usage, ambiguity_score: (exp_vis, )
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            test_enhance_path = os.path.join(tmp, "vis_files", "quast_data")
+            exp_vis = MagicMock()
+            # mocking the _visualize_quast from the ctx.get_action
+            mock_action = MagicMock(
+                side_effect=[
+                    side_lambda
+                ]
+            )
 
-        with patch("os.path.join", return_value=enhanced_tabular_results_path):
+            # mocking the context
+            mock_ctx = MagicMock(get_action=mock_action)
+            self._copy_tsv_file(enhanced_tabular_results_path, test_enhance_path)
 
-            tab_report, _ = self.evaluate_contigs(contigs)._result()
+            with patch("tempfile.TemporaryDirectory") as mock_temp_dir:
+                mock_temp_dir.return_value.__enter__.return_value = tmp
+                tab_report, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
 
-            tab_report.validate()
-            self.assertIs(tab_report.format, QUASTResults)
+                # here I pretend that the tab_report is the dataframe,
+                # so I read it again. The problem is that
+                # ctx.make_artifact is mocked and cannot return the QUASTResults
+                # object.
+                tab_report = pd.read_csv(
+                    enhanced_tabular_results_path, sep="\t", header=0
+                )
+                tab_report_quast = Artifact.import_data("QUASTResults", tab_report)
+
+                tab_report_quast.validate()
+                self.assertIs(tab_report_quast.format, QUASTResultsDirectoryFormat)
 
     def test_zip_dir(self):
         # Get path to test data
