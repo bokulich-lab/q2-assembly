@@ -364,30 +364,15 @@ def evaluate_contigs(
     memory_efficient=False,
     min_alignment=65,
     min_identity=90.0,
-        no_icarus=False,
+    no_icarus=False,
     ambiguity_usage="one",
-    ambiguity_score=0.99
+    ambiguity_score=0.99,
 ):
+    kwargs = {k: v for k, v in locals().items() if k not in ["contigs", "ctx"]}
     with tempfile.TemporaryDirectory() as tmp:
         # 1. generate the visualization
         _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
-        (visualization,) = _visualize_quast(
-            contigs=contigs,
-            reads=reads,
-            references=references,
-            mapped_reads=mapped_reads,
-            min_contig=min_contig,
-            threads=threads,
-            k_mer_stats=k_mer_stats,
-            k_mer_size=k_mer_size,
-            contig_thresholds=contig_thresholds,
-            memory_efficient=memory_efficient,
-            min_alignment=min_alignment,
-            min_identity=min_identity,
-            ambiguity_usage=ambiguity_usage,
-            ambiguity_score=ambiguity_score,
-            no_icarus=no_icarus,
-        )
+        (visualization,) = _visualize_quast(contigs, **kwargs)
 
         # 2. after the visualization is generated we need to export the files
         visualization_files_path = os.path.join(tmp, "vis_files")

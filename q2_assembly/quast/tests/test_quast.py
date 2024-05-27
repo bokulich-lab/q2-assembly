@@ -346,7 +346,7 @@ class TestQuast(TestPluginBase):
             "sample1": {"fwd": "path/to/s1fwd", "rev": "path/to/s1rev"},
         }
         with self.assertRaisesRegex(
-                Exception, r".*reverse reads \(1\) does not match.*contig files \(2\).*"
+            Exception, r".*reverse reads \(1\) does not match.*contig files \(2\).*"
         ):
             _ = _evaluate_contigs(
                 results_dir="some/dir",
@@ -365,7 +365,7 @@ class TestQuast(TestPluginBase):
             "sample3": {"fwd": "path/to/s3fwd", "rev": "path/to/s3rev"},
         }
         with self.assertRaisesRegex(
-                Exception, "Some samples are missing from the reads file."
+            Exception, "Some samples are missing from the reads file."
         ):
             _ = _evaluate_contigs(
                 results_dir="some/dir",
@@ -387,7 +387,7 @@ class TestQuast(TestPluginBase):
             "sample2": {"fwd": "path/to/s2fwd", "rev": "path/to/s2rev"},
         }
         with self.assertRaisesRegex(
-                Exception, r"An error.*while running QUAST.*code 123"
+            Exception, r"An error.*while running QUAST.*code 123"
         ):
             _ = _evaluate_contigs(
                 results_dir="some/dir",
@@ -660,11 +660,12 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
+    @patch("q2_assembly.quast._create_tabular_results")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
-    def test_evaluate_contigs_action_paired_end_no_icarus(self, p1, p2, p3, p4):
+    def test_evaluate_contigs_action_paired_end_no_icarus(self, p1, p2, p3, p4, p5):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
         p1.return_value = test_temp_dir
@@ -673,7 +674,7 @@ class TestQuast(TestPluginBase):
             self.get_data_path("reads/paired-end"), "r"
         )
 
-        evaluate_contigs(
+        _visualize_quast(
             output_dir=self._tmp,
             contigs=contigs,
             reads=reads,
@@ -746,15 +747,16 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(report_path, sep="\t", header=0)
         p1.assert_called_once_with(mock_df)
 
-    def _copy_tsv_file(self, src, dst_dir):
-        if not os.path.exists(dst_dir):
-            os.makedirs(dst_dir)
-
-        filename = os.path.basename(src)
-        destination_path = os.path.join(dst_dir, filename)
-        shutil.copy2(src, destination_path)
-
     def test_evaluate_contigs_pipeline(self):
+        # this is used for mocking
+        def _copy_tsv_file(src, dst_dir):
+            if not os.path.exists(dst_dir):
+                os.makedirs(dst_dir)
+
+            filename = os.path.basename(src)
+            destination_path = os.path.join(dst_dir, filename)
+            shutil.copy2(src, destination_path)
+
         input_files = self.get_data_path("contigs")
         _input = ContigSequencesDirFmt(input_files, mode="r")
         contigs = Artifact.import_data("SampleData[Contigs]", _input)
@@ -763,31 +765,17 @@ class TestQuast(TestPluginBase):
             self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
         )
 
-        side_lambda = (lambda contigs,
-                              reads,
-                              references,
-                              mapped_reads,
-                              min_contig,
-                              threads,
-                              k_mer_stats,
-                              k_mer_size,
-                              contig_thresholds,
-                              memory_efficient,
-                              min_alignment,
-                              min_identity,
-                              ambiguity_usage,
-                              ambiguity_score,
-                              no_icarus: (exp_vis,))
-
         with tempfile.TemporaryDirectory() as tmp:
             test_enhance_path = os.path.join(tmp, "vis_files", "quast_data")
             exp_vis = MagicMock()
             # mocking the _visualize_quast from the ctx.get_action
-            mock_action = MagicMock(side_effect=[side_lambda])
+            mock_action = MagicMock(side_effect=lambda x, **kwargs: (exp_vis,))
 
             # mocking the context
-            mock_ctx = MagicMock(get_action=mock_action)
-            self._copy_tsv_file(enhanced_tabular_results_path, test_enhance_path)
+            mock_ctx = MagicMock(
+                get_action=lambda action_type, action_name: mock_action
+            )
+            _copy_tsv_file(enhanced_tabular_results_path, test_enhance_path)
 
             with patch("tempfile.TemporaryDirectory") as mock_temp_dir:
                 mock_temp_dir.return_value.__enter__.return_value = tmp
