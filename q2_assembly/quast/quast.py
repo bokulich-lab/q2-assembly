@@ -284,9 +284,7 @@ def _visualize_quast(
         )
 
         tabular_results = _create_tabular_results(results_dir)
-        tabular_results.to_csv(
-            os.path.join(results_dir, "enhanced_tabular_results.tsv"), sep="\t"
-        )
+        tabular_results.to_csv(os.path.join(results_dir, "quast_results.tsv"), sep="\t")
 
         # fix/remove some URLs
         _fix_html_reports(results_dir)
@@ -378,7 +376,7 @@ def evaluate_contigs(
         visualization_files_path = os.path.join(tmp, "vis_files")
         visualization.export_data(visualization_files_path)
         report_path = os.path.join(
-            visualization_files_path, "quast_data", "enhanced_tabular_results.tsv"
+            visualization_files_path, "quast_data", "quast_results.tsv"
         )
         report_df = pd.read_csv(report_path, sep="\t", header=0)
 

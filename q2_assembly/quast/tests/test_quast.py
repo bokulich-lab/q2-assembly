@@ -762,7 +762,7 @@ class TestQuast(TestPluginBase):
         contigs = Artifact.import_data("SampleData[Contigs]", _input)
 
         enhanced_tabular_results_path = os.path.join(
-            self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
+            self.get_data_path("quast-results"), "quast_results.tsv"
         )
 
         with tempfile.TemporaryDirectory() as tmp:

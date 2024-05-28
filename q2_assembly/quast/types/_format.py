@@ -39,8 +39,7 @@ class QUASTResultsFormat(model.TextFileFormat):
             for i, row in enumerate(reader, start=2):
                 if len(row) != n_headers:
                     raise ValidationError(
-                        f"Line {i} has {len(row)} columns, "
-                        f"expected {len(n_headers)}"
+                        f"Line {i} has {len(row)} columns, " f"expected {n_headers}"
                     )
 
                 if n_records is not None and i - 1 >= n_records:

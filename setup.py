@@ -53,6 +53,7 @@ setup(
             "data/maps/*/*",
             "data/reads/*/*",
         ],
+        "q2_assembly.quast.types.tests": ["data/*"],
         "q2_assembly.iss.tests": ["data/*", "data/*/*"],
     },
     zip_safe=False,
