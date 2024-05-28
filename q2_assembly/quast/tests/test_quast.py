@@ -753,8 +753,7 @@ class TestQuast(TestPluginBase):
             if not os.path.exists(dst_dir):
                 os.makedirs(dst_dir)
 
-            filename = os.path.basename(src)
-            destination_path = os.path.join(dst_dir, filename)
+            destination_path = os.path.join(dst_dir, "quast_results.tsv")
             shutil.copy2(src, destination_path)
 
         input_files = self.get_data_path("contigs")
@@ -762,7 +761,7 @@ class TestQuast(TestPluginBase):
         contigs = Artifact.import_data("SampleData[Contigs]", _input)
 
         enhanced_tabular_results_path = os.path.join(
-            self.get_data_path("quast-results"), "quast_results.tsv"
+            self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
         )
 
         with tempfile.TemporaryDirectory() as tmp:
