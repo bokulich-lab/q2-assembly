@@ -23,7 +23,12 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.sample_data import SampleData
 
-from .._utils import _construct_param, _process_common_input_params, run_command
+from .._utils import (
+    _construct_param,
+    _process_common_input_params,
+    modify_contig_ids,
+    run_command,
+)
 
 
 def _process_megahit_arg(arg_key, arg_val):
@@ -126,6 +131,7 @@ def assemble_megahit(
     min_contig_len=200,
     num_partitions=None,
     coassemble=False,
+    uuid_type="shortuuid",
 ):
     kwargs = {
         # removing num_partitions from this dict to include it in the parameters
@@ -187,6 +193,7 @@ def _assemble_megahit(
     no_hw_accel: bool = False,
     min_contig_len: int = 200,
     coassemble: bool = False,
+    uuid_type: str = "shortuuid",
 ) -> ContigSequencesDirFmt:
     if max_tip_len == "auto":
         max_tip_len = None
@@ -200,17 +207,23 @@ def _assemble_megahit(
             "then all must be explicitly set."
         )
 
-    kwargs = {k: v for k, v in locals().items() if k not in ["seqs", "coassemble"]}
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["seqs", "uuid_type", "coassemble"]
+    }
     common_args = _process_common_input_params(
         processing_func=_process_megahit_arg, params=kwargs
     )
 
     return assemble_megahit_helper(
-        seqs=seqs, coassemble=coassemble, common_args=common_args
+        seqs=seqs, coassemble=coassemble, uuid_type=uuid_type, common_args=common_args
     )
 
 
-def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDirFmt:
+def assemble_megahit_helper(
+    seqs, coassemble, uuid_type, common_args
+) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
     Both, paired- and single-end reads can be processed - the output will
@@ -222,6 +235,7 @@ def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDir
             the MEGAHIT command.
         coassemble: boolean variable that specifies whether
             reads from all samples are co-assembled.
+        uuid_type: UUID type to be used in the contig ID.
 
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
@@ -244,5 +258,6 @@ def assemble_megahit_helper(seqs, coassemble, common_args) -> ContigSequencesDir
             rev = manifest.loc[samp, "reverse"] if paired else None
 
             _process_sample(samp, fwd, rev, common_args, result)
+            modify_contig_ids(result, samp, uuid_type)
 
     return result

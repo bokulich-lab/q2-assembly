@@ -7,9 +7,13 @@
 # ----------------------------------------------------------------------------
 import os
 import subprocess
+import uuid
 from typing import List
 
 import pkg_resources
+import shortuuid
+from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 from bs4 import BeautifulSoup as BS
 
 EXTERNAL_CMD_WARNING = (
@@ -167,3 +171,66 @@ def concatenate_files(input_files, output_file):
     """
     cmd = ["cat", *input_files]
     subprocess.run(cmd, stdout=open(output_file, "w"), check=True)
+
+
+def generate_shortuuid():
+    return shortuuid.uuid()
+
+
+def generate_uuid3(namespace, name):
+    return uuid.uuid3(namespace, name)
+
+
+def generate_uuid4():
+    return uuid.uuid4()
+
+
+def generate_uuid5(namespace, name):
+    return uuid.uuid5(namespace, name)
+
+
+def _generate_unique_uuid(uuid_func, namespace, contig_id, new_ids):
+    while True:
+        if uuid_func in [generate_uuid3, generate_uuid5]:
+            new_id = str(uuid_func(namespace, contig_id))
+        else:
+            new_id = str(uuid_func())
+
+        if new_id not in new_ids:
+            new_ids.add(new_id)
+            return new_id
+
+
+def modify_contig_ids(out, sample, uuid_type: str):
+    """Modifies the contig IDs to include the sample name and UUID.
+
+    Args:
+        out: output format
+        sample: Name of the sample to be processed.
+        uuid_type: UUID type to be used in the contig ID.
+    """
+    uuid_funcs = {
+        "uuid3": generate_uuid3,
+        "uuid4": generate_uuid4,
+        "uuid5": generate_uuid5,
+        "shortuuid": generate_shortuuid,
+    }
+    uuid_func = uuid_funcs.get(uuid_type)
+
+    path_to_contigs = os.path.join(str(out), f"{sample}_contigs.fa")
+    namespace = uuid.NAMESPACE_OID
+    contigs = SeqIO.parse(path_to_contigs, "fasta")
+    new_ids = set()
+    updated_contigs = []
+    for contig in contigs:
+        description = contig.description
+        sequence = contig.seq
+        new_id = _generate_unique_uuid(
+            uuid_func, namespace, f"{sample}-{contig.id}", new_ids
+        )
+        contig.description = contig.description.replace(contig.id, "")
+        updated_contig = SeqRecord(sequence, id=new_id, description=description)
+        updated_contigs.append(updated_contig)
+
+    with open(path_to_contigs, "w") as output_handle:
+        SeqIO.write(updated_contigs, output_handle, "fasta")
