@@ -30,6 +30,7 @@ requirements:
     - q2templates {{ qiime2_epoch }}.*
     - q2-demux {{ qiime2_epoch }}.*
     - samtools
+    - shortuuid
     - spades ==3.15.2
 
 test:
