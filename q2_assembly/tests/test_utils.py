@@ -12,18 +12,25 @@ import os
 import shutil
 import tempfile
 import unittest
+import uuid
 from distutils.dir_util import copy_tree
+from unittest.mock import Mock
 
 from bs4 import BeautifulSoup as BS
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly._utils import (
     _construct_param,
+    _generate_unique_uuid,
     _get_sample_from_path,
     _modify_links,
     _process_common_input_params,
     _remove_html_element,
     concatenate_files,
+    generate_shortuuid,
+    generate_uuid3,
+    generate_uuid4,
+    generate_uuid5,
     get_file_extension,
 )
 from q2_assembly.quast.quast import _fix_html_reports
@@ -46,6 +53,10 @@ class TestUtils(TestPluginBase):
         with contextlib.ExitStack() as stack:
             self._tmp = stack.enter_context(tempfile.TemporaryDirectory())
             self.addCleanup(stack.pop_all().close)
+
+        self.namespace = uuid.NAMESPACE_OID
+        self.name = "test-test"
+        self.new_ids = set()
 
     def assertHTMLEqual(self, obs_fp, exp_fp):
         with open(obs_fp, "r") as fobs, open(exp_fp, "r") as fexp:
@@ -161,6 +172,73 @@ class TestUtils(TestPluginBase):
 
         self.assertEqual(hash_original, hash_test_file)
         os.remove(output_file)
+
+    def test_uuid_generation(self):
+
+        id_short = generate_shortuuid()
+        id_uuid_3 = generate_uuid3(self.namespace, self.name)
+        id_uuid_4 = generate_uuid4()
+        id_uuid_5 = generate_uuid5(self.namespace, self.name)
+
+        self.assertIsInstance(id_short, str)
+        self.assertEqual(len(id_short), 22)
+
+        self.assertIsInstance(id_uuid_3, uuid.UUID)
+        self.assertEqual(id_uuid_3.version, 3)
+        self.assertEqual(str(id_uuid_3), str(uuid.uuid3(self.namespace, self.name)))
+
+        self.assertIsInstance(id_uuid_4, uuid.UUID)
+        self.assertEqual(id_uuid_4.version, 4)
+
+        self.assertIsInstance(id_uuid_5, uuid.UUID)
+        self.assertEqual(id_uuid_5.version, 5)
+        self.assertEqual(str(id_uuid_5), str(uuid.uuid5(self.namespace, self.name)))
+
+    def test_generate_unique_uuid_with_uuid3(self):
+        mock_uuid_func = Mock(side_effect=lambda ns, cid: f"uuid3-{ns}-{cid}")
+        new_id = _generate_unique_uuid(
+            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid3"
+        )
+        mock_uuid_func.assert_called_with(self.namespace, self.name)
+        self.assertEqual(new_id, f"uuid3-{self.namespace}-{self.name}")
+        self.assertIn(new_id, self.new_ids)
+
+    def test_generate_unique_uuid_with_uuid5(self):
+        mock_uuid_func = Mock(side_effect=lambda ns, cid: f"uuid5-{ns}-{cid}")
+        new_id = _generate_unique_uuid(
+            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid5"
+        )
+        mock_uuid_func.assert_called_with(self.namespace, self.name)
+        self.assertEqual(new_id, f"uuid5-{self.namespace}-{self.name}")
+        self.assertIn(new_id, self.new_ids)
+
+    def test_generate_unique_uuid_with_uuid4(self):
+        mock_uuid_func = Mock(side_effect=lambda: "uuid4")
+        new_id = _generate_unique_uuid(
+            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid4"
+        )
+        mock_uuid_func.assert_called_once()
+        self.assertEqual(new_id, "uuid4")
+        self.assertIn(new_id, self.new_ids)
+
+    def test_generate_unique_uuid_with_shortuuid(self):
+        mock_uuid_func = Mock(side_effect=lambda: "shortuuid")
+        new_id = _generate_unique_uuid(
+            mock_uuid_func, self.namespace, self.name, self.new_ids, "shortuuid"
+        )
+        mock_uuid_func.assert_called_once()
+        self.assertEqual(new_id, "shortuuid")
+        self.assertIn(new_id, self.new_ids)
+
+    def test_generate_unique_uuid_with_existing_ids(self):
+        self.new_ids.add("uuid4")
+        mock_uuid_func = Mock(side_effect=["uuid4", "uuid4", "uuid4", "unique-uuid4"])
+        new_id = _generate_unique_uuid(
+            mock_uuid_func, self.namespace, self.name, self.new_ids
+        )
+        self.assertEqual(mock_uuid_func.call_count, 4)
+        self.assertEqual(new_id, "unique-uuid4")
+        self.assertIn(new_id, self.new_ids)
 
     def test_get_sample_from_path(self):
         obs = _get_sample_from_path("test/path/sample_1_contigs.fa")
