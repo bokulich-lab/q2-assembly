@@ -7,14 +7,14 @@
 # ----------------------------------------------------------------------------
 import os
 import subprocess
+import tempfile
 import uuid
 from typing import List
 
 import pkg_resources
 import shortuuid
-from Bio import SeqIO
-from Bio.SeqRecord import SeqRecord
 from bs4 import BeautifulSoup as BS
+from skbio import io
 
 EXTERNAL_CMD_WARNING = (
     "Running external command line application(s). "
@@ -252,19 +252,17 @@ def modify_contig_ids(out, sample, uuid_type: str):
     uuid_func = uuid_funcs.get(uuid_type)
 
     path_to_contigs = os.path.join(str(out), f"{sample}_contigs.fa")
-    namespace = uuid.NAMESPACE_OID
-    contigs = SeqIO.parse(path_to_contigs, "fasta")
-    new_ids = set()
-    updated_contigs = []
-    for contig in contigs:
-        description = contig.description
-        sequence = contig.seq
-        new_id = _generate_unique_uuid(
-            uuid_func, namespace, f"{sample}-{contig.id}", new_ids, uuid_type
-        )
-        contig.description = contig.description.replace(contig.id, "")
-        updated_contig = SeqRecord(sequence, id=new_id, description=description)
-        updated_contigs.append(updated_contig)
+    with tempfile.TemporaryDirectory() as tmp:
+        path_to_contigs_mod = os.path.join(tmp, f"{sample}_modified_contigs.fa")
+        namespace = uuid.NAMESPACE_OID
+        new_ids = set()
+        with io.open(path_to_contigs_mod, "w") as modified_contigs:
+            for contig in io.read(path_to_contigs, format="fasta"):
+                contig.metadata["id"] = _generate_unique_uuid(
+                    uuid_func, namespace, contig.metadata["id"], new_ids, uuid_type
+                )
+                io.write(contig, format="fasta", into=modified_contigs)
 
-    with open(path_to_contigs, "w") as output_handle:
-        SeqIO.write(updated_contigs, output_handle, "fasta")
+        all_contigs = io.read(path_to_contigs_mod, format="fasta")
+        with io.open(path_to_contigs, "w") as contigs_file:
+            io.write(all_contigs, format="fasta", into=contigs_file)

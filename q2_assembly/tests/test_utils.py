@@ -16,7 +16,9 @@ import uuid
 from distutils.dir_util import copy_tree
 from unittest.mock import Mock
 
+import skbio
 from bs4 import BeautifulSoup as BS
+from parameterized import parameterized
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly._utils import (
@@ -32,6 +34,7 @@ from q2_assembly._utils import (
     generate_uuid4,
     generate_uuid5,
     get_file_extension,
+    modify_contig_ids,
 )
 from q2_assembly.quast.quast import _fix_html_reports
 
@@ -194,47 +197,58 @@ class TestUtils(TestPluginBase):
         self.assertEqual(id_uuid_5.version, 5)
         self.assertEqual(str(id_uuid_5), str(uuid.uuid5(self.namespace, self.name)))
 
-    def test_generate_unique_uuid_with_uuid3(self):
-        mock_uuid_func = Mock(side_effect=lambda ns, cid: f"uuid3-{ns}-{cid}")
+    @parameterized.expand(["uuid3", "uuid5"])
+    def test_generate_unique_uuid_uuid3_uuid5(self, uuid_type):
+        mock_uuid_func = Mock(side_effect=lambda ns, cid: f"{uuid_type}-{ns}-{cid}")
         new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid3"
+            mock_uuid_func, self.namespace, self.name, self.new_ids, uuid_type
         )
         mock_uuid_func.assert_called_with(self.namespace, self.name)
-        self.assertEqual(new_id, f"uuid3-{self.namespace}-{self.name}")
+        self.assertEqual(new_id, f"{uuid_type}-{self.namespace}-{self.name}")
         self.assertIn(new_id, self.new_ids)
 
-    def test_generate_unique_uuid_with_uuid5(self):
-        mock_uuid_func = Mock(side_effect=lambda ns, cid: f"uuid5-{ns}-{cid}")
+    @parameterized.expand(["shortuuid", "uuid4"])
+    def test_generate_unique_uuid_shortuuid_uuid4(self, uuid_type):
+        mock_uuid_func = Mock(side_effect=lambda: uuid_type)
         new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid5"
-        )
-        mock_uuid_func.assert_called_with(self.namespace, self.name)
-        self.assertEqual(new_id, f"uuid5-{self.namespace}-{self.name}")
-        self.assertIn(new_id, self.new_ids)
-
-    def test_generate_unique_uuid_with_uuid4(self):
-        mock_uuid_func = Mock(side_effect=lambda: "uuid4")
-        new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid4"
+            mock_uuid_func, self.namespace, self.name, self.new_ids, uuid_type
         )
         mock_uuid_func.assert_called_once()
-        self.assertEqual(new_id, "uuid4")
+        self.assertEqual(new_id, uuid_type)
         self.assertIn(new_id, self.new_ids)
 
-    def test_generate_unique_uuid_with_shortuuid(self):
-        mock_uuid_func = Mock(side_effect=lambda: "shortuuid")
-        new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids, "shortuuid"
-        )
-        mock_uuid_func.assert_called_once()
-        self.assertEqual(new_id, "shortuuid")
-        self.assertIn(new_id, self.new_ids)
+    def test_modify_contig_ids(self):
+        contigs_path = self.get_data_path("contigs")
+        new_ids_sample1 = []
+        new_ids_sample2 = []
+        with tempfile.TemporaryDirectory() as tmp:
+            for sample in ["sample1", "sample2"]:
+                original_sample_path = os.path.join(
+                    contigs_path, f"{sample}_contigs.fa"
+                )
+                new_sample_path = os.path.join(tmp, f"{sample}_contigs.fa")
+                shutil.copy(original_sample_path, tmp)
+                modify_contig_ids(tmp, sample, "uuid4")
+
+                for contig in skbio.io.read(new_sample_path, format="fasta"):
+                    if sample == "sample1":
+                        new_ids_sample1.append(contig.metadata["id"])
+                    else:
+                        new_ids_sample2.append(contig.metadata["id"])
+
+            new_ids_sample1_set = set(new_ids_sample1)
+            new_ids_sample2_set = set(new_ids_sample2)
+            self.assertEqual(len(new_ids_sample1), len(new_ids_sample1_set))
+            self.assertEqual(len(new_ids_sample2), len(new_ids_sample2_set))
+            self.assertEqual(
+                len(new_ids_sample1_set.intersection(new_ids_sample2_set)), 0
+            )
 
     def test_generate_unique_uuid_with_existing_ids(self):
         self.new_ids.add("uuid4")
         mock_uuid_func = Mock(side_effect=["uuid4", "uuid4", "uuid4", "unique-uuid4"])
         new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids
+            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid4"
         )
         self.assertEqual(mock_uuid_func.call_count, 4)
         self.assertEqual(new_id, "unique-uuid4")

@@ -459,7 +459,9 @@ class TestMegahit(TestPluginBase):
             common_args=self.test_params_list,
         )
 
-        p2.assert_called_with(ANY, ANY, uuid_type=uuid_type)
+        p2.assert_has_calls(
+            [call(ANY, "sample1", uuid_type), call(ANY, "sample2", uuid_type)]
+        )
 
 
 if __name__ == "__main__":

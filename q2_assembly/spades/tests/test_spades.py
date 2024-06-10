@@ -368,18 +368,17 @@ class TestSpades(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        with self.assertRaisesRegex(
-            NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
-        ):
-            _assemble_spades(
-                seqs=input,
-                meta=True,
-                coassemble=False,
-                uuid_type=uuid_type,
-                common_args=self.test_params_list,
-            )
+        _assemble_spades(
+            seqs=input,
+            meta=False,
+            coassemble=False,
+            uuid_type=uuid_type,
+            common_args=self.test_params_list,
+        )
 
-            p2.assert_called_with(ANY, uuid_type=uuid_type)
+        p2.assert_has_calls(
+            [call(ANY, "sample1", uuid_type), call(ANY, "sample2", uuid_type)]
+        )
 
 
 if __name__ == "__main__":
