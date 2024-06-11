@@ -19,7 +19,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.per_sample_sequences._type import AlignmentMap
 from q2_types.sample_data import SampleData
-from qiime2.core.type import Bool, Choices, TypeMap
+from qiime2.core.type import Bool, Choices, Str, TypeMap
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 
 import q2_assembly
@@ -117,6 +117,18 @@ plugin.methods.register_function(
     name="Collate contigs",
     description="Takes a collection of SampleData[Contigs] and collates them"
     " into a single artifact.",
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.helpers.rename_contigs,
+    inputs={"contigs": SampleData[Contigs]},
+    parameters={"uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"])},
+    outputs={"renamed_contigs": SampleData[Contigs]},
+    input_descriptions={"contigs": "The contigs to be renamed."},
+    name="Renamed contigs",
+    description="Takes SampleData[Contigs] and renames them"
+    " by changing their IDs using one of the following functions:"
+    " shortuuid, uuid3, uuid4, uuid5.",
 )
 
 plugin.methods.register_function(

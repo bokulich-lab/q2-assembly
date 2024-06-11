@@ -14,6 +14,8 @@ from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
+from q2_assembly._utils import modify_contig_ids
+
 
 def partition_contigs(
     contigs: ContigSequencesDirFmt, num_partitions: int = None
@@ -53,6 +55,31 @@ def partition_contigs(
             partitioned_contigs[i] = result
 
     return partitioned_contigs
+
+
+def rename_contigs(
+    contigs: ContigSequencesDirFmt, uuid_type: str
+) -> ContigSequencesDirFmt:
+    renamed_contigs = ContigSequencesDirFmt()
+    contigs_sample_file = [
+        (sample_id, sample_fp) for sample_id, sample_fp in contigs.sample_dict().items()
+    ]
+    # copy contents to renamed_contigs
+    for _, contigs_file in contigs_sample_file:
+        duplicate(
+            contigs_file,
+            os.path.join(renamed_contigs.path, os.path.basename(contigs_file)),
+        )
+
+    renamed_contigs_sample_file = [
+        (sample_id, sample_fp)
+        for sample_id, sample_fp in renamed_contigs.sample_dict().items()
+    ]
+    # modify ids
+    for sample, contigs_file in renamed_contigs_sample_file:
+        modify_contig_ids(renamed_contigs, sample, uuid_type)
+
+    return renamed_contigs
 
 
 def collate_contigs(contigs: ContigSequencesDirFmt) -> ContigSequencesDirFmt:
