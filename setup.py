@@ -48,6 +48,7 @@ setup(
             "data/contigs/*",
             "data/empty_contigs/*",
             "data/indices/*/*/*",
+            "data/indices/*/*",
             "data/mags/*/*",
             "data/mags-derep/*",
             "data/mags-merged/*",
