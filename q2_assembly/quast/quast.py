@@ -373,6 +373,7 @@ def evaluate_contigs(
         (visualization,) = _visualize_quast(contigs, **kwargs)
 
         # 2. after the visualization is generated we need to export the files
+        # to get the results table out
         visualization_files_path = os.path.join(tmp, "vis_files")
         visualization.export_data(visualization_files_path)
         report_path = os.path.join(

@@ -54,14 +54,14 @@ OPTIONAL_COLS_MAP = {
     "LA90": "la90",
 }
 
-RESHUFFLED_COLUMNS = [
-    "id",
-    "total_length",
-    "no_contigs_0",
-    "no_contigs",
-    "longest_contig",
-    "n50",
-    "l50",
-    "n90",
-    "l90",
-]
+# RESHUFFLED_COLUMNS = [
+#     "id",
+#     "total_length",
+#     "no_contigs_0",
+#     "no_contigs",
+#     "longest_contig",
+#     "n50",
+#     "l50",
+#     "n90",
+#     "l90",
+# ]

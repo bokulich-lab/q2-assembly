@@ -50,6 +50,15 @@ class MockContext(Mock):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.get_action = Mock()
+        self.exp_vis = MagicMock()
+        # mocking the _visualize_quast from the ctx.get_action
+        self.mock_action = MagicMock(side_effect=lambda x, **kwargs: (self.exp_vis,))
+
+    def get_action_mock_ctx(self):  # mocking the context
+        mock_ctx = MagicMock(
+            get_action=lambda action_type, action_name: self.mock_action
+        )
+        return mock_ctx
 
 
 class TestQuast(TestPluginBase):
@@ -766,18 +775,12 @@ class TestQuast(TestPluginBase):
 
         with tempfile.TemporaryDirectory() as tmp:
             test_enhance_path = os.path.join(tmp, "vis_files", "quast_data")
-            exp_vis = MagicMock()
-            # mocking the _visualize_quast from the ctx.get_action
-            mock_action = MagicMock(side_effect=lambda x, **kwargs: (exp_vis,))
-
-            # mocking the context
-            mock_ctx = MagicMock(
-                get_action=lambda action_type, action_name: mock_action
-            )
             _copy_tsv_file(enhanced_tabular_results_path, test_enhance_path)
 
             with patch("tempfile.TemporaryDirectory") as mock_temp_dir:
                 mock_temp_dir.return_value.__enter__.return_value = tmp
+                mock_ctx = MockContext()
+                mock_ctx = mock_ctx.get_action_mock_ctx()
                 tab_report, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
 
                 # here I pretend that the tab_report is the dataframe,

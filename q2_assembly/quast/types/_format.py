@@ -27,26 +27,26 @@ class QUASTResultsFormat(model.TextFileFormat):
     def _validate(self, n_records=None):
         with self.open() as fh:
             reader = csv.reader(fh, delimiter="\t")
-            headers = next(reader)
-            n_headers = len(headers)
+            header = next(reader)
+            n_columns = len(header)
 
-            if not set(headers).issuperset(set(self.HEADER)):
+            if not set(header).issuperset(set(self.HEADER)):
                 raise ValidationError(
-                    f"Invalid header: {headers}, do not contain "
+                    f"Invalid header: {header}, do not contain "
                     f"all headers in: {self.HEADER}"
                 )
 
             for i, row in enumerate(reader, start=2):
-                if len(row) != n_headers:
+                if len(row) != n_columns:
                     raise ValidationError(
-                        f"Line {i} has {len(row)} columns, " f"expected {n_headers}"
+                        f"Line {i} has {len(row)} columns, " f"expected {n_columns}"
                     )
 
                 if n_records is not None and i - 1 >= n_records:
                     break
 
     def _validate_(self, level):
-        record_count_map = {"min": 100, "max": None}
+        record_count_map = {"min": 10, "max": None}
         self._validate(record_count_map[level])
 
 

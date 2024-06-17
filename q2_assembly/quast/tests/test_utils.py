@@ -14,10 +14,8 @@ import unittest
 import pandas as pd
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.quast.quast_report.report_headers import (
-    OPTIONAL_COLS_MAP,
-    RESHUFFLED_COLUMNS,
-)
+from q2_assembly.quast.report import OPTIONAL_COLS_MAP
+from q2_assembly.quast.types import QUASTResultsFormat
 
 from ..quast import _parse_columns
 
@@ -43,7 +41,7 @@ class TestQuastUtils(TestPluginBase):
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
         refined_report = _parse_columns(transposed_report)
         refined_reports_cols = refined_report.columns.tolist()
-        true_columns = RESHUFFLED_COLUMNS + [
+        true_columns = QUASTResultsFormat.HEADER + [
             "total_length_1000",
             "no_contigs_1000",
             "reference_length",
@@ -63,7 +61,7 @@ class TestQuastUtils(TestPluginBase):
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
         refined_report = _parse_columns(transposed_report)
         refined_reports_cols = refined_report.columns.tolist()
-        true_columns = RESHUFFLED_COLUMNS + list(OPTIONAL_COLS_MAP.values())
+        true_columns = QUASTResultsFormat.HEADER + list(OPTIONAL_COLS_MAP.values())
         true_columns.remove("id")
 
         assert set(refined_reports_cols) == set(true_columns)
@@ -76,7 +74,7 @@ class TestQuastUtils(TestPluginBase):
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
         refined_report = _parse_columns(transposed_report)
         refined_reports_cols = refined_report.columns.tolist()
-        true_columns = RESHUFFLED_COLUMNS.copy()
+        true_columns = QUASTResultsFormat.HEADER.copy()
         true_columns.remove("id")
 
         assert set(refined_reports_cols) == set(true_columns)
