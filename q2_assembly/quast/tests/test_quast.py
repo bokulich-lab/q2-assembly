@@ -27,8 +27,7 @@ from q2_types.per_sample_sequences import (
 )
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
-
-from q2_assembly.quast.types import QUASTResultsDirectoryFormat
+from qiime2.sdk import Context
 
 from ..quast import (
     _create_tabular_results,
@@ -46,30 +45,27 @@ class MockTempDir(tempfile.TemporaryDirectory):
     pass
 
 
-class MockContext(Mock):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.get_action = Mock()
-        self.exp_vis = MagicMock()
-        # mocking the _visualize_quast from the ctx.get_action
-        self.mock_action = MagicMock(side_effect=lambda x, **kwargs: (self.exp_vis,))
-
-    def get_action_mock_ctx(self):  # mocking the context
-        mock_ctx = MagicMock(
-            get_action=lambda action_type, action_name: self.mock_action
-        )
-        return mock_ctx
-
-
 class TestQuast(TestPluginBase):
     package = "q2_assembly.tests"
 
     def setUp(self):
         super().setUp()
-        # self.evaluate_contigs = self.plugin.pipelines["evaluate_contigs"]
         with contextlib.ExitStack() as stack:
             self._tmp = stack.enter_context(tempfile.TemporaryDirectory())
             self.addCleanup(stack.pop_all().close)
+
+    def assert_is_dataframe(self, shape=None):
+        class Matcher:
+            def __eq__(self, other):
+                is_df = isinstance(other, pd.DataFrame)
+                if shape is not None:
+                    if not other.shape == shape:
+                        print(f"Shapes do not match: {other.shape} != {shape}")
+                    return is_df and other.shape == shape
+                else:
+                    return is_df
+
+        return Matcher()
 
     def test_process_quast_arg_simple1(self):
         obs = _process_quast_arg("not_k_list", 123)
@@ -758,42 +754,46 @@ class TestQuast(TestPluginBase):
 
     def test_evaluate_contigs_pipeline(self):
         # this is used for mocking
-        def _copy_tsv_file(src, dst_dir):
-            if not os.path.exists(dst_dir):
-                os.makedirs(dst_dir)
+        def _copy(dst_dir):
+            os.makedirs(dst_dir, exist_ok=True)
+            shutil.copy2(
+                src=os.path.join(
+                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
+                ),
+                dst=os.path.join(dst_dir, "quast_results.tsv"),
+            )
 
-            destination_path = os.path.join(dst_dir, "quast_results.tsv")
-            shutil.copy2(src, destination_path)
-
-        input_files = self.get_data_path("contigs")
-        _input = ContigSequencesDirFmt(input_files, mode="r")
-        contigs = Artifact.import_data("SampleData[Contigs]", _input)
-
-        enhanced_tabular_results_path = os.path.join(
-            self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs")
         )
 
-        with tempfile.TemporaryDirectory() as tmp:
-            test_enhance_path = os.path.join(tmp, "vis_files", "quast_data")
-            _copy_tsv_file(enhanced_tabular_results_path, test_enhance_path)
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "tempfile.TemporaryDirectory"
+        ) as mock_temp_dir:
+            mock_temp_dir.return_value.__enter__.return_value = tmp
+            export_data = MagicMock(
+                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
+            )
+            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
+            ctx = Context()
+            ctx._scope = MagicMock()
+            make_artifact = MagicMock(
+                side_effect=lambda *args: ctx.make_artifact(*args)
+            )
+            mock_ctx = MagicMock(
+                spec=Context,
+                get_action=MagicMock(return_value=action),
+                make_artifact=make_artifact,
+            )
 
-            with patch("tempfile.TemporaryDirectory") as mock_temp_dir:
-                mock_temp_dir.return_value.__enter__.return_value = tmp
-                mock_ctx = MockContext()
-                mock_ctx = mock_ctx.get_action_mock_ctx()
-                tab_report, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+            tab_report, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+            tab_report.validate()
 
-                # here I pretend that the tab_report is the dataframe,
-                # so I read it again. The problem is that
-                # ctx.make_artifact is mocked and cannot return the QUASTResults
-                # object.
-                tab_report = pd.read_csv(
-                    enhanced_tabular_results_path, sep="\t", header=0
-                )
-                tab_report_quast = Artifact.import_data("QUASTResults", tab_report)
-
-                tab_report_quast.validate()
-                self.assertIs(tab_report_quast.format, QUASTResultsDirectoryFormat)
+            make_artifact.assert_called_once_with(
+                "QUASTResults", self.assert_is_dataframe((2, 43))
+            )
+            self.assertEqual(action.call_args[0][0], contigs)
+            export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
     def test_zip_dir(self):
         # Get path to test data
