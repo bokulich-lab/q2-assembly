@@ -5,15 +5,19 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
+import filecmp
 import unittest
 
+from q2_types.feature_data_mag import MAGSequencesDirFmt
+from q2_types.per_sample_sequences import MultiMAGSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.bowtie2.utils import (
     _construct_double_list_param_value,
     _construct_function_param_value,
     _get_subdir_from_path,
+    _is_flat_dir,
+    _merge_mags,
     _process_bowtie2_arg,
     _process_bowtie2build_arg,
 )
@@ -43,7 +47,12 @@ class TestBowtie2Utils(TestPluginBase):
 
     def test_get_subdir_from_path_mag(self):
         obs = _get_subdir_from_path("/path/to/dir/sample1/mag1.fa", "mags")
-        exp = "sample1/mag1"
+        exp = "sample1"
+        self.assertEqual(obs, exp)
+
+    def test_get_subdir_from_path_mag_derep(self):
+        obs = _get_subdir_from_path("/path/to/dir/mag1.fa", "mags-derep")
+        exp = ""
         self.assertEqual(obs, exp)
 
     def test_get_subdir_from_path_unknown_type(self):
@@ -158,6 +167,47 @@ class TestBowtie2Utils(TestPluginBase):
             'but only "CLSG" are allowed.',
         ):
             _construct_function_param_value("some_param", "A,0.1,-1")
+
+    def test_merge_mags(self):
+        mags = MultiMAGSequencesDirFmt(self.get_data_path("mags"), "r")
+
+        obs_fps = _merge_mags(mags, self.temp_dir.name)
+
+        self.assertListEqual(
+            obs_fps,
+            [
+                f"{self.temp_dir.name}/sample1/merged.fasta",
+                f"{self.temp_dir.name}/sample2/merged.fasta",
+            ],
+        )
+        self.assertTrue(
+            filecmp.cmp(
+                obs_fps[0], self.get_data_path("mags-merged/sample1.fa"), shallow=False
+            )
+        )
+        self.assertTrue(
+            filecmp.cmp(
+                obs_fps[1], self.get_data_path("mags-merged/sample2.fa"), shallow=False
+            )
+        )
+
+    def test_merge_mags_derep(self):
+        mags = MAGSequencesDirFmt(self.get_data_path("mags-derep"), "r")
+
+        obs_fps = _merge_mags(mags, self.temp_dir.name)
+
+        self.assertEqual(obs_fps[0], f"{self.temp_dir.name}/merged.fasta")
+        self.assertTrue(
+            filecmp.cmp(
+                obs_fps[0], self.get_data_path("mags-derep-merged.fasta"), shallow=False
+            )
+        )
+
+    def test_is_flat_dir_false(self):
+        self.assertFalse(_is_flat_dir(self.get_data_path("indices/from_mags")))
+
+    def test_is_flat_dir_true(self):
+        self.assertTrue(_is_flat_dir(self.get_data_path("indices/from_mags_derep")))
 
 
 if __name__ == "__main__":
