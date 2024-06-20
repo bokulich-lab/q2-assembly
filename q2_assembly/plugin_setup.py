@@ -333,7 +333,7 @@ plugin.methods.register_function(
     parameter_descriptions=bowtie2_mapping_param_descriptions,
     output_descriptions={"alignment_map": "Reads-to-MAGs mapping."},
     name="Map reads to MAGs using Bowtie2.",
-    description="This method uses Bowtie2 to map provided reads to " "respective MAGs.",
+    description="This method uses Bowtie2 to map provided reads to the respective MAGs.",
     citations=[citations["Langmead2012"]],
 )
 
