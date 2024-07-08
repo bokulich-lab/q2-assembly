@@ -747,10 +747,10 @@ class TestQuast(TestPluginBase):
         mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         p2.return_value = mock_df
 
-        _ = _create_tabular_results(temp_dir.name)
+        _ = _create_tabular_results(temp_dir.name, [1000, 5000, 25000, 50000])
 
         p2.assert_called_once_with(report_path, sep="\t", header=0)
-        p1.assert_called_once_with(mock_df)
+        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
 
     def test_evaluate_contigs_pipeline(self):
         # this is used for mocking

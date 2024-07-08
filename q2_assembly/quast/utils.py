@@ -1,16 +1,19 @@
 import pandas as pd
 
-from q2_assembly.quast.report import MANDATORY_COLS_MAP, OPTIONAL_COLS_MAP
+from q2_assembly.quast.report import MANDATORY_COLS_MAP, initialize_optional_cols_map
 from q2_assembly.quast.types import QUASTResultsFormat
 
 
-def _parse_columns(report_df: pd.DataFrame) -> pd.DataFrame:
+def _parse_columns(
+    report_df: pd.DataFrame, contig_thresholds: list = None
+) -> pd.DataFrame:
     """
     This function will rename and select the needed columns of the QUAST
     results.
 
     Args:
         - report_df(pd.Dataframe): Dataframe containing the QUAST results
+        - contig_thresholds(list): list of contig thresholds. Defaults to None.
 
     Returns:
         a Pandas dataframe with the renamed columns.
@@ -18,14 +21,15 @@ def _parse_columns(report_df: pd.DataFrame) -> pd.DataFrame:
     report_df_newcols = report_df.copy()
     report_df_newcols.rename(columns=MANDATORY_COLS_MAP, inplace=True)
     optional_cols = []
+    optional_cols_map = initialize_optional_cols_map(contig_thresholds)
 
     # find the optional columns
-    optional_columns_present = set(OPTIONAL_COLS_MAP.keys()).intersection(
+    optional_columns_present = set(optional_cols_map.keys()).intersection(
         report_df_newcols.columns
     )
     for col in optional_columns_present:
-        report_df_newcols.rename(columns={col: OPTIONAL_COLS_MAP[col]}, inplace=True)
-        optional_cols.append(OPTIONAL_COLS_MAP[col])
+        report_df_newcols.rename(columns={col: optional_cols_map[col]}, inplace=True)
+        optional_cols.append(optional_cols_map[col])
 
     # make sure that in the final table we have the values we
     # specify in the dicts in a certain order

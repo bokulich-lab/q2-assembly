@@ -17,21 +17,20 @@ MANDATORY_COLS_MAP = {
     "L50": "l50",
     "L90": "l90",
 }
-OPTIONAL_COLS_MAP = {}
 
 
 def initialize_optional_cols_map(contig_thresholds: list):
     """
-    This function will initialize the OPTIONAL_COLS_MAP dictionary
+    This function will initialize the optional_cols_map dictionary
     with the contig thresholds provided by the user.
 
     Args:
         - contig_thresholds(list): list of contig thresholds
 
     Returns:
-        OPTIONAL_COLS_MAP(dict): dictionary with the optional columns
+        optional_cols_map(dict): dictionary with the optional columns
     """
-    OPTIONAL_COLS_MAP = {
+    optional_cols_map = {
         "Total length (>= 0 bp)": "total_length_0",
         "Reference length": "reference_length",
         "auN": "aun",
@@ -58,12 +57,12 @@ def initialize_optional_cols_map(contig_thresholds: list):
         "LA90": "la90",
     }
     for threshold in contig_thresholds:
-        OPTIONAL_COLS_MAP[
+        optional_cols_map[
             f"Total length (>= {threshold} bp)"
         ] = f"total_length_{threshold}"
         if threshold != 0:  # this is included in mandatory cols
-            OPTIONAL_COLS_MAP[
+            optional_cols_map[
                 f"# contigs (>= {threshold} bp)"
             ] = f"no_contigs_{threshold}"
 
-    return OPTIONAL_COLS_MAP
+    return optional_cols_map

@@ -283,7 +283,7 @@ def _visualize_quast(
             common_args,
         )
 
-        tabular_results = _create_tabular_results(results_dir)
+        tabular_results = _create_tabular_results(results_dir, contig_thresholds)
         tabular_results.to_csv(os.path.join(results_dir, "quast_results.tsv"), sep="\t")
 
         # fix/remove some URLs
@@ -327,14 +327,13 @@ def _visualize_quast(
         q2templates.render(templates, output_dir, context=context)
 
 
-def _create_tabular_results(results_dir: str) -> pd.DataFrame:
+def _create_tabular_results(results_dir: str, contig_thresholds: list) -> pd.DataFrame:
     """
     This function will create the tabular results after QUAST has run.
 
     Args:
         - results_dir(str): The directory were the results of QUAST are saved.
-        - all_stats(bool): The flag indicating which stats should be included in the
-        tabular report.
+        - contig_thresholds(list): list of contig thresholds
 
     Returns:
         a Pandas dataframe with the tabular data.
@@ -343,7 +342,7 @@ def _create_tabular_results(results_dir: str) -> pd.DataFrame:
     filepath = os.path.join(results_dir, "combined_reference", filename)
 
     transposed_report = pd.read_csv(filepath, sep="\t", header=0)
-    transposed_report_parsed = _parse_columns(transposed_report)
+    transposed_report_parsed = _parse_columns(transposed_report, contig_thresholds)
     return transposed_report_parsed
 
 

@@ -14,7 +14,7 @@ import unittest
 import pandas as pd
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.quast.report import OPTIONAL_COLS_MAP
+from q2_assembly.quast.report import initialize_optional_cols_map
 from q2_assembly.quast.types import QUASTResultsFormat
 
 from ..quast import _parse_columns
@@ -32,6 +32,8 @@ class TestQuastUtils(TestPluginBase):
         with contextlib.ExitStack() as stack:
             self._tmp = stack.enter_context(tempfile.TemporaryDirectory())
             self.addCleanup(stack.pop_all().close)
+        self.all_cols_contig_thresholds = [1000, 5000, 10000, 25000, 50000]
+        self.some_cols_contig_thresholds = [1000, 5000]
 
     def test_parse_columns_some_cols(self):
         quast_results_path = self.get_data_path("quast-results")
@@ -39,11 +41,14 @@ class TestQuastUtils(TestPluginBase):
             quast_results_path, "transposed_report_some_cols.tsv"
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
-        refined_report = _parse_columns(transposed_report)
+        refined_report = _parse_columns(
+            transposed_report, self.some_cols_contig_thresholds
+        )
         refined_reports_cols = refined_report.columns.tolist()
         true_columns = QUASTResultsFormat.HEADER + [
             "total_length_1000",
             "no_contigs_1000",
+            "no_contigs_5000",
             "reference_length",
             "total_length_5000",
             "total_length_0",
@@ -59,9 +64,14 @@ class TestQuastUtils(TestPluginBase):
             quast_results_path, "transposed_report_all_cols.tsv"
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
-        refined_report = _parse_columns(transposed_report)
+        refined_report = _parse_columns(
+            transposed_report, self.all_cols_contig_thresholds
+        )
         refined_reports_cols = refined_report.columns.tolist()
-        true_columns = QUASTResultsFormat.HEADER + list(OPTIONAL_COLS_MAP.values())
+        optional_cols_map = initialize_optional_cols_map(
+            self.all_cols_contig_thresholds
+        )
+        true_columns = QUASTResultsFormat.HEADER + list(optional_cols_map.values())
         true_columns.remove("id")
 
         assert set(refined_reports_cols) == set(true_columns)
@@ -72,7 +82,9 @@ class TestQuastUtils(TestPluginBase):
             quast_results_path, "transposed_report_mandatory_cols.tsv"
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
-        refined_report = _parse_columns(transposed_report)
+        refined_report = _parse_columns(
+            transposed_report, self.all_cols_contig_thresholds
+        )
         refined_reports_cols = refined_report.columns.tolist()
         true_columns = QUASTResultsFormat.HEADER.copy()
         true_columns.remove("id")
@@ -85,7 +97,9 @@ class TestQuastUtils(TestPluginBase):
             quast_results_path, "transposed_report_all_cols.tsv"
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
-        refined_report = _parse_columns(transposed_report)
+        refined_report = _parse_columns(
+            transposed_report, self.all_cols_contig_thresholds
+        )
         id_col = refined_report.index
 
         assert not any(
