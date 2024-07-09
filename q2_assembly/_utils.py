@@ -175,24 +175,6 @@ def concatenate_files(input_files, output_file):
     subprocess.run(cmd, stdout=open(output_file, "w"), check=True)
 
 
-def _generate_unique_uuid(uuid_func, namespace, contig_id, uuid_type):
-    """Generates a unique UUID for a contig.
-    Args:
-        - uuid_func: UUID generation function.
-        - namespace: UUID namespace.
-        - contig_id: Contig ID, what will be changed.
-        - uuid_type: the type of uuid choose by the user
-
-    Returns: the new generated contig_id
-    """
-    if uuid_type in ["uuid4", "shortuuid"]:
-        new_id = str(uuid_func())
-    else:
-        new_id = str(uuid_func(namespace, contig_id))
-
-    return new_id
-
-
 def modify_contig_ids(contig_file: str, sample: str, uuid_type: str):
     """Modifies the contig IDs to include the sample name and UUID.
 

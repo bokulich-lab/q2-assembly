@@ -17,6 +17,7 @@ from distutils.dir_util import copy_tree
 
 import skbio
 from bs4 import BeautifulSoup as BS
+from parameterized import parameterized
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly._utils import (
@@ -169,7 +170,8 @@ class TestUtils(TestPluginBase):
         self.assertEqual(hash_original, hash_test_file)
         os.remove(output_file)
 
-    def test_modify_contig_ids(self):
+    @parameterized.expand(("shortuuid", "uuid3", "uuid4", "uuid5"))
+    def test_modify_contig_ids(self, uuid_type):
         contigs_path = self.get_data_path("contigs")
         new_ids_sample1 = []
         new_ids_sample2 = []
@@ -180,7 +182,7 @@ class TestUtils(TestPluginBase):
                 )
                 new_sample_path = os.path.join(tmp, f"{sample}_contigs.fa")
                 shutil.copy(original_sample_path, tmp)
-                modify_contig_ids(new_sample_path, sample, "uuid4")
+                modify_contig_ids(new_sample_path, sample, uuid_type)
 
                 for contig in skbio.io.read(new_sample_path, format="fasta"):
                     if sample == "sample1":
