@@ -13,12 +13,18 @@ from subprocess import CalledProcessError
 from unittest.mock import ANY, call, patch
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 from qiime2.sdk.parallel_config import ParallelConfig
 
-from q2_assembly.bowtie2.indexing import _index_contigs, _index_seqs, index_mags
+from q2_assembly.bowtie2.indexing import (
+    _index_contigs,
+    _index_seqs,
+    index_derep_mags,
+    index_mags,
+)
 
 
 class TestBowtie2Indexing(TestPluginBase):
@@ -54,7 +60,9 @@ class TestBowtie2Indexing(TestPluginBase):
             input_type="contigs",
         )
 
-        p1.assert_has_calls([call("/there/samp1"), call("/there/samp2")])
+        p1.assert_has_calls(
+            [call("/there/samp1", exist_ok=True), call("/there/samp2", exist_ok=True)]
+        )
         p2.assert_has_calls(
             [
                 call(
@@ -107,13 +115,18 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("os.makedirs")
     def test_index_seqs_mags(self, p1, p2, p3):
         _index_seqs(
-            fasta_fps=["/here/smp1/mag1.fa", "/here/smp1/mag2.fa"],
+            fasta_fps=["/here/smp1/merged.fasta", "/here/smp2/merged.fasta"],
             result_fp="/there/",
             common_args=self.test_params_list,
             input_type="mags",
         )
 
-        p1.assert_has_calls([call("/there/smp1/mag1"), call("/there/smp1/mag2")])
+        p1.assert_has_calls(
+            [
+                call("/there/smp1", exist_ok=True),
+                call("/there/smp2", exist_ok=True),
+            ]
+        )
         p2.assert_has_calls(
             [
                 call(
@@ -132,8 +145,8 @@ class TestBowtie2Indexing(TestPluginBase):
                         "10",
                         "--threads",
                         "1",
-                        "/here/smp1/mag1.fa",
-                        "/there/smp1/mag1/index",
+                        "/here/smp1/merged.fasta",
+                        "/there/smp1/index",
                     ],
                     check=True,
                 ),
@@ -153,12 +166,46 @@ class TestBowtie2Indexing(TestPluginBase):
                         "10",
                         "--threads",
                         "1",
-                        "/here/smp1/mag2.fa",
-                        "/there/smp1/mag2/index",
+                        "/here/smp2/merged.fasta",
+                        "/there/smp2/index",
                     ],
                     check=True,
                 ),
             ]
+        )
+
+    @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
+    @patch("subprocess.run")
+    @patch("os.makedirs")
+    def test_index_seqs_mags_derep(self, p1, p2, p3):
+        _index_seqs(
+            fasta_fps=["/here/merged.fasta"],
+            result_fp="/there/",
+            common_args=self.test_params_list,
+            input_type="mags-derep",
+        )
+
+        p1.assert_called_once_with("/there/", exist_ok=True)
+        p2.assert_called_once_with(
+            [
+                "bowtie2-build",
+                "--large-index",
+                "--bmax",
+                "11",
+                "--bmaxdivn",
+                "4",
+                "--dcv",
+                "1024",
+                "--offrate",
+                "5",
+                "--ftabchars",
+                "10",
+                "--threads",
+                "1",
+                "/here/merged.fasta",
+                "/there/index",
+            ],
+            check=True,
         )
 
     @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
@@ -251,12 +298,34 @@ class TestBowtie2Indexing(TestPluginBase):
             threads=1,
         )
 
-        exp_mags = [
-            f"{str(input_mags)}/sample{x+1}/mag{y+1}.fa"
-            for x in range(2)
-            for y in range(2)
-        ]
-        p.assert_called_with(exp_mags, ANY, self.test_params_list, "mags")
+        p.assert_called_with(ANY, ANY, self.test_params_list, "mags")
+        self.assertListEqual(
+            ["/".join(x.split("/")[-2:]) for x in p.call_args.args[0]],
+            ["sample1/merged.fasta", "sample2/merged.fasta"],
+        )
+
+    @patch(
+        "q2_assembly.bowtie2.indexing._merge_mags",
+        return_value=["/path/to/merged.fasta"],
+    )
+    @patch("q2_assembly.bowtie2.indexing._index_seqs")
+    def test_index_mags_derep(self, p1, p2):
+        input_mags = MAGSequencesDirFmt(self.get_data_path("mags-derep"), "r")
+        index_derep_mags(
+            input_mags,
+            large_index=True,
+            bmax=11,
+            bmaxdivn=4,
+            dcv=1024,
+            offrate=5,
+            ftabchars=10,
+            threads=1,
+        )
+
+        p1.assert_called_once_with(
+            ["/path/to/merged.fasta"], ANY, self.test_params_list, "mags-derep"
+        )
+        p2.assert_called_once_with(input_mags, ANY)
 
     def test_empty_fasta_input(self):
         with self.assertRaisesRegex(
