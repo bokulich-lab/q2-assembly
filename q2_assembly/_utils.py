@@ -8,13 +8,15 @@
 import os
 import subprocess
 import tempfile
-import uuid
 from typing import List
+from uuid import NAMESPACE_OID, uuid3, uuid4, uuid5
 
 import pkg_resources
 import shortuuid
 from bs4 import BeautifulSoup as BS
 from skbio import io
+
+flake8_bybass = [uuid3, uuid5]
 
 EXTERNAL_CMD_WARNING = (
     "Running external command line application(s). "
@@ -173,96 +175,55 @@ def concatenate_files(input_files, output_file):
     subprocess.run(cmd, stdout=open(output_file, "w"), check=True)
 
 
-def generate_shortuuid():
-    """
-    Generate a shortuuid string.
-
-    Returns: a shortuuid strings.
-    """
-    return shortuuid.uuid()
-
-
-def generate_uuid3(namespace, name):
-    """
-    Generate a UUID3 string.
-    Args:
-        - namespace: UUID namespace.
-        - name: Name to be used in the UUID generation.
-    Returns: UUID3 string.
-    """
-    return uuid.uuid3(namespace, name)
-
-
-def generate_uuid4():
-    """
-    Generate a UUID4 string.
-
-    Returns: UUID4 string.
-    """
-    return uuid.uuid4()
-
-
-def generate_uuid5(namespace, name):
-    """
-    Generate a UUID5 string.
-    Args:
-        - namespace: UUID namespace.
-        - name: Name to be used in the UUID generation.
-    Returns: UUID5 string.
-    """
-    return uuid.uuid5(namespace, name)
-
-
-def _generate_unique_uuid(uuid_func, namespace, contig_id, new_ids, uuid_type):
+def _generate_unique_uuid(uuid_func, namespace, contig_id, uuid_type):
     """Generates a unique UUID for a contig.
     Args:
         - uuid_func: UUID generation function.
         - namespace: UUID namespace.
         - contig_id: Contig ID, what will be changed.
-        - new_ids: Set of already generated UUIDs.
         - uuid_type: the type of uuid choose by the user
 
     Returns: the new generated contig_id
     """
-    while True:
-        if uuid_type in ["uuid4", "shortuuid"]:
-            new_id = str(uuid_func())
-        else:
-            new_id = str(uuid_func(namespace, contig_id))
+    if uuid_type in ["uuid4", "shortuuid"]:
+        new_id = str(uuid_func())
+    else:
+        new_id = str(uuid_func(namespace, contig_id))
 
-        if new_id not in new_ids:
-            new_ids.add(new_id)
-            return new_id
+    return new_id
 
 
-def modify_contig_ids(out, sample, uuid_type: str):
+def modify_contig_ids(contig_file: str, sample: str, uuid_type: str):
     """Modifies the contig IDs to include the sample name and UUID.
 
     Args:
-        out: output format
-        sample: Name of the sample to be processed.
+        contig_file: Path to the contig file.
+        sample: Sample name to be included in the contig ID.
         uuid_type: UUID type to be used in the contig ID.
     """
-    uuid_funcs = {
-        "uuid3": generate_uuid3,
-        "uuid4": generate_uuid4,
-        "uuid5": generate_uuid5,
-        "shortuuid": generate_shortuuid,
-    }
-    uuid_func = uuid_funcs.get(uuid_type)
 
-    path_to_contigs = os.path.join(str(out), f"{sample}_contigs.fa")
+    if uuid_type == "shortuuid":
+        uuid_func = shortuuid.uuid
+    else:
+        # defaults to uuid4
+        uuid_func = globals().get(uuid_type, uuid4)
+
     with tempfile.TemporaryDirectory() as tmp:
         path_to_contigs_mod = os.path.join(tmp, f"{sample}_modified_contigs.fa")
-        namespace = uuid.NAMESPACE_OID
-        new_ids = set()
+
         with io.open(path_to_contigs_mod, "w") as modified_contigs:
-            for contig in io.read(path_to_contigs, format="fasta"):
-                contig.metadata["id"] = _generate_unique_uuid(
-                    uuid_func, namespace, contig.metadata["id"], new_ids, uuid_type
-                )
+
+            for contig in io.read(contig_file, format="fasta"):
+
+                if uuid_type in ["uuid4", "shortuuid"]:
+                    new_id = str(uuid_func())
+                else:
+                    new_id = str(uuid_func(NAMESPACE_OID, contig.metadata["id"]))
+
+                contig.metadata["id"] = new_id
+
                 io.write(contig, format="fasta", into=modified_contigs)
 
         all_contigs = io.read(path_to_contigs_mod, format="fasta")
-        with io.open(path_to_contigs, "w") as contigs_file:
+        with io.open(contig_file, "w") as contigs_file:
             io.write(all_contigs, format="fasta", into=contigs_file)

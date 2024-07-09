@@ -63,7 +63,7 @@ megahit_param_descriptions = {
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
     "min_contig_len": "Minimum length of contigs to output.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
-    "uuid_type": "Type of UUID to generate for Contig ID.",
+    "uuid_type": "UUID type to be used for contig ID generation.",
 }
 # fmt: on
 spades_params = {
@@ -111,7 +111,7 @@ spades_param_descriptions = {
     "phred_offset": "PHRED quality offset in the input reads (33 or 64).",
     "debug": "Runs SPAdes in debug mode.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
-    "uuid_type": "Type of UUID to generate for Contig ID.",
+    "uuid_type": "UUID type to be used for contig ID generation.",
 }
 # fmt: on
 quast_params = {
