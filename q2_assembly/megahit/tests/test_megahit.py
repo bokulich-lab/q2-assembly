@@ -296,8 +296,9 @@ class TestMegahit(TestPluginBase):
         p1.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
+    @patch("q2_assembly.megahit.modify_contig_ids")
     @patch("q2_assembly.megahit._process_sample")
-    def test_assemble_megahit_paired_coassemble(self, p):
+    def test_assemble_megahit_paired_coassemble(self, p1, p2):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
@@ -311,7 +312,8 @@ class TestMegahit(TestPluginBase):
             sample_ids=(1, 2), kind="paired", coassemble=True, uuid_type="shortuuid"
         )
 
-        p.assert_has_calls(exp_calls, any_order=False)
+        p1.assert_has_calls(exp_calls, any_order=False)
+        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.modify_contig_ids")
@@ -331,7 +333,7 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_not_called()
+        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.modify_contig_ids")
@@ -351,7 +353,7 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_not_called()
+        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.modify_contig_ids")
@@ -371,7 +373,7 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_not_called()
+        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.modify_contig_ids")

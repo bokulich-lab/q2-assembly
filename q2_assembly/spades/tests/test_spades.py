@@ -250,7 +250,7 @@ class TestSpades(TestPluginBase):
         exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p4.assert_not_called()
+        p4.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.spades.modify_contig_ids")
@@ -279,7 +279,7 @@ class TestSpades(TestPluginBase):
 
         exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
         p1.assert_has_calls(exp_calls, any_order=False)
-        p4.assert_not_called()
+        p4.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.spades._process_sample")

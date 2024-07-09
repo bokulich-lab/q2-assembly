@@ -149,6 +149,8 @@ def _assemble_spades(
                 concatenate_files(revs, rev)
 
             _process_sample("all_contigs", fwd, rev, common_args, result)
+            contig_file = os.path.join(str(result), "all_contigs.fa")
+            modify_contig_ids(contig_file, "all_contigs", uuid_type)
 
     else:
         for samp in list(manifest.index):
