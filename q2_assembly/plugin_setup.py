@@ -6,6 +6,8 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
+import importlib
+
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
@@ -18,7 +20,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.per_sample_sequences._type import AlignmentMap
 from q2_types.sample_data import SampleData
-from qiime2.core.type import Bool, Choices, Properties, TypeMap
+from qiime2.core.type import Bool, Choices, Properties, TypeMap, Visualization
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 
 import q2_assembly
@@ -38,6 +40,11 @@ from q2_assembly._action_params import (
     quast_params,
     spades_param_descriptions,
     spades_params,
+)
+from q2_assembly.quast.types import (
+    QUASTResults,
+    QUASTResultsDirectoryFormat,
+    QUASTResultsFormat,
 )
 
 citations = Citations.load("citations.bib", package="q2_assembly")
@@ -133,7 +140,7 @@ plugin.methods.register_function(
 )
 
 plugin.visualizers.register_function(
-    function=q2_assembly.quast.evaluate_contigs,
+    function=q2_assembly.quast._visualize_quast,
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
@@ -149,6 +156,34 @@ plugin.visualizers.register_function(
         "directly.",
     },
     parameter_descriptions=quast_param_descriptions,
+    name="Visualize the quality of the assembled contigs after using metaQUAST.",
+    description="This method visualizes the results of metaQUAST after "
+    "assessing the quality of assembled metagenomes.",
+    citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
+)
+
+plugin.pipelines.register_function(
+    function=q2_assembly.quast.evaluate_contigs,
+    inputs={
+        "contigs": SampleData[Contigs],
+        "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
+        "references": List[FeatureData[Sequence]],
+        "mapped_reads": SampleData[AlignmentMap],
+    },
+    parameters=quast_params,
+    outputs={"results_table": QUASTResults, "visualization": Visualization},
+    input_descriptions={
+        "contigs": "Assembled contigs to be analyzed.",
+        "reads": "Original single- or paired-end reads.",
+        "references": "Reference genomes to align the assembled contigs against.",
+        "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
+        "directly.",
+    },
+    parameter_descriptions=quast_param_descriptions,
+    output_descriptions={
+        "results_table": "QUAST result table.",
+        "visualization": "Visualization of the QUAST results.",
+    },
     name="Evaluate quality of the assembled contigs using metaQUAST.",
     description="This method uses metaQUAST to assess the quality of "
     "assembled metagenomes.",
@@ -356,3 +391,10 @@ plugin.methods.register_function(
     name="Map reads to contigs helper.",
     description="Not to be called directly. Used by map_reads.",
 )
+
+plugin.register_semantic_types(QUASTResults)
+plugin.register_semantic_type_to_format(
+    QUASTResults, artifact_format=QUASTResultsDirectoryFormat
+)
+plugin.register_formats(QUASTResultsFormat, QUASTResultsDirectoryFormat)
+importlib.import_module("q2_assembly.quast.types._transformer")

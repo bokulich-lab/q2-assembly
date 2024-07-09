@@ -1,0 +1,3 @@
+id	total_length	no_contigs_0	no_contigs	longest_contig	n50	l50	n90	l90	reference_length	total_length_5000	total_length_0	no_contigs_1000	total_length_1000
+sample1	448682	3373	674	2388	641	272	520	586	3271694	0	1444542	37	45299
+sample2	168778	2464	274	1790	592	117	511	241	3271694	0	967332	4	5474

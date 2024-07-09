@@ -9,13 +9,15 @@
 import contextlib
 import json
 import os
+import shutil
 import tempfile
 import unittest
 from filecmp import dircmp
 from subprocess import CalledProcessError
-from unittest.mock import ANY, call, mock_open, patch
+from unittest.mock import ANY, MagicMock, Mock, call, mock_open, patch
 from zipfile import ZipFile
 
+import pandas as pd
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
@@ -23,12 +25,16 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk import Context
 
 from ..quast import (
+    _create_tabular_results,
     _evaluate_contigs,
     _process_quast_arg,
     _split_reference,
+    _visualize_quast,
     _zip_additional_reports,
     _zip_dir,
     evaluate_contigs,
@@ -47,6 +53,19 @@ class TestQuast(TestPluginBase):
         with contextlib.ExitStack() as stack:
             self._tmp = stack.enter_context(tempfile.TemporaryDirectory())
             self.addCleanup(stack.pop_all().close)
+
+    def assert_is_dataframe(self, shape=None):
+        class Matcher:
+            def __eq__(self, other):
+                is_df = isinstance(other, pd.DataFrame)
+                if shape is not None:
+                    if not other.shape == shape:
+                        print(f"Shapes do not match: {other.shape} != {shape}")
+                    return is_df and other.shape == shape
+                else:
+                    return is_df
+
+        return Matcher()
 
     def test_process_quast_arg_simple1(self):
         obs = _process_quast_arg("not_k_list", 123)
@@ -434,18 +453,22 @@ class TestQuast(TestPluginBase):
             ]
         )
 
+    @patch("q2_assembly.quast._create_tabular_results")
     @patch("platform.system", return_value="Linux")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
-    def test_evaluate_contigs_action_no_reads(self, p1, p2, p3, p4, p5):
+    def test_visualize_quast_action_no_reads(self, p1, p2, p3, p4, p5, p6):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
         p1.return_value = test_temp_dir
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        p6.return_value = pd.DataFrame({"col1": [1, 2, 3], "col2": [4, 5, 6]})
+        mock_to_csv = Mock()
+        p6.return_value.to_csv = mock_to_csv
 
-        evaluate_contigs(
+        _visualize_quast(
             output_dir=self._tmp,
             contigs=contigs,
             reads=None,
@@ -492,11 +515,12 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
+    @patch("q2_assembly.quast._create_tabular_results")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
-    def test_evaluate_contigs_action_single_end(self, p1, p2, p3, p4):
+    def test_visualize_quast_action_single_end(self, p1, p2, p3, p4, p5):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
         os.mkdir(os.path.join(test_temp_dir.name, "results", "krona_charts"))
@@ -505,8 +529,11 @@ class TestQuast(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(
             self.get_data_path("reads/single-end"), "r"
         )
+        p5.return_value = pd.DataFrame({"col1": [1, 2, 3], "col2": [4, 5, 6]})
+        mock_to_csv = Mock()
+        p5.return_value.to_csv = mock_to_csv
 
-        evaluate_contigs(
+        _visualize_quast(
             output_dir=self._tmp,
             contigs=contigs,
             reads=reads,
@@ -564,11 +591,12 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
+    @patch("q2_assembly.quast._create_tabular_results")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
-    def test_evaluate_contigs_action_paired_end(self, p1, p2, p3, p4):
+    def test_visualize_quast_action_paired_end(self, p1, p2, p3, p4, p5):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
         p1.return_value = test_temp_dir
@@ -576,8 +604,11 @@ class TestQuast(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(
             self.get_data_path("reads/paired-end"), "r"
         )
+        p5.return_value = pd.DataFrame({"col1": [1, 2, 3], "col2": [4, 5, 6]})
+        mock_to_csv = Mock()
+        p5.return_value.to_csv = mock_to_csv
 
-        evaluate_contigs(
+        _visualize_quast(
             output_dir=self._tmp,
             contigs=contigs,
             reads=reads,
@@ -634,11 +665,12 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
+    @patch("q2_assembly.quast._create_tabular_results")
     @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
-    def test_evaluate_contigs_action_paired_end_no_icarus(self, p1, p2, p3, p4):
+    def test_evaluate_contigs_action_paired_end_no_icarus(self, p1, p2, p3, p4, p5):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
         p1.return_value = test_temp_dir
@@ -647,7 +679,7 @@ class TestQuast(TestPluginBase):
             self.get_data_path("reads/paired-end"), "r"
         )
 
-        evaluate_contigs(
+        _visualize_quast(
             output_dir=self._tmp,
             contigs=contigs,
             reads=reads,
@@ -704,6 +736,64 @@ class TestQuast(TestPluginBase):
             "samples": json.dumps(["sample1", "sample2"]),
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
+
+    @patch("pandas.read_csv")
+    @patch("q2_assembly.quast._parse_columns")
+    def test_create_tabular_results(self, p1, p2):
+        temp_dir = MockTempDir()
+        report_path = os.path.join(
+            temp_dir.name, "combined_reference", "transposed_report.tsv"
+        )
+        mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        p2.return_value = mock_df
+
+        _ = _create_tabular_results(temp_dir.name, [1000, 5000, 25000, 50000])
+
+        p2.assert_called_once_with(report_path, sep="\t", header=0)
+        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
+
+    def test_evaluate_contigs_pipeline(self):
+        # this is used for mocking
+        def _copy(dst_dir):
+            os.makedirs(dst_dir, exist_ok=True)
+            shutil.copy2(
+                src=os.path.join(
+                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
+                ),
+                dst=os.path.join(dst_dir, "quast_results.tsv"),
+            )
+
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs")
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "tempfile.TemporaryDirectory"
+        ) as mock_temp_dir:
+            mock_temp_dir.return_value.__enter__.return_value = tmp
+            export_data = MagicMock(
+                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
+            )
+            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
+            ctx = Context()
+            ctx._scope = MagicMock()
+            make_artifact = MagicMock(
+                side_effect=lambda *args: ctx.make_artifact(*args)
+            )
+            mock_ctx = MagicMock(
+                spec=Context,
+                get_action=MagicMock(return_value=action),
+                make_artifact=make_artifact,
+            )
+
+            tab_report, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+            tab_report.validate()
+
+            make_artifact.assert_called_once_with(
+                "QUASTResults", self.assert_is_dataframe((2, 43))
+            )
+            self.assertEqual(action.call_args[0][0], contigs)
+            export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
     def test_zip_dir(self):
         # Get path to test data
