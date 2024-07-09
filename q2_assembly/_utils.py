@@ -191,21 +191,18 @@ def modify_contig_ids(contig_file: str, sample: str, uuid_type: str):
         uuid_func = globals().get(uuid_type, uuid4)
 
     with tempfile.TemporaryDirectory() as tmp:
-        path_to_contigs_mod = os.path.join(tmp, f"{sample}_modified_contigs.fa")
+        contigs_mod_fp = os.path.join(tmp, f"{sample}_modified_contigs.fa")
 
-        with io.open(path_to_contigs_mod, "w") as modified_contigs:
-
+        with io.open(contigs_mod_fp, "w") as modified_contigs:
             for contig in io.read(contig_file, format="fasta"):
-
                 if uuid_type in ["uuid4", "shortuuid"]:
                     new_id = str(uuid_func())
                 else:
                     new_id = str(uuid_func(NAMESPACE_OID, contig.metadata["id"]))
 
                 contig.metadata["id"] = new_id
-
                 io.write(contig, format="fasta", into=modified_contigs)
 
-        all_contigs = io.read(path_to_contigs_mod, format="fasta")
+        all_contigs = io.read(contigs_mod_fp, format="fasta")
         with io.open(contig_file, "w") as contigs_file:
             io.write(all_contigs, format="fasta", into=contigs_file)
