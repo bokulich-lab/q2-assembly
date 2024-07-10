@@ -734,9 +734,7 @@ class TestQuast(TestPluginBase):
     @patch("q2_assembly.quast._parse_columns")
     def test_create_tabular_results(self, p1, p2):
         temp_dir = MockTempDir()
-        report_path = os.path.join(
-            temp_dir.name, "combined_reference", "transposed_report.tsv"
-        )
+        report_path = os.path.join(temp_dir.name, "transposed_report.tsv")
         mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         p2.return_value = mock_df
 

@@ -334,10 +334,13 @@ def _create_tabular_results(results_dir: str, contig_thresholds: list) -> pd.Dat
     Returns:
         a Pandas dataframe with the tabular data.
     """
-    filename = "transposed_report.tsv"
-    filepath = os.path.join(results_dir, "combined_reference", filename)
+    subdir = os.path.join(results_dir, "combined_reference")
+    if os.path.isdir(subdir):
+        report_fp = os.path.join(subdir, "transposed_report.tsv")
+    else:
+        report_fp = os.path.join(results_dir, "transposed_report.tsv")
 
-    transposed_report = pd.read_csv(filepath, sep="\t", header=0)
+    transposed_report = pd.read_csv(report_fp, sep="\t", header=0)
     transposed_report_parsed = _parse_columns(transposed_report, contig_thresholds)
     return transposed_report_parsed
 
