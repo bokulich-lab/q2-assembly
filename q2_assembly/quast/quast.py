@@ -124,12 +124,8 @@ def _evaluate_contigs(
         samples.append(_get_sample_from_path(fp))
 
     if mapped_reads:
-        dir_path = str(mapped_reads)
-        list_of_files = os.listdir(dir_path)
-        list_of_maps_paths = ",".join(
-            [os.path.join(dir_path, file) for file in list_of_files]
-        )
-        cmd.extend(["--bam", list_of_maps_paths])
+        bam_fps = sorted(glob.glob(os.path.join(str(mapped_reads), "*_alignment.bam")))
+        cmd.extend(["--bam", ",".join(bam_fps)])
     elif reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
         # TODO: this is a strange statement which most likely
