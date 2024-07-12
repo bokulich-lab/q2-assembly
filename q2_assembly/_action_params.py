@@ -31,6 +31,7 @@ megahit_params = {
     "num_cpu_threads": Int % Range(1, None),
     "no_hw_accel": Bool,
     "min_contig_len": Int,
+    "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
 }
 # fmt: off
 megahit_param_descriptions = {
@@ -62,7 +63,8 @@ megahit_param_descriptions = {
     "num_cpu_threads": "Number of CPU threads.",
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
     "min_contig_len": "Minimum length of contigs to output.",
-    "coassemble": "Co-assemble reads into contigs from all samples."
+    "coassemble": "Co-assemble reads into contigs from all samples.",
+    "uuid_type": "UUID type to be used for contig ID generation.",
 }
 # fmt: on
 spades_params = {
@@ -84,6 +86,7 @@ spades_params = {
     | Str % Choices(["auto", "off"]),
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
     "debug": Bool,
+    "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
 }
 # fmt: off
 spades_param_descriptions = {
@@ -109,6 +112,7 @@ spades_param_descriptions = {
     "phred_offset": "PHRED quality offset in the input reads (33 or 64).",
     "debug": "Runs SPAdes in debug mode.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
+    "uuid_type": "UUID type to be used for contig ID generation.",
 }
 
 # fmt: on
