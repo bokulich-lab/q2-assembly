@@ -252,8 +252,9 @@ def assemble_megahit_helper(
         rev = ",".join(manifest["reverse"]) if paired else None
 
         _process_sample("all_contigs", fwd, rev, common_args, result)
-        contig_file = os.path.join(str(result), "all_contigs.fa")
-        modify_contig_ids(contig_file, "all_contigs", uuid_type)
+        modify_contig_ids(
+            os.path.join(str(result), "all_contigs.fa"), "all_contigs", uuid_type
+        )
     else:
         for samp in list(manifest.index):
             fwd = manifest.loc[samp, "forward"]
