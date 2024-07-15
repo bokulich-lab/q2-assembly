@@ -77,7 +77,7 @@ def rename_contigs(
     ]
     # modify ids
     for sample, contigs_file in renamed_contigs_sample_file:
-        modify_contig_ids(renamed_contigs, sample, uuid_type)
+        modify_contig_ids(contigs_file, sample, uuid_type)
 
     return renamed_contigs
 
