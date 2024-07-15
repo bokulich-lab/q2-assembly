@@ -211,10 +211,6 @@ class TestQuast(TestPluginBase):
             mapped_reads=alignment_map,
             common_args=["-m", "10", "-t", "1"],
         )
-        list_of_maps = os.listdir(str(alignment_map))
-        list_of_maps_paths = ",".join(
-            [os.path.join(str(alignment_map), file) for file in list_of_maps]
-        )
         exp_command = [
             "metaquast.py",
             "-o",
@@ -226,7 +222,8 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "--bam",
-            list_of_maps_paths,
+            f"{os.path.join(str(alignment_map), 'sample1_alignment.bam')},"
+            f"{os.path.join(str(alignment_map), 'sample2_alignment.bam')}",
         ]
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p.assert_called_once_with(exp_command, check=True)
@@ -249,11 +246,6 @@ class TestQuast(TestPluginBase):
             common_args=["-m", "10", "-t", "1"],
         )
 
-        list_of_maps = os.listdir(str(alignment_map))
-        list_of_maps_paths = ",".join(
-            [os.path.join(str(alignment_map), file) for file in list_of_maps]
-        )
-
         exp_command = [
             "metaquast.py",
             "-o",
@@ -265,7 +257,8 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "--bam",
-            list_of_maps_paths,
+            f"{os.path.join(str(alignment_map), 'sample1_alignment.bam')},"
+            f"{os.path.join(str(alignment_map), 'sample2_alignment.bam')}",
         ]
 
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
@@ -741,9 +734,7 @@ class TestQuast(TestPluginBase):
     @patch("q2_assembly.quast._parse_columns")
     def test_create_tabular_results(self, p1, p2):
         temp_dir = MockTempDir()
-        report_path = os.path.join(
-            temp_dir.name, "combined_reference", "transposed_report.tsv"
-        )
+        report_path = os.path.join(temp_dir.name, "transposed_report.tsv")
         mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         p2.return_value = mock_df
 
