@@ -1,0 +1,3 @@
+Assembly	# contigs (>= 0 bp)	# contigs	Largest contig	Total length	N50	N90	L50	L90
+sample1_contigs	3373	674	2388	448682	641	520	272	586
+sample2_contigs	2464	274	1790	168778	592	511	117	241

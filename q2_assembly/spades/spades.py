@@ -149,6 +149,9 @@ def _assemble_spades(
                 concatenate_files(revs, rev)
 
             _process_sample("all_contigs", fwd, rev, common_args, result)
+            modify_contig_ids(
+                os.path.join(str(result), "all_contigs.fa"), "all_contigs", uuid_type
+            )
 
     else:
         for samp in list(manifest.index):
@@ -156,7 +159,9 @@ def _assemble_spades(
             rev = manifest.loc[samp, "reverse"] if paired else None
 
             _process_sample(samp, fwd, rev, common_args, result)
-            modify_contig_ids(result, samp, uuid_type)
+            modify_contig_ids(
+                os.path.join(str(result), f"{samp}_contigs.fa"), samp, uuid_type
+            )
 
     return result
 

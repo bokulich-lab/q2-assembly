@@ -58,12 +58,12 @@ megahit_param_descriptions = {
     "memory": "Max memory in byte to be used in SdBG construction (if set between 0-1, "
               "fraction of the machine's total memory).",
     "mem_flag": "SdBG builder memory mode. 0: minimum; 1: moderate; "
-    "others: use all memory specified by '-m/--memory'.",
+                "others: use all memory specified by '-m/--memory'.",
     "num_cpu_threads": "Number of CPU threads.",
     "no_hw_accel": "Run MEGAHIT without BMI2 and POPCNT hardware instructions.",
     "min_contig_len": "Minimum length of contigs to output.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
-    "uuid_type": "Type of UUID to generate for Contig ID.",
+    "uuid_type": "UUID type to be used for contig ID generation.",
 }
 # fmt: on
 spades_params = {
@@ -111,8 +111,9 @@ spades_param_descriptions = {
     "phred_offset": "PHRED quality offset in the input reads (33 or 64).",
     "debug": "Runs SPAdes in debug mode.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
-    "uuid_type": "Type of UUID to generate for Contig ID.",
+    "uuid_type": "UUID type to be used for contig ID generation.",
 }
+
 # fmt: on
 quast_params = {
     # TODO: add eukaryote, fungal and large when alignment
@@ -449,8 +450,8 @@ bowtie2_mapping_param_descriptions = {
 }
 partition_params = {"num_partitions": Int % Range(1, None)}
 partition_param_descriptions = {
-        "num_partitions": "The number of partitions to split the contigs"
-        " into. Defaults to partitioning into individual"
-        " samples."
+    "num_partitions": "The number of partitions to split the contigs"
+                      " into. Defaults to partitioning into individual"
+                      " samples."
 }
 # fmt: on

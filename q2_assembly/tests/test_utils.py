@@ -14,7 +14,6 @@ import tempfile
 import unittest
 import uuid
 from distutils.dir_util import copy_tree
-from unittest.mock import Mock
 
 import skbio
 from bs4 import BeautifulSoup as BS
@@ -23,16 +22,11 @@ from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly._utils import (
     _construct_param,
-    _generate_unique_uuid,
     _get_sample_from_path,
     _modify_links,
     _process_common_input_params,
     _remove_html_element,
     concatenate_files,
-    generate_shortuuid,
-    generate_uuid3,
-    generate_uuid4,
-    generate_uuid5,
     get_file_extension,
     modify_contig_ids,
 )
@@ -176,48 +170,8 @@ class TestUtils(TestPluginBase):
         self.assertEqual(hash_original, hash_test_file)
         os.remove(output_file)
 
-    def test_uuid_generation(self):
-
-        id_short = generate_shortuuid()
-        id_uuid_3 = generate_uuid3(self.namespace, self.name)
-        id_uuid_4 = generate_uuid4()
-        id_uuid_5 = generate_uuid5(self.namespace, self.name)
-
-        self.assertIsInstance(id_short, str)
-        self.assertEqual(len(id_short), 22)
-
-        self.assertIsInstance(id_uuid_3, uuid.UUID)
-        self.assertEqual(id_uuid_3.version, 3)
-        self.assertEqual(str(id_uuid_3), str(uuid.uuid3(self.namespace, self.name)))
-
-        self.assertIsInstance(id_uuid_4, uuid.UUID)
-        self.assertEqual(id_uuid_4.version, 4)
-
-        self.assertIsInstance(id_uuid_5, uuid.UUID)
-        self.assertEqual(id_uuid_5.version, 5)
-        self.assertEqual(str(id_uuid_5), str(uuid.uuid5(self.namespace, self.name)))
-
-    @parameterized.expand(["uuid3", "uuid5"])
-    def test_generate_unique_uuid_uuid3_uuid5(self, uuid_type):
-        mock_uuid_func = Mock(side_effect=lambda ns, cid: f"{uuid_type}-{ns}-{cid}")
-        new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids, uuid_type
-        )
-        mock_uuid_func.assert_called_with(self.namespace, self.name)
-        self.assertEqual(new_id, f"{uuid_type}-{self.namespace}-{self.name}")
-        self.assertIn(new_id, self.new_ids)
-
-    @parameterized.expand(["shortuuid", "uuid4"])
-    def test_generate_unique_uuid_shortuuid_uuid4(self, uuid_type):
-        mock_uuid_func = Mock(side_effect=lambda: uuid_type)
-        new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids, uuid_type
-        )
-        mock_uuid_func.assert_called_once()
-        self.assertEqual(new_id, uuid_type)
-        self.assertIn(new_id, self.new_ids)
-
-    def test_modify_contig_ids(self):
+    @parameterized.expand(("shortuuid", "uuid3", "uuid4", "uuid5"))
+    def test_modify_contig_ids(self, uuid_type):
         contigs_path = self.get_data_path("contigs")
         new_ids_sample1 = []
         new_ids_sample2 = []
@@ -228,7 +182,7 @@ class TestUtils(TestPluginBase):
                 )
                 new_sample_path = os.path.join(tmp, f"{sample}_contigs.fa")
                 shutil.copy(original_sample_path, tmp)
-                modify_contig_ids(tmp, sample, "uuid4")
+                modify_contig_ids(new_sample_path, sample, uuid_type)
 
                 for contig in skbio.io.read(new_sample_path, format="fasta"):
                     if sample == "sample1":
@@ -243,16 +197,6 @@ class TestUtils(TestPluginBase):
             self.assertEqual(
                 len(new_ids_sample1_set.intersection(new_ids_sample2_set)), 0
             )
-
-    def test_generate_unique_uuid_with_existing_ids(self):
-        self.new_ids.add("uuid4")
-        mock_uuid_func = Mock(side_effect=["uuid4", "uuid4", "uuid4", "unique-uuid4"])
-        new_id = _generate_unique_uuid(
-            mock_uuid_func, self.namespace, self.name, self.new_ids, "uuid4"
-        )
-        self.assertEqual(mock_uuid_func.call_count, 4)
-        self.assertEqual(new_id, "unique-uuid4")
-        self.assertIn(new_id, self.new_ids)
 
     def test_get_sample_from_path(self):
         obs = _get_sample_from_path("test/path/sample_1_contigs.fa")

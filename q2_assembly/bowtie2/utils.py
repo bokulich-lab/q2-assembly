@@ -8,6 +8,11 @@
 
 import os
 from pathlib import Path
+from typing import List, Union
+
+from q2_types.feature_data_mag import MAGSequencesDirFmt
+from q2_types.per_sample_sequences import MultiMAGSequencesDirFmt
+from skbio import io
 
 from q2_assembly._utils import _construct_param, _get_sample_from_path
 
@@ -55,7 +60,7 @@ def _construct_function_param_value(arg_key: str, arg_val: str):
     param_split = [x.strip() for x in arg_val.split(",")]
     if len(param_split) != 3:
         raise Exception(
-            "Invalid number of elements in function definition " f'of "{arg_key}".'
+            f'Invalid number of elements in function definition of "{arg_key}".'
         )
     elif param_split[0] not in "CLSG":
         raise Exception(
@@ -143,12 +148,12 @@ def _get_subdir_from_path(fp: str, input_type: str = "contigs"):
     """
     if input_type.lower() == "contigs":
         return _get_sample_from_path(fp)
-        # return os.path.basename(fp.replace("_contigs.fa", ""))
     elif input_type.lower() == "mags":
-        fpl = os.path.splitext(fp)
-        return os.path.join(*fpl[0].split("/")[-2:])
+        return os.path.splitext(fp)[0].split("/")[-2]
+    elif input_type.lower() == "mags-derep":
+        return ""
     else:
-        raise NotImplementedError(f'Input type "{input_type}" ' f"is not supported.")
+        raise NotImplementedError(f'Input type "{input_type}" is not supported.')
 
 
 def _assert_inputs_not_empty(fasta_fps: list):
@@ -162,3 +167,82 @@ def _assert_inputs_not_empty(fasta_fps: list):
             "Please filter these files from your input and try again."
         )
         raise ValueError(msg)
+
+
+def _merge_mags_helper(mags: dict, merged_fp: str):
+    """
+    Merge multiple MAGs from a collection into a single FASTA file.
+
+    This function iterates over a dictionary of MAGs obtained from
+    `mags.feature_dict()`, where each MAG is identified by a unique ID
+    and associated with a file path. Each MAG's sequences are read,
+    modified to prepend the MAG ID to the sequence ID, and then written
+    to a single merged FASTA file.
+
+    Args:
+        mags: An object that contains a collection of MAGs, which must provide a
+            `feature_dict()` method that returns a dictionary mapping MAG IDs to
+            their corresponding file paths.
+        merged_fp (str): The file path where the merged FASTA file will be written.
+
+    Side Effects:
+        Writes to a file specified by `merged_fp`. This file will contain all the
+        sequences from the input MAGs, with each sequence ID modified to include
+        its source MAG ID.
+    """
+    with io.open(merged_fp, "w") as merged_f:
+        for mag_id, mag_fp in mags.items():
+            for seq in io.read(str(mag_fp), format="fasta"):
+                seq.metadata["id"] = f"{mag_id}_{seq.metadata['id']}"
+                io.write(seq, into=merged_f, format="fasta")
+
+
+def _merge_mags(
+    mags: Union[MAGSequencesDirFmt, MultiMAGSequencesDirFmt], result_dir: str
+) -> List[str]:
+    """
+    Merge multiple MAG sequences into a single FASTA file.
+
+    This function iterates over all the MAGs provided, reads each sequence,
+    modifies its ID to include the MAG ID, and writes the sequence to a new
+    merged FASTA file. Depending on whether dereplicated MAGs or MAGs per
+    sample were provided, a list with a single file path or multi file paths
+    will be returned.
+
+    Args:
+        mags (Union[MAGSequencesDirFmt, MultiMAGSequencesDirFmt]): The input MAGs.
+        result_dir (str): The directory where the merged MAGs will be saved.
+
+    Returns:
+        List(str): The list of file path(s) of the merged FASTA file(s).
+    """
+    if isinstance(mags, MAGSequencesDirFmt):
+        merged_fp = os.path.join(result_dir, "merged.fasta")
+        _merge_mags_helper(mags.feature_dict(), merged_fp)
+        return [merged_fp]
+    elif isinstance(mags, MultiMAGSequencesDirFmt):
+        all_fps = []
+        for sample_id, mags_dict in mags.sample_dict().items():
+            sample_dir = os.path.join(result_dir, sample_id)
+            os.makedirs(sample_dir, exist_ok=True)
+            merged_fp = os.path.join(sample_dir, "merged.fasta")
+            _merge_mags_helper(mags_dict, merged_fp)
+            all_fps.append(merged_fp)
+        return all_fps
+
+
+def _is_flat_dir(directory: str) -> bool:
+    """
+    Check if the specified directory contains any subdirectories.
+
+    Args::
+        directory (str): The path to the directory to check.
+
+    Returns:
+        bool: True if the directory is flat (no subdirectories), False otherwise.
+    """
+    for entry in os.listdir(directory):
+        entry_path = os.path.join(directory, entry)
+        if os.path.isdir(entry_path):
+            return False
+    return True

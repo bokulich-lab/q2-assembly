@@ -27,6 +27,8 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 
+from q2_assembly.quast.utils import _parse_columns
+
 from .._utils import (
     _construct_param,
     _get_sample_from_path,
@@ -225,32 +227,33 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
             _zip_dir(zipf, directory)
 
 
-def evaluate_contigs(
-    # TODO: expose more parameters
+def _visualize_quast(
     output_dir: str,
     contigs: ContigSequencesDirFmt,
-    reads: Union[
-        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
-    ] = None,
-    references: DNAFASTAFormat = None,
-    mapped_reads: BAMDirFmt = None,
     min_contig: int = 500,
     threads: int = 1,
     k_mer_stats: bool = False,
     k_mer_size: int = 101,
-    contig_thresholds: List[int] = [0, 1000, 5000, 10000, 25000, 50000],
+    contig_thresholds: List[int] = [0, 1000, 5000, 10000, 250000, 500000],
     memory_efficient: bool = False,
     min_alignment: int = 65,
     min_identity: float = 90.0,
     ambiguity_usage: str = "one",
     ambiguity_score: float = 0.99,
     no_icarus: bool = False,
-):
+    reads: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ] = None,
+    references: DNAFASTAFormat = None,
+    mapped_reads: BAMDirFmt = None,
+) -> None:
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["output_dir", "contigs", "reads", "references", "mapped_reads"]
+        if k
+        not in ["output_dir", "contigs", "reads", "references", "mapped_reads", "ctx"]
     }
+
     common_args = _process_common_input_params(
         processing_func=_process_quast_arg, params=kwargs
     )
@@ -279,6 +282,9 @@ def evaluate_contigs(
             mapped_reads,
             common_args,
         )
+
+        tabular_results = _create_tabular_results(results_dir, contig_thresholds)
+        tabular_results.to_csv(os.path.join(results_dir, "quast_results.tsv"), sep="\t")
 
         # fix/remove some URLs
         _fix_html_reports(results_dir)
@@ -319,3 +325,62 @@ def evaluate_contigs(
             )
 
         q2templates.render(templates, output_dir, context=context)
+
+
+def _create_tabular_results(results_dir: str, contig_thresholds: list) -> pd.DataFrame:
+    """
+    This function will create the tabular results after QUAST has run.
+
+    Args:
+        - results_dir(str): The directory were the results of QUAST are saved.
+        - contig_thresholds(list): list of contig thresholds
+
+    Returns:
+        a Pandas dataframe with the tabular data.
+    """
+    filename = "transposed_report.tsv"
+    filepath = os.path.join(results_dir, "combined_reference", filename)
+
+    transposed_report = pd.read_csv(filepath, sep="\t", header=0)
+    transposed_report_parsed = _parse_columns(transposed_report, contig_thresholds)
+    return transposed_report_parsed
+
+
+def evaluate_contigs(
+    # TODO: expose more parameters
+    ctx,
+    contigs,
+    reads=None,
+    references=None,
+    mapped_reads=None,
+    min_contig=500,
+    threads=1,
+    k_mer_stats=False,
+    k_mer_size=101,
+    contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+    memory_efficient=False,
+    min_alignment=65,
+    min_identity=90.0,
+    no_icarus=False,
+    ambiguity_usage="one",
+    ambiguity_score=0.99,
+):
+    kwargs = {k: v for k, v in locals().items() if k not in ["contigs", "ctx"]}
+    with tempfile.TemporaryDirectory() as tmp:
+        # 1. generate the visualization
+        _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
+        (visualization,) = _visualize_quast(contigs, **kwargs)
+
+        # 2. after the visualization is generated we need to export the files
+        # to get the results table out
+        visualization_files_path = os.path.join(tmp, "vis_files")
+        visualization.export_data(visualization_files_path)
+        report_path = os.path.join(
+            visualization_files_path, "quast_data", "quast_results.tsv"
+        )
+        report_df = pd.read_csv(report_path, sep="\t", header=0)
+
+        # 3. read it as a pandas dataframe then we create the QUASTResults
+        tabular_results = ctx.make_artifact("QUASTResults", report_df)
+
+    return tabular_results, visualization
