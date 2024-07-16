@@ -131,10 +131,10 @@ plugin.methods.register_function(
     parameters={"uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"])},
     outputs={"renamed_contigs": SampleData[Contigs]},
     input_descriptions={"contigs": "The contigs to be renamed."},
-    name="Renamed contigs",
-    description="Takes SampleData[Contigs] and renames them"
-    " by changing their IDs using one of the following functions:"
-    " shortuuid, uuid3, uuid4, uuid5.",
+    name="Rename contigs using unique IDs.",
+    description="Takes contigs for each samples in SampleData[Contigs] "
+    "and renames them by changing their IDs using one of the following "
+    "functions: shortuuid, uuid3, uuid4, uuid5.",
 )
 
 plugin.methods.register_function(
