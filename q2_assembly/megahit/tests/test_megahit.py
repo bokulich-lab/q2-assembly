@@ -388,7 +388,6 @@ class TestMegahit(TestPluginBase):
             bubble_level=1,
             k_list=[1, 2],
             no_mercy=True,
-            uuid_type="shortuuid",
         )
         exp_args = [
             "--presets",
