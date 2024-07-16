@@ -24,14 +24,6 @@ from qiime2.plugin.testing import TestPluginBase
 from q2_assembly.helpers.helpers import rename_contigs
 
 
-def is_valid_shortuuid(shortuuid_str):
-    try:
-        shortuuid.decode(shortuuid_str)
-        return True
-    except ValueError:
-        return False
-
-
 class TestUtils(TestPluginBase):
     package = "q2_assembly.tests"
     UUID4_REGEX = re.compile(
@@ -61,6 +53,13 @@ class TestUtils(TestPluginBase):
         ]
     )
     def test_rename_contigs(self, uuid_type, regex):
+        def is_valid_shortuuid(shortuuid_str):
+            try:
+                shortuuid.decode(shortuuid_str)
+                return True
+            except ValueError:
+                return False
+
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
 
         with tempfile.TemporaryDirectory() as tmp:
