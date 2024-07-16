@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import os
+import shutil
 import warnings
 
 import numpy as np
@@ -63,7 +64,7 @@ def rename_contigs(
     renamed_contigs = ContigSequencesDirFmt()
 
     for contigs_fp in contigs.sample_dict().values():
-        duplicate(
+        shutil.copyfile(
             contigs_fp,
             os.path.join(renamed_contigs.path, os.path.basename(contigs_fp)),
         )
