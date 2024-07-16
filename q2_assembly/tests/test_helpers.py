@@ -44,6 +44,19 @@ class TestUtils(TestPluginBase):
         self.namespace = uuid.NAMESPACE_OID
         self.name = "test-test"
 
+    def is_valid_shortuuid(self, shortuuid_str):
+        try:
+            shortuuid.decode(shortuuid_str)
+            return True
+        except ValueError:
+            return False
+
+    def test_is_valid_shortuuid(self):
+        true_shortuuid = shortuuid.uuid()
+        false_shortuuid = "1234567890"
+        self.assertTrue(self.is_valid_shortuuid(true_shortuuid))
+        self.assertFalse(self.is_valid_shortuuid(false_shortuuid))
+
     @parameterized.expand(
         [
             ("uuid4", UUID4_REGEX),
@@ -53,13 +66,6 @@ class TestUtils(TestPluginBase):
         ]
     )
     def test_rename_contigs(self, uuid_type, regex):
-        def is_valid_shortuuid(shortuuid_str):
-            try:
-                shortuuid.decode(shortuuid_str)
-                return True
-            except ValueError:
-                return False
-
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -87,7 +93,7 @@ class TestUtils(TestPluginBase):
             # check if type of generated id is correct
             if uuid_type == "shortuuid":
                 self.assertTrue(
-                    all(is_valid_shortuuid(new_id) for new_id in new_contig_ids)
+                    all(self.is_valid_shortuuid(new_id) for new_id in new_contig_ids)
                 )
             else:
                 self.assertTrue(all(regex.match(new_id) for new_id in new_contig_ids))
