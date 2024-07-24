@@ -21,7 +21,11 @@ from q2_types.per_sample_sequences import (
 )
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
-from qiime2.sdk.parallel_config import ParallelConfig
+from qiime2.sdk.parallel_config import (
+    NON_QIIMETEST_TEST_CONFIG,
+    ParallelConfig,
+    load_config_from_dict,
+)
 
 from q2_assembly.megahit.megahit import (
     _assemble_megahit,
@@ -37,6 +41,7 @@ class MockTempDir(tempfile.TemporaryDirectory):
 
 class TestMegahit(TestPluginBase):
     package = "q2_assembly.tests"
+    parallel_config, mapping = load_config_from_dict(NON_QIIMETEST_TEST_CONFIG)
 
     def setUp(self):
         super().setUp()
@@ -429,7 +434,9 @@ class TestMegahit(TestPluginBase):
             "SampleData[PairedEndSequencesWithQuality]", _input
         )
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.assemble_megahit.parallel(samples)._result()
 
         out.validate()
@@ -440,7 +447,9 @@ class TestMegahit(TestPluginBase):
         _input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
         samples = Artifact.import_data("SampleData[SequencesWithQuality]", _input)
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.assemble_megahit.parallel(samples)._result()
 
         out.validate()

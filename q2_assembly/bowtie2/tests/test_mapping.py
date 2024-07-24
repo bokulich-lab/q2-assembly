@@ -21,7 +21,11 @@ from q2_types.per_sample_sequences import (
 )
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
-from qiime2.sdk.parallel_config import ParallelConfig
+from qiime2.sdk.parallel_config import (
+    NON_QIIMETEST_TEST_CONFIG,
+    ParallelConfig,
+    load_config_from_dict,
+)
 
 from q2_assembly._utils import get_relative_data_path
 from q2_assembly.bowtie2.mapping import (
@@ -40,6 +44,7 @@ class MockTempDir(tempfile.TemporaryDirectory):
 class TestBowtie2Mapping(TestPluginBase):
     package = "q2_assembly.bowtie2.tests"
     root_test_package = "q2_assembly.tests"
+    parallel_config, mapping = load_config_from_dict(NON_QIIMETEST_TEST_CONFIG)
 
     def setUp(self):
         super().setUp()
@@ -374,7 +379,9 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -403,7 +410,9 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -496,7 +505,9 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -525,7 +536,9 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -618,7 +631,9 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -647,7 +662,9 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with ParallelConfig():
+        with ParallelConfig(
+            parallel_config=self.parallel_config, action_executor_mapping=self.mapping
+        ):
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
