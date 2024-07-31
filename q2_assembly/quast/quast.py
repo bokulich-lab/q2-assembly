@@ -10,6 +10,7 @@ import glob
 import json
 import os
 import platform
+import shutil
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
@@ -20,6 +21,7 @@ import pandas as pd
 import pkg_resources
 import q2templates
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
+from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
     ContigSequencesDirFmt,
@@ -87,7 +89,7 @@ def _evaluate_contigs(
     contigs: ContigSequencesDirFmt,
     reads: dict,
     paired: bool,
-    references: List[DNAFASTAFormat],
+    references: GenomeSequencesDirectoryFormat,
     mapped_reads: BAMDirFmt,
     common_args: list,
 ) -> List[str]:
@@ -159,13 +161,16 @@ def _evaluate_contigs(
     if references:
         all_refs_dir = os.path.join(results_dir, "references")
         os.makedirs(all_refs_dir, exist_ok=True)
+        copy_tree(str(references), all_refs_dir)
         all_ref_fps = []
         # we need to split the references into separate files so that QUAST
         # can correctly display alignment details per reference (otherwise it
         # will show those as if all the provided sequences belonged to a single
         # reference
-        for ref in references:
-            all_ref_fps.extend(_split_reference(ref, all_refs_dir))
+        for ref_fp in os.listdir(all_refs_dir):
+            all_ref_fps.append(
+                os.path.join(all_refs_dir, ref_fp)
+            )  # _split_reference(ref_fp, all_refs_dir))
         for fp in all_ref_fps:
             cmd.extend(["-r", fp])
 
@@ -227,6 +232,14 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
             _zip_dir(zipf, directory)
 
 
+def _move_references(src, dest):
+    file_patterns = ["*.fasta", "*.fa"]
+    os.makedirs(os.path.join(dest, "quast_downloaded_references"), exist_ok=True)
+    for pattern in file_patterns:
+        for fp in glob.glob(os.path.join(src, pattern)):
+            shutil.copy(fp, os.path.join(dest, "quast_downloaded_references"))
+
+
 def _visualize_quast(
     output_dir: str,
     contigs: ContigSequencesDirFmt,
@@ -244,7 +257,7 @@ def _visualize_quast(
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
-    references: DNAFASTAFormat = None,
+    references: GenomeSequencesDirectoryFormat = None,
     mapped_reads: BAMDirFmt = None,
 ) -> None:
     kwargs = {
@@ -294,6 +307,13 @@ def _visualize_quast(
 
         # Copy results to output dir
         copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
+
+        # Save the downloaded references
+        if not references:
+            download_references = os.path.join(
+                results_dir, "quast_downloaded_references"
+            )
+            _move_references(download_references, output_dir)
 
         # Zip summary, not_aligned and runs_per_reference dirs for download
         dirnames = ["not_aligned", "runs_per_reference", "summary"]
@@ -383,4 +403,14 @@ def evaluate_contigs(
         # 3. read it as a pandas dataframe then we create the QUASTResults
         tabular_results = ctx.make_artifact("QUASTResults", report_df)
 
-    return tabular_results, visualization
+        # 4. create the Genomes
+        if references:
+            genomes = references
+        else:
+            genomes_path = os.path.join(
+                visualization_files_path, "quast_downloaded_references"
+            )
+            genomes_dir = GenomeSequencesDirectoryFormat(path=genomes_path, mode="r")
+            genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
+
+    return tabular_results, visualization, genomes

@@ -11,6 +11,7 @@ import importlib
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
+from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
     Contigs,
     MAGs,
@@ -156,7 +157,7 @@ plugin.visualizers.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
-        "references": List[FeatureData[Sequence]],
+        "references": GenomeData[DNASequence],  # List[FeatureData[Sequence]],
         "mapped_reads": SampleData[AlignmentMap],
     },
     parameters=quast_params,
@@ -179,11 +180,15 @@ plugin.pipelines.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
-        "references": List[FeatureData[Sequence]],
+        "references": GenomeData[DNASequence],
         "mapped_reads": SampleData[AlignmentMap],
     },
     parameters=quast_params,
-    outputs={"results_table": QUASTResults, "visualization": Visualization},
+    outputs=[
+        ("results_table", QUASTResults),
+        ("visualization", Visualization),
+        ("genomes", GenomeData[DNASequence]),
+    ],
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
@@ -195,6 +200,7 @@ plugin.pipelines.register_function(
     output_descriptions={
         "results_table": "QUAST result table.",
         "visualization": "Visualization of the QUAST results.",
+        "genomes": "Genome sequences downloaded by QUAST.",
     },
     name="Evaluate quality of the assembled contigs using metaQUAST.",
     description="This method uses metaQUAST to assess the quality of "
