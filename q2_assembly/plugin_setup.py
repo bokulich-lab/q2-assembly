@@ -200,7 +200,9 @@ plugin.pipelines.register_function(
     output_descriptions={
         "results_table": "QUAST result table.",
         "visualization": "Visualization of the QUAST results.",
-        "genomes": "Genome sequences downloaded by QUAST.",
+        "genomes": "Genome sequences downloaded by QUAST. NOTE: If the user"
+        "provides the sequences as input, then this artifact"
+        "will be the input artifact.",
     },
     name="Evaluate quality of the assembled contigs using metaQUAST.",
     description="This method uses metaQUAST to assess the quality of "
