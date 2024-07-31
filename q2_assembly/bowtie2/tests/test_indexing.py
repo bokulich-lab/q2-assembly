@@ -17,7 +17,6 @@ from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
-from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly.bowtie2.indexing import (
     _index_contigs,
@@ -245,7 +244,7 @@ class TestBowtie2Indexing(TestPluginBase):
         input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         input_artifact = Artifact.import_data("SampleData[Contigs]", input_contigs)
 
-        with ParallelConfig():
+        with self.test_config:
             (out,) = self.index_contigs.parallel(
                 input_artifact,
                 large_index=True,
@@ -268,7 +267,7 @@ class TestBowtie2Indexing(TestPluginBase):
         with self.assertWarnsRegex(
             UserWarning, f"You have requested.*{A_MODEST_NUMBER_OF_PARTITIONS}.*2"
         ):
-            with ParallelConfig():
+            with self.test_config:
                 (out,) = self.index_contigs.parallel(
                     input_artifact,
                     large_index=True,
