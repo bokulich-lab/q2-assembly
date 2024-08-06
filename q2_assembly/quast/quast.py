@@ -167,10 +167,14 @@ def _evaluate_contigs(
         # can correctly display alignment details per reference (otherwise it
         # will show those as if all the provided sequences belonged to a single
         # reference
-        for ref_fp in os.listdir(all_refs_dir):
-            all_ref_fps.append(
-                os.path.join(all_refs_dir, ref_fp)
-            )  # _split_reference(ref_fp, all_refs_dir))
+        all_ref_fps.extend(
+            os.path.join(all_refs_dir, ref_fp)
+            for ref_fp in sorted(os.listdir(all_refs_dir))
+        )
+        # for ref_fp in os.listdir(all_refs_dir):
+        #     all_ref_fps.append(
+        #         os.path.join(all_refs_dir, ref_fp)
+        # )
         for fp in all_ref_fps:
             cmd.extend(["-r", fp])
 
