@@ -817,7 +817,9 @@ class TestQuast(TestPluginBase):
 
             for file in os.listdir(refs_dir):
                 shutil.copy(src=os.path.join(refs_dir, file), dst=tmp_ref_dir)
-            os.mknod(empty_fp)
+
+            with open(empty_fp, "w"):
+                pass
             # tmp file should have the empty file
             # and the 2 reference files
             self.assertTrue(len(os.listdir(tmp_ref_dir)) == 3)
