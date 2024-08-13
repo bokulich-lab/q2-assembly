@@ -9,9 +9,14 @@
 import os
 import shutil
 import warnings
+from typing import List
 
 import numpy as np
+import skbio.io
+from q2_types._util import DNAFASTAFormat
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.feature_data import DNAIterator
+from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
@@ -109,3 +114,25 @@ def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
             duplicate(_alignment, os.path.join(collated_alignments.path, filename))
 
     return collated_alignments
+
+
+def _convert_feature_data_to_genome_data(
+    genomes_in: List[DNAFASTAFormat],
+) -> GenomeSequencesDirectoryFormat:
+    genomes_dir = GenomeSequencesDirectoryFormat()
+    for genome_file in genomes_in:
+        print(genome_file)
+        for genome in genome_file.view(DNAIterator):
+            name = genome.metadata["description"].split(",")[0]
+            with open(os.path.join(genomes_dir.path, name + ".fasta"), "w") as f:
+                skbio.io.write(genome, format="fasta", into=f)
+
+    return genomes_dir
+
+
+def convert_feature_data_to_genome_data(
+    genomes_in: DNAFASTAFormat,
+) -> GenomeSequencesDirectoryFormat:
+    genomes_out = _convert_feature_data_to_genome_data(genomes_in)
+
+    return genomes_out

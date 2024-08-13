@@ -404,6 +404,18 @@ plugin.methods.register_function(
     description="Not to be called directly. Used by map_reads.",
 )
 
+plugin.methods.register_function(
+    function=q2_assembly.helpers.convert_feature_data_to_genome_data,
+    inputs={"genomes_in": List[FeatureData[Sequence]]},
+    parameters={},
+    outputs={"genomes_out": GenomeData[DNASequence]},
+    input_descriptions={"genomes_in": "A  list of FeatureData[Sequence] artifacts."},
+    output_descriptions={"genomes_out": "The converted genomes."},
+    name="Convert a list of FeatureData[Sequence] to GenomeData[DNASequence].",
+    description="This method converts a list of FeatureData[Sequence] "
+    "to GenomeData[DNASequence].",
+)
+
 plugin.register_semantic_types(QUASTResults)
 plugin.register_semantic_type_to_format(
     QUASTResults, artifact_format=QUASTResultsDirectoryFormat
