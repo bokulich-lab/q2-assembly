@@ -9,7 +9,7 @@
 import os
 import shutil
 import warnings
-from typing import List
+from typing import Union
 
 import numpy as np
 import skbio.io
@@ -116,23 +116,22 @@ def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
     return collated_alignments
 
 
-def _convert_feature_data_to_genome_data(
-    genomes_in: List[DNAFASTAFormat],
+def collate_genomes(
+    genomes_in: Union[DNAFASTAFormat, GenomeSequencesDirectoryFormat]
 ) -> GenomeSequencesDirectoryFormat:
     genomes_dir = GenomeSequencesDirectoryFormat()
-    for genome_file in genomes_in:
-        print(genome_file)
-        for genome in genome_file.view(DNAIterator):
-            name = genome.metadata["description"].split(",")[0]
-            with open(os.path.join(genomes_dir.path, name + ".fasta"), "w") as f:
-                skbio.io.write(genome, format="fasta", into=f)
+    if isinstance(genomes_in[0], DNAFASTAFormat):
+        for genome_file in genomes_in:
+            for genome in genome_file.view(DNAIterator):
+                name = genome.metadata["description"].split(",")[0]
+                with open(os.path.join(genomes_dir.path, name + ".fasta"), "w") as f:
+                    skbio.io.write(genome, format="fasta", into=f)
+    else:
+        for genome in genomes_in:
+            for genome_fp in genome.path.iterdir():
+                shutil.copyfile(
+                    genome_fp,
+                    os.path.join(genomes_dir.path, os.path.basename(genome_fp)),
+                )
 
     return genomes_dir
-
-
-def convert_feature_data_to_genome_data(
-    genomes_in: DNAFASTAFormat,
-) -> GenomeSequencesDirectoryFormat:
-    genomes_out = _convert_feature_data_to_genome_data(genomes_in)
-
-    return genomes_out

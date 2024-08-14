@@ -405,8 +405,8 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_assembly.helpers.convert_feature_data_to_genome_data,
-    inputs={"genomes_in": List[FeatureData[Sequence]]},
+    function=q2_assembly.helpers.collate_genomes,
+    inputs={"genomes_in": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
     parameters={},
     outputs={"genomes_out": GenomeData[DNASequence]},
     input_descriptions={"genomes_in": "A  list of FeatureData[Sequence] artifacts."},
