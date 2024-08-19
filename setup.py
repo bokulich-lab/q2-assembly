@@ -43,6 +43,10 @@ setup(
             "data/zip_test_data/expected/*/*/*/*",
             "data/formatted-reads/single-end/*",
             "data/formatted-reads/paired-end/*",
+            "data/dna-fasta-format1/*",
+            "data/dna-fasta-format2/*",
+            "data/genomes-dir-format1/*",
+            "data/genomes-dir-format2/*",
         ],
         "q2_assembly.bowtie2.tests": [
             "data/*",
