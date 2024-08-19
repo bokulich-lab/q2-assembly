@@ -18,10 +18,13 @@ from unittest.mock import ANY, call, patch
 import shortuuid
 import skbio
 from parameterized import parameterized
+from q2_types._util import DNAFASTAFormat
+from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.plugins import assembly
 
-from q2_assembly.helpers.helpers import rename_contigs
+from q2_assembly.helpers.helpers import collate_genomes, rename_contigs
 
 
 class TestUtils(TestPluginBase):
@@ -56,6 +59,49 @@ class TestUtils(TestPluginBase):
         false_shortuuid = "1234567890"
         self.assertTrue(self.is_valid_shortuuid(true_shortuuid))
         self.assertFalse(self.is_valid_shortuuid(false_shortuuid))
+
+    def test_collate_genomes_dnafastaformat_single(self):
+        genomes1 = DNAFASTAFormat(
+            self.get_data_path("dna-fasta-format1/dna-sequences.fasta"), "r"
+        )
+        collated_genomes = collate_genomes(genomes_in=[genomes1])
+        self.assertEqual(len(os.listdir(collated_genomes.path)), 2)
+
+    def test_collate_genomes_dnafastaformat_multiple(self):
+        genomes1 = DNAFASTAFormat(
+            self.get_data_path("dna-fasta-format1/dna-sequences.fasta"), "r"
+        )
+        genomes2 = DNAFASTAFormat(
+            self.get_data_path("dna-fasta-format2/dna-sequences.fasta"), "r"
+        )
+        collated_genomes = collate_genomes(genomes_in=[genomes1, genomes2])
+        self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
+
+    def test_collate_genomes_genome_dir_multiple(self):
+        genomes1 = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
+        genomes2 = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format2"), "r"
+        )
+        genomes = [genomes1, genomes2]
+        collated_genomes = collate_genomes(genomes_in=genomes)
+        self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
+
+    def test_collate_genomes_mix(self):
+        # should throw TypeError
+        genomes1 = DNAFASTAFormat(
+            self.get_data_path("dna-fasta-format1/dna-sequences.fasta"), "r"
+        )
+        genomes2 = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
+
+        genomes = [genomes1, genomes2]
+
+        with self.assertRaises(TypeError):
+            # collate_genomes(genomes_in=genomes) this does not throw the exception
+            assembly.methods.collate_genomes(genomes_in=genomes)
 
     @parameterized.expand(
         [
