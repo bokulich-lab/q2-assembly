@@ -407,13 +407,15 @@ class TestQuast(TestPluginBase):
                 common_args=["-m", "10", "-t", "1"],
             )
 
-    @patch("os.makedirs")
     @patch("subprocess.run")
-    def test_evaluate_contigs_with_refs(self, p1, p2):
+    def test_evaluate_contigs_with_refs(self, p1):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         refs = GenomeSequencesDirectoryFormat(self.get_data_path("references"), "r")
 
-        exp_refs = ["some/dir/references/ref1.fasta", "some/dir/references/ref2.fasta"]
+        exp_refs = [
+            os.path.join(str(refs.path), "ref1.fasta"),
+            os.path.join(str(refs.path), "ref2.fasta"),
+        ]
 
         obs_samples = _evaluate_contigs(
             results_dir="some/dir",
@@ -440,7 +442,6 @@ class TestQuast(TestPluginBase):
         ]
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p1.assert_called_once_with(exp_command, check=True)
-        p2.assert_called_once_with("some/dir/references", exist_ok=True)
 
     @patch("q2_assembly.quast._create_tabular_results")
     @patch("platform.system", return_value="Linux")
@@ -465,6 +466,7 @@ class TestQuast(TestPluginBase):
             threads=5,
             k_mer_size=101,
             contig_thresholds=[10, 20],
+            genomes_out_path=test_temp_dir.name,
         )
 
         p4.assert_called_once_with(
@@ -530,6 +532,7 @@ class TestQuast(TestPluginBase):
             threads=1,
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+            genomes_out_path=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -605,6 +608,7 @@ class TestQuast(TestPluginBase):
             threads=1,
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+            genomes_out_path=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -677,6 +681,7 @@ class TestQuast(TestPluginBase):
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
             no_icarus=True,
+            genomes_out_path=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -787,8 +792,8 @@ class TestQuast(TestPluginBase):
             refs_dir = self.get_data_path("references")
             _copy_references(refs_dir, tmp)
 
+            refs = Artifact.import_data("GenomeData[DNASequence]", refs_dir)
             if pass_refs:
-                refs = Artifact.import_data("GenomeData[DNASequence]", refs_dir)
                 tab_report, _, _ = evaluate_contigs(
                     ctx=mock_ctx, contigs=contigs, references=refs
                 )
@@ -796,13 +801,21 @@ class TestQuast(TestPluginBase):
                     "QUASTResults", self.assert_is_dataframe((2, 43))
                 )
             else:
-                tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
-                make_artifact.assert_has_calls(
-                    [
-                        call("QUASTResults", self.assert_is_dataframe((2, 43))),
-                        call("GenomeData[DNASequence]", ANY),
-                    ]
-                )
+                with patch(
+                    "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+                ) as MockGenomeSequencesDirectoryFormat:
+                    MockGenomeSequencesDirectoryFormat.return_value = (
+                        GenomeSequencesDirectoryFormat(
+                            path=self.get_data_path("references"), mode="r"
+                        )
+                    )
+                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+                    make_artifact.assert_has_calls(
+                        [
+                            call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                            call("GenomeData[DNASequence]", ANY),
+                        ]
+                    )
 
             tab_report.validate()
             self.assertEqual(action.call_args[0][0], contigs)

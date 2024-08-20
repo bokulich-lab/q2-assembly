@@ -157,10 +157,10 @@ plugin.visualizers.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
-        "references": GenomeData[DNASequence],  # List[FeatureData[Sequence]],
+        "references": GenomeData[DNASequence],
         "mapped_reads": SampleData[AlignmentMap],
     },
-    parameters=quast_params,
+    parameters={**quast_params, "genomes_out_path": Str},
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
@@ -168,10 +168,17 @@ plugin.visualizers.register_function(
         "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
         "directly.",
     },
-    parameter_descriptions=quast_param_descriptions,
+    parameter_descriptions={
+        **quast_param_descriptions,
+        "genomes_out_path": "Path of the GenomeData[DNASequence]"
+        "artifact that will be returned if"
+        "reference genomes are downloaded.",
+    },
     name="Visualize the quality of the assembled contigs after using metaQUAST.",
     description="This method visualizes the results of metaQUAST after "
-    "assessing the quality of assembled metagenomes.",
+    "assessing the quality of assembled metagenomes. WARNING: This action "
+    "should not be used as a standalone-action. It is designed to be called "
+    "by the evaluate-contigs action!",
     citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
 )
 
@@ -187,7 +194,7 @@ plugin.pipelines.register_function(
     outputs=[
         ("results_table", QUASTResults),
         ("visualization", Visualization),
-        ("genomes", GenomeData[DNASequence]),
+        ("reference_genomes", GenomeData[DNASequence]),
     ],
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
@@ -200,7 +207,7 @@ plugin.pipelines.register_function(
     output_descriptions={
         "results_table": "QUAST result table.",
         "visualization": "Visualization of the QUAST results.",
-        "genomes": "Genome sequences downloaded by QUAST. NOTE: If the user"
+        "reference_genomes": "Genome sequences downloaded by QUAST. NOTE: If the user"
         "provides the sequences as input, then this artifact"
         "will be the input artifact.",
     },

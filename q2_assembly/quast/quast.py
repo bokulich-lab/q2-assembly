@@ -15,6 +15,7 @@ import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
 from typing import List, Union
+from warnings import warn
 from zipfile import ZipFile
 
 import pandas as pd
@@ -28,6 +29,7 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from qiime2.core.exceptions import ValidationError
 
 from q2_assembly.quast.utils import _parse_columns
 
@@ -159,24 +161,8 @@ def _evaluate_contigs(
                 )
 
     if references:
-        all_refs_dir = os.path.join(results_dir, "references")
-        os.makedirs(all_refs_dir, exist_ok=True)
-        copy_tree(str(references), all_refs_dir)
-        all_ref_fps = []
-        # we need to split the references into separate files so that QUAST
-        # can correctly display alignment details per reference (otherwise it
-        # will show those as if all the provided sequences belonged to a single
-        # reference
-        all_ref_fps.extend(
-            os.path.join(all_refs_dir, ref_fp)
-            for ref_fp in sorted(os.listdir(all_refs_dir))
-        )
-        # for ref_fp in os.listdir(all_refs_dir):
-        #     all_ref_fps.append(
-        #         os.path.join(all_refs_dir, ref_fp)
-        # )
-        for fp in all_ref_fps:
-            cmd.extend(["-r", fp])
+        for fp in os.listdir(references.path):
+            cmd.extend(["-r", os.path.join(references.path, fp)])
 
     try:
         run_command(cmd, verbose=True)
@@ -237,11 +223,10 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
 
 
 def _move_references(src, dest):
-    file_patterns = ["*.fasta", "*.fa"]
+    pattern = "*.fa*"
     os.makedirs(os.path.join(dest, "quast_downloaded_references"), exist_ok=True)
-    for pattern in file_patterns:
-        for fp in glob.glob(os.path.join(src, pattern)):
-            shutil.copy(fp, os.path.join(dest, "quast_downloaded_references"))
+    for fp in glob.glob(os.path.join(src, pattern)):
+        shutil.move(fp, os.path.join(dest, "quast_downloaded_references"))
 
 
 def _visualize_quast(
@@ -262,13 +247,22 @@ def _visualize_quast(
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
     references: GenomeSequencesDirectoryFormat = None,
+    genomes_out_path: str = None,
     mapped_reads: BAMDirFmt = None,
 ) -> None:
     kwargs = {
         k: v
         for k, v in locals().items()
         if k
-        not in ["output_dir", "contigs", "reads", "references", "mapped_reads", "ctx"]
+        not in [
+            "output_dir",
+            "contigs",
+            "reads",
+            "references",
+            "mapped_reads",
+            "ctx",
+            "genomes_out_path",
+        ]
     }
 
     common_args = _process_common_input_params(
@@ -317,7 +311,7 @@ def _visualize_quast(
             download_references = os.path.join(
                 results_dir, "quast_downloaded_references"
             )
-            _move_references(download_references, output_dir)
+            _move_references(download_references, genomes_out_path)
 
         # Zip summary, not_aligned and runs_per_reference dirs for download
         dirnames = ["not_aligned", "runs_per_reference", "summary"]
@@ -390,10 +384,17 @@ def evaluate_contigs(
     ambiguity_score=0.99,
 ):
     kwargs = {k: v for k, v in locals().items() if k not in ["contigs", "ctx"]}
+    # 1. generate the visualization
+    _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
     with tempfile.TemporaryDirectory() as tmp:
-        # 1. generate the visualization
-        _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
-        (visualization,) = _visualize_quast(contigs, **kwargs)
+        if references:
+            genomes = references
+            (visualization,) = _visualize_quast(contigs, **kwargs)
+        else:
+            genomes_dir = GenomeSequencesDirectoryFormat()
+            (visualization,) = _visualize_quast(
+                contigs, **kwargs, genomes_out_path=str(genomes_dir.path)
+            )
 
         # 2. after the visualization is generated we need to export the files
         # to get the results table out
@@ -408,13 +409,16 @@ def evaluate_contigs(
         tabular_results = ctx.make_artifact("QUASTResults", report_df)
 
         # 4. create the Genomes
-        if references:
-            genomes = references
-        else:
-            genomes_path = os.path.join(
-                visualization_files_path, "quast_downloaded_references"
-            )
-            genomes_dir = GenomeSequencesDirectoryFormat(path=genomes_path, mode="r")
-            genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
+        if not references:
+            try:
+                genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
+            except ValidationError:
+                with open(os.path.join(genomes_dir.path, "empty.fasta")):
+                    pass
+                warn(
+                    "WARNING: QUAST did not download any genomes. The returned "
+                    "GenomeData[DNASequence] artifact is empty. Please check "
+                    "the network connection or provide the reference genomes."
+                )
 
-    return tabular_results, visualization, genomes
+        return tabular_results, visualization, genomes
