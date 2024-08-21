@@ -161,7 +161,8 @@ def _evaluate_contigs(
                 )
 
     if references:
-        for fp in os.listdir(references.path):
+        files = sorted(os.listdir(references.path))
+        for fp in files:
             cmd.extend(["-r", os.path.join(references.path, fp)])
 
     try:
