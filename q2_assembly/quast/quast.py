@@ -387,9 +387,9 @@ def evaluate_contigs(
     kwargs = {k: v for k, v in locals().items() if k not in ["contigs", "ctx"]}
     # 1. generate the visualization
     _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
+    genomes = references
     with tempfile.TemporaryDirectory() as tmp:
         if references:
-            genomes = references
             (visualization,) = _visualize_quast(contigs, **kwargs)
         else:
             genomes_dir = GenomeSequencesDirectoryFormat()
@@ -414,7 +414,7 @@ def evaluate_contigs(
             try:
                 genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
             except ValidationError:
-                with open(os.path.join(genomes_dir.path, "empty.fasta")):
+                with open(os.path.join(genomes_dir.path, "empty.fasta"), "w"):
                     pass
                 warn(
                     "WARNING: QUAST did not download any genomes. The returned "

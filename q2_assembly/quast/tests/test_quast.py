@@ -18,6 +18,8 @@ from unittest.mock import ANY, MagicMock, Mock, call, mock_open, patch
 from zipfile import ZipFile
 
 import pandas as pd
+from future.moves import itertools
+from globus_sdk.experimental.auth_requirements_error import ValidationError
 from parameterized import parameterized
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
@@ -746,8 +748,10 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(report_path, sep="\t", header=0)
         p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
 
-    @parameterized.expand([True, False])
-    def test_evaluate_contigs_pipeline(self, pass_refs):
+    @parameterized.expand(
+        [(a, b) for a, b in itertools.product([True, False], repeat=2)]
+    )
+    def test_evaluate_contigs_pipeline(self, pass_refs, empty_dir):
         # this is used for mocking
         def _copy(dst_dir):
             os.makedirs(dst_dir, exist_ok=True)
@@ -804,18 +808,35 @@ class TestQuast(TestPluginBase):
                 with patch(
                     "q2_assembly.quast.GenomeSequencesDirectoryFormat"
                 ) as MockGenomeSequencesDirectoryFormat:
-                    MockGenomeSequencesDirectoryFormat.return_value = (
-                        GenomeSequencesDirectoryFormat(
-                            path=self.get_data_path("references"), mode="r"
+                    if empty_dir:
+                        MockGenomeSequencesDirectoryFormat.return_value = (
+                            GenomeSequencesDirectoryFormat()
                         )
-                    )
-                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
-                    make_artifact.assert_has_calls(
-                        [
-                            call("QUASTResults", self.assert_is_dataframe((2, 43))),
-                            call("GenomeData[DNASequence]", ANY),
-                        ]
-                    )
+                        tab_report, _, _ = evaluate_contigs(
+                            ctx=mock_ctx, contigs=contigs
+                        )
+                        make_artifact.assert_has_calls(
+                            [
+                                call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                                call("GenomeData[DNASequence]", ANY),
+                            ]
+                        )
+                        self.assertRaises(ValidationError)
+                    else:
+                        MockGenomeSequencesDirectoryFormat.return_value = (
+                            GenomeSequencesDirectoryFormat(
+                                path=self.get_data_path("references"), mode="r"
+                            )
+                        )
+                        tab_report, _, _ = evaluate_contigs(
+                            ctx=mock_ctx, contigs=contigs
+                        )
+                        make_artifact.assert_has_calls(
+                            [
+                                call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                                call("GenomeData[DNASequence]", ANY),
+                            ]
+                        )
 
             tab_report.validate()
             self.assertEqual(action.call_args[0][0], contigs)
