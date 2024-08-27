@@ -18,8 +18,8 @@ from unittest.mock import call, patch
 import biom
 import pandas as pd
 from q2_types.feature_data import DNAIterator
-from q2_types.feature_table._transformer import _table_to_dataframe
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.plugin.util import transform
 
 from q2_assembly.iss.iss import (
     _abundances_to_biom,
@@ -153,13 +153,13 @@ class TestISS(TestPluginBase):
             glob.glob(os.path.join(self.get_data_path("abundances"), "*.txt"))
         )
         obs_table = _abundances_to_biom(abunds_fp)
+        obs_df = transform(obs_table, to_type=pd.DataFrame)
 
         with open(self.get_data_path("abundances/biom_table.tsv"), "r") as f:
             exp_table = biom.Table.from_tsv(f, None, None, lambda x: x)
+            exp_df = transform(exp_table, to_type=pd.DataFrame)
 
-        pd.testing.assert_frame_equal(
-            _table_to_dataframe(obs_table), _table_to_dataframe(exp_table)
-        )
+        pd.testing.assert_frame_equal(obs_df, exp_df)
 
     def test_generate_reads_wrong_genome_counts(self):
         with self.assertRaisesRegex(Exception, r".*provided 2 kingdom\(s\) but 1.*"):
@@ -189,6 +189,8 @@ class TestISS(TestPluginBase):
             ["samp1", "samp2"], self.test_params_list, test_temp_dir.name
         )
 
+        obs_abundances_df = transform(obs_abundances, to_type=pd.DataFrame)
+
         exp_genomes = {
             "genome1": "ATGCATGC",
             "genome2": "GATCGCATGA",
@@ -201,9 +203,8 @@ class TestISS(TestPluginBase):
 
         with open(self.get_data_path("abundances/biom_table.tsv"), "r") as f:
             exp_biom_table = biom.Table.from_tsv(f, None, None, lambda x: x)
-        pd.testing.assert_frame_equal(
-            _table_to_dataframe(obs_abundances), _table_to_dataframe(exp_biom_table)
-        )
+            exp_df = transform(exp_biom_table, to_type=pd.DataFrame)
+        pd.testing.assert_frame_equal(obs_abundances_df, exp_df)
 
 
 if __name__ == "__main__":
