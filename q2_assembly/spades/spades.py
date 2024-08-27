@@ -24,6 +24,7 @@ from .._utils import (
     _process_common_input_params,
     concatenate_files,
     get_file_extension,
+    modify_contig_ids,
     run_command,
 )
 
@@ -96,7 +97,7 @@ def _process_sample(sample, fwd, rev, common_args, out):
 
 
 def _assemble_spades(
-    seqs, meta, common_args, coassemble=False
+    seqs, meta, common_args, uuid_type, coassemble=False
 ) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
@@ -110,6 +111,7 @@ def _assemble_spades(
             the metaSPAdes command.
         coassemble: True if user wants to coassemble reads
             from all samples.
+        uuid_type: Type of UUID to be used for contig IDs.
 
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
@@ -147,6 +149,9 @@ def _assemble_spades(
                 concatenate_files(revs, rev)
 
             _process_sample("all_contigs", fwd, rev, common_args, result)
+            modify_contig_ids(
+                os.path.join(str(result), "all_contigs.fa"), "all_contigs", uuid_type
+            )
 
     else:
         for samp in list(manifest.index):
@@ -154,6 +159,10 @@ def _assemble_spades(
             rev = manifest.loc[samp, "reverse"] if paired else None
 
             _process_sample(samp, fwd, rev, common_args, result)
+            modify_contig_ids(
+                os.path.join(str(result), f"{samp}_contigs.fa"), samp, uuid_type
+            )
+
     return result
 
 
@@ -179,12 +188,21 @@ def assemble_spades(
     phred_offset: str = "auto-detect",
     debug: bool = False,
     coassemble: bool = False,
+    uuid_type: str = "shortuuid",
 ) -> ContigSequencesDirFmt:
-    kwargs = {k: v for k, v in locals().items() if k not in ["seqs", "coassemble"]}
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["seqs", "uuid_type", "coassemble"]
+    }
     common_args = _process_common_input_params(
         processing_func=_process_spades_arg, params=kwargs
     )
 
     return _assemble_spades(
-        seqs=seqs, meta=meta, coassemble=coassemble, common_args=common_args
+        seqs=seqs,
+        meta=meta,
+        coassemble=coassemble,
+        uuid_type=uuid_type,
+        common_args=common_args,
     )

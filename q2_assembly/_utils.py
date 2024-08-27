@@ -7,10 +7,16 @@
 # ----------------------------------------------------------------------------
 import os
 import subprocess
+import tempfile
 from typing import List
+from uuid import NAMESPACE_OID, uuid3, uuid4, uuid5
 
 import pkg_resources
+import shortuuid
 from bs4 import BeautifulSoup as BS
+from skbio import io
+
+flake8_bybass = [uuid3, uuid5]
 
 EXTERNAL_CMD_WARNING = (
     "Running external command line application(s). "
@@ -167,3 +173,36 @@ def concatenate_files(input_files, output_file):
     """
     cmd = ["cat", *input_files]
     subprocess.run(cmd, stdout=open(output_file, "w"), check=True)
+
+
+def modify_contig_ids(contig_file: str, sample: str, uuid_type: str):
+    """Modifies the contig IDs to include the sample name and UUID.
+
+    Args:
+        contig_file: Path to the contig file.
+        sample: Sample name to be included in the contig ID.
+        uuid_type: UUID type to be used in the contig ID.
+    """
+
+    if uuid_type == "shortuuid":
+        uuid_func = shortuuid.uuid
+    else:
+        # defaults to uuid4
+        uuid_func = globals().get(uuid_type, uuid4)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        contigs_mod_fp = os.path.join(tmp, f"{sample}_modified_contigs.fa")
+
+        with io.open(contigs_mod_fp, "w") as modified_contigs:
+            for contig in io.read(contig_file, format="fasta"):
+                if uuid_type in ["uuid4", "shortuuid"]:
+                    new_id = str(uuid_func())
+                else:
+                    new_id = str(uuid_func(NAMESPACE_OID, contig.metadata["id"]))
+
+                contig.metadata["id"] = new_id
+                io.write(contig, format="fasta", into=modified_contigs)
+
+        all_contigs = io.read(contigs_mod_fp, format="fasta")
+        with io.open(contig_file, "w") as contigs_file:
+            io.write(all_contigs, format="fasta", into=contigs_file)

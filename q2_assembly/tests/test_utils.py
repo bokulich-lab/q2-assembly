@@ -12,9 +12,12 @@ import os
 import shutil
 import tempfile
 import unittest
+import uuid
 from distutils.dir_util import copy_tree
 
+import skbio
 from bs4 import BeautifulSoup as BS
+from parameterized import parameterized
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly._utils import (
@@ -25,6 +28,7 @@ from q2_assembly._utils import (
     _remove_html_element,
     concatenate_files,
     get_file_extension,
+    modify_contig_ids,
 )
 from q2_assembly.quast.quast import _fix_html_reports
 
@@ -46,6 +50,10 @@ class TestUtils(TestPluginBase):
         with contextlib.ExitStack() as stack:
             self._tmp = stack.enter_context(tempfile.TemporaryDirectory())
             self.addCleanup(stack.pop_all().close)
+
+        self.namespace = uuid.NAMESPACE_OID
+        self.name = "test-test"
+        self.new_ids = set()
 
     def assertHTMLEqual(self, obs_fp, exp_fp):
         with open(obs_fp, "r") as fobs, open(exp_fp, "r") as fexp:
@@ -161,6 +169,34 @@ class TestUtils(TestPluginBase):
 
         self.assertEqual(hash_original, hash_test_file)
         os.remove(output_file)
+
+    @parameterized.expand(("shortuuid", "uuid3", "uuid4", "uuid5"))
+    def test_modify_contig_ids(self, uuid_type):
+        contigs_path = self.get_data_path("contigs")
+        new_ids_sample1 = []
+        new_ids_sample2 = []
+        with tempfile.TemporaryDirectory() as tmp:
+            for sample in ["sample1", "sample2"]:
+                original_sample_path = os.path.join(
+                    contigs_path, f"{sample}_contigs.fa"
+                )
+                new_sample_path = os.path.join(tmp, f"{sample}_contigs.fa")
+                shutil.copy(original_sample_path, tmp)
+                modify_contig_ids(new_sample_path, sample, uuid_type)
+
+                for contig in skbio.io.read(new_sample_path, format="fasta"):
+                    if sample == "sample1":
+                        new_ids_sample1.append(contig.metadata["id"])
+                    else:
+                        new_ids_sample2.append(contig.metadata["id"])
+
+            new_ids_sample1_set = set(new_ids_sample1)
+            new_ids_sample2_set = set(new_ids_sample2)
+            self.assertEqual(len(new_ids_sample1), len(new_ids_sample1_set))
+            self.assertEqual(len(new_ids_sample2), len(new_ids_sample2_set))
+            self.assertEqual(
+                len(new_ids_sample1_set.intersection(new_ids_sample2_set)), 0
+            )
 
     def test_get_sample_from_path(self):
         obs = _get_sample_from_path("test/path/sample_1_contigs.fa")
