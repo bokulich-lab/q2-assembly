@@ -11,6 +11,7 @@ import importlib
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
+from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
     Contigs,
     MAGs,
