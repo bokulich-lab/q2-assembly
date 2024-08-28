@@ -224,9 +224,8 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
 
 
 def _move_references(src, dest):
-    pattern = "*.fa*"
     os.makedirs(os.path.join(dest, "quast_downloaded_references"), exist_ok=True)
-    for fp in glob.glob(os.path.join(src, pattern)):
+    for fp in glob.glob(os.path.join(src, "*.fa*")):
         shutil.move(fp, os.path.join(dest, "quast_downloaded_references"))
 
 
@@ -248,7 +247,7 @@ def _visualize_quast(
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
     references: GenomeSequencesDirectoryFormat = None,
-    genomes_out_path: str = None,
+    genomes_dir: str = None,
     mapped_reads: BAMDirFmt = None,
 ) -> None:
     kwargs = {
@@ -262,7 +261,7 @@ def _visualize_quast(
             "references",
             "mapped_reads",
             "ctx",
-            "genomes_out_path",
+            "genomes_dir",
         ]
     }
 
@@ -312,7 +311,7 @@ def _visualize_quast(
             download_references = os.path.join(
                 results_dir, "quast_downloaded_references"
             )
-            _move_references(download_references, genomes_out_path)
+            _move_references(download_references, genomes_dir)
 
         # Zip summary, not_aligned and runs_per_reference dirs for download
         dirnames = ["not_aligned", "runs_per_reference", "summary"]
@@ -394,7 +393,7 @@ def evaluate_contigs(
         else:
             genomes_dir = GenomeSequencesDirectoryFormat()
             (visualization,) = _visualize_quast(
-                contigs, **kwargs, genomes_out_path=str(genomes_dir.path)
+                contigs, **kwargs, genomes_dir=str(genomes_dir.path)
             )
 
         # 2. after the visualization is generated we need to export the files
@@ -411,15 +410,23 @@ def evaluate_contigs(
 
         # 4. create the Genomes
         if not references:
-            try:
-                genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
-            except ValidationError:
-                with open(os.path.join(genomes_dir.path, "empty.fasta"), "w"):
-                    pass
+            if not os.listdir(genomes_dir.path):  # no genomes downloaded
+                open(os.path.join(genomes_dir.path, "empty.fasta"), "w").close()
                 warn(
                     "WARNING: QUAST did not download any genomes. The returned "
                     "GenomeData[DNASequence] artifact is empty. Please check "
                     "the network connection or provide the reference genomes."
                 )
+                genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
+            else:  # there are genome files present
+                try:
+                    genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
+                except ValidationError:  # corrupt files
+                    warn(
+                        "WARNING: There is a problem with the downloaded genome files. "
+                        "The returned GenomeData[DNASequence] artifact will be empty. "
+                        "You can either try again or provide the reference genomes."
+                    )
+                    open(os.path.join(genomes_dir.path, "empty.fasta"), "w").close()
 
         return tabular_results, visualization, genomes

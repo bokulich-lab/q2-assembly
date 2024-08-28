@@ -160,7 +160,7 @@ plugin.visualizers.register_function(
         "references": GenomeData[DNASequence],
         "mapped_reads": SampleData[AlignmentMap],
     },
-    parameters={**quast_params, "genomes_out_path": Str},
+    parameters={**quast_params, "genomes_dir": Str},
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
@@ -170,7 +170,7 @@ plugin.visualizers.register_function(
     },
     parameter_descriptions={
         **quast_param_descriptions,
-        "genomes_out_path": "Path of the GenomeData[DNASequence]"
+        "genomes_dir": "Path of the GenomeData[DNASequence]"
         "artifact that will be returned if"
         "reference genomes are downloaded.",
     },

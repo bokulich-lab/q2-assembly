@@ -12,6 +12,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import warnings
 from filecmp import dircmp
 from subprocess import CalledProcessError
 from unittest.mock import ANY, MagicMock, Mock, call, mock_open, patch
@@ -468,7 +469,7 @@ class TestQuast(TestPluginBase):
             threads=5,
             k_mer_size=101,
             contig_thresholds=[10, 20],
-            genomes_out_path=test_temp_dir.name,
+            genomes_dir=test_temp_dir.name,
         )
 
         p4.assert_called_once_with(
@@ -534,7 +535,7 @@ class TestQuast(TestPluginBase):
             threads=1,
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
-            genomes_out_path=test_temp_dir.name,
+            genomes_dir=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -610,7 +611,7 @@ class TestQuast(TestPluginBase):
             threads=1,
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
-            genomes_out_path=test_temp_dir.name,
+            genomes_dir=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -683,7 +684,7 @@ class TestQuast(TestPluginBase):
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
             no_icarus=True,
-            genomes_out_path=test_temp_dir.name,
+            genomes_dir=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -751,7 +752,8 @@ class TestQuast(TestPluginBase):
     @parameterized.expand(
         [(a, b) for a, b in itertools.product([True, False], repeat=2)]
     )
-    def test_evaluate_contigs_pipeline(self, pass_refs, empty_dir):
+    @patch("warnings.warn")
+    def test_evaluate_contigs_pipeline(self, pass_refs, empty_dir, p_warn):
         # this is used for mocking
         def _copy(dst_dir):
             os.makedirs(dst_dir, exist_ok=True)
@@ -809,20 +811,32 @@ class TestQuast(TestPluginBase):
                     "q2_assembly.quast.GenomeSequencesDirectoryFormat"
                 ) as MockGenomeSequencesDirectoryFormat:
                     if empty_dir:
-                        MockGenomeSequencesDirectoryFormat.return_value = (
-                            GenomeSequencesDirectoryFormat()
-                        )
-                        tab_report, _, _ = evaluate_contigs(
-                            ctx=mock_ctx, contigs=contigs
-                        )
-                        make_artifact.assert_has_calls(
-                            [
-                                call("QUASTResults", self.assert_is_dataframe((2, 43))),
-                                call("GenomeData[DNASequence]", ANY),
-                            ]
-                        )
-                        self.assertRaises(ValidationError)
+                        with warnings.catch_warnings(record=True) as w:
+                            MockGenomeSequencesDirectoryFormat.return_value = (
+                                GenomeSequencesDirectoryFormat()
+                            )
+                            tab_report, _, _ = evaluate_contigs(
+                                ctx=mock_ctx, contigs=contigs
+                            )
+                            make_artifact.assert_has_calls(
+                                [
+                                    call(
+                                        "QUASTResults",
+                                        self.assert_is_dataframe((2, 43)),
+                                    ),
+                                    call("GenomeData[DNASequence]", ANY),
+                                ]
+                            )
+                            self.assertTrue(
+                                any(
+                                    "WARNING: QUAST did not download any genomes."
+                                    in str(msg.message)
+                                    for msg in w
+                                )
+                            )
+
                     else:
+                        # everything ok
                         MockGenomeSequencesDirectoryFormat.return_value = (
                             GenomeSequencesDirectoryFormat(
                                 path=self.get_data_path("references"), mode="r"
@@ -841,6 +855,72 @@ class TestQuast(TestPluginBase):
             tab_report.validate()
             self.assertEqual(action.call_args[0][0], contigs)
             export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
+
+    def test_evaluate_contigs_pipeline_corrupt_files(self):
+        # this is used for mocking
+        def _copy(dst_dir):
+            os.makedirs(dst_dir, exist_ok=True)
+            shutil.copy2(
+                src=os.path.join(
+                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
+                ),
+                dst=os.path.join(dst_dir, "quast_results.tsv"),
+            )
+
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs")
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "tempfile.TemporaryDirectory"
+        ) as mock_temp_dir:
+            mock_temp_dir.return_value.__enter__.return_value = tmp
+            export_data = MagicMock(
+                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
+            )
+            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
+            ctx = Context()
+            ctx._scope = MagicMock()
+            make_artifact = MagicMock(
+                side_effect=lambda *args: ctx.make_artifact(*args)
+            )
+            mock_ctx = MagicMock(
+                spec=Context,
+                get_action=MagicMock(return_value=action),
+                make_artifact=make_artifact,
+            )
+            with warnings.catch_warnings(record=True) as w:
+                with patch(
+                    "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+                ) as MockGenomeSequencesDirectoryFormat:
+                    # corrupt file
+                    with tempfile.TemporaryDirectory() as tmp1:
+                        corrupt_file = os.path.join(tmp1, "empty.txt")
+                        open(corrupt_file, "w").close()
+                        MockGenomeSequencesDirectoryFormat.return_value = (
+                            GenomeSequencesDirectoryFormat(path=tmp1, mode="r")
+                        )
+
+                        tab_report, _, _ = evaluate_contigs(
+                            ctx=mock_ctx, contigs=contigs
+                        )
+                        make_artifact.assert_has_calls(
+                            [
+                                call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                                call("GenomeData[DNASequence]", ANY),
+                            ]
+                        )
+                self.assertRaises(ValidationError)
+                self.assertTrue(
+                    any(
+                        "WARNING: There is a problem with "
+                        "the downloaded genome files." in str(msg.message)
+                        for msg in w
+                    )
+                )
+                tab_report.validate()
+                self.assertEqual(action.call_args[0][0], contigs)
+                export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
     def test_move_references(self):
         with tempfile.TemporaryDirectory() as tmp:
