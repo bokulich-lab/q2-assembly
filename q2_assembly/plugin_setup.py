@@ -412,9 +412,10 @@ plugin.methods.register_function(
     outputs={"collated_genomes": GenomeData[DNASequence]},
     input_descriptions={"genomes": "A  list of FeatureData[Sequence] artifacts."},
     output_descriptions={"collated_genomes": "The converted genomes."},
-    name="Convert a list of FeatureData[Sequence] to GenomeData[DNASequence].",
-    description="This method converts a list of FeatureData[Sequence] "
+    name="Convert a list of FeatureData[Sequence] or a list of GenomeData[DNASequence] "
     "to GenomeData[DNASequence].",
+    description="This method converts a list of FeatureData[Sequence] or a list of "
+    "GenomeData[DNASequence] to a GenomeData[DNASequence] artifact.",
 )
 
 plugin.register_semantic_types(QUASTResults)
