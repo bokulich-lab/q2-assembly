@@ -66,6 +66,9 @@ class TestUtils(TestPluginBase):
         )
         collated_genomes = collate_genomes(genomes=[genomes1])
         self.assertEqual(len(os.listdir(collated_genomes.path)), 2)
+        exp_files = ["ref1.fasta", "ref2.fasta"]
+        actual_files = os.listdir(collated_genomes.path)
+        self.assertEqual(actual_files, exp_files)
 
     def test_collate_genomes_dnafastaformat_multiple(self):
         genomes1 = DNAFASTAFormat(
@@ -75,7 +78,10 @@ class TestUtils(TestPluginBase):
             self.get_data_path("dna-fasta-format/dna-sequences2.fasta"), "r"
         )
         collated_genomes = collate_genomes(genomes=[genomes1, genomes2])
+        exp_files = ["ref1.fasta", "ref2.fasta", "ref5.fasta", "ref6.fasta"]
+        actual_files = os.listdir(collated_genomes.path)
         self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
+        self.assertEqual(exp_files, actual_files)
 
     def test_collate_genomes_genome_dir_multiple(self):
         genomes1 = GenomeSequencesDirectoryFormat(
