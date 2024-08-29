@@ -13,9 +13,8 @@ from typing import Union
 
 import numpy as np
 import skbio.io
-from q2_types._util import DNAFASTAFormat
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types.feature_data import DNAIterator
+from q2_types.feature_data import DNAFASTAFormat, DNAIterator
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate

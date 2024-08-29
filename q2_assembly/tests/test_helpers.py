@@ -18,7 +18,7 @@ from unittest.mock import ANY, call, patch
 import shortuuid
 import skbio
 from parameterized import parameterized
-from q2_types._util import DNAFASTAFormat
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
@@ -64,7 +64,7 @@ class TestUtils(TestPluginBase):
         genomes1 = DNAFASTAFormat(
             self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
         )
-        collated_genomes = collate_genomes(genomes_in=[genomes1])
+        collated_genomes = collate_genomes(genomes=[genomes1])
         self.assertEqual(len(os.listdir(collated_genomes.path)), 2)
 
     def test_collate_genomes_dnafastaformat_multiple(self):
@@ -74,7 +74,7 @@ class TestUtils(TestPluginBase):
         genomes2 = DNAFASTAFormat(
             self.get_data_path("dna-fasta-format/dna-sequences2.fasta"), "r"
         )
-        collated_genomes = collate_genomes(genomes_in=[genomes1, genomes2])
+        collated_genomes = collate_genomes(genomes=[genomes1, genomes2])
         self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
 
     def test_collate_genomes_genome_dir_multiple(self):
@@ -85,7 +85,7 @@ class TestUtils(TestPluginBase):
             self.get_data_path("genomes-dir-format2"), "r"
         )
         genomes = [genomes1, genomes2]
-        collated_genomes = collate_genomes(genomes_in=genomes)
+        collated_genomes = collate_genomes(genomes=genomes)
         self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
 
     def test_collate_genomes_mix(self):
