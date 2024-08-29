@@ -410,7 +410,7 @@ plugin.methods.register_function(
     inputs={"genomes": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
     parameters={},
     outputs={"collated_genomes": GenomeData[DNASequence]},
-    input_descriptions={"genomes": "A  list of FeatureData[Sequence] artifacts."},
+    input_descriptions={"genomes": "A  list of genomes to be collated."},
     output_descriptions={"collated_genomes": "The converted genomes."},
     name="Convert a list of FeatureData[Sequence] or a list of GenomeData[DNASequence] "
     "to GenomeData[DNASequence].",
