@@ -117,17 +117,17 @@ def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
 
 
 def collate_genomes(
-    genomes_in: Union[DNAFASTAFormat, GenomeSequencesDirectoryFormat]
+    genomes: Union[DNAFASTAFormat, GenomeSequencesDirectoryFormat]
 ) -> GenomeSequencesDirectoryFormat:
     genomes_dir = GenomeSequencesDirectoryFormat()
-    if isinstance(genomes_in[0], DNAFASTAFormat):
-        for genome_file in genomes_in:
+    if isinstance(genomes[0], DNAFASTAFormat):
+        for genome_file in genomes:
             for genome in genome_file.view(DNAIterator):
-                name = genome.metadata["description"].split(",")[0]
+                name = genome.metadata["id"]
                 with open(os.path.join(genomes_dir.path, name + ".fasta"), "w") as f:
                     skbio.io.write(genome, format="fasta", into=f)
     else:
-        for genome in genomes_in:
+        for genome in genomes:
             for genome_fp in genome.path.iterdir():
                 shutil.copyfile(
                     genome_fp,

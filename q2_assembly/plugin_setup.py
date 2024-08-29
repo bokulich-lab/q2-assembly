@@ -13,13 +13,13 @@ from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
+    AlignmentMap,
     Contigs,
     MAGs,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
     SingleBowtie2Index,
 )
-from q2_types.per_sample_sequences import AlignmentMap
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
@@ -407,11 +407,11 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
     function=q2_assembly.helpers.collate_genomes,
-    inputs={"genomes_in": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
+    inputs={"genomes": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
     parameters={},
-    outputs={"genomes_out": GenomeData[DNASequence]},
-    input_descriptions={"genomes_in": "A  list of FeatureData[Sequence] artifacts."},
-    output_descriptions={"genomes_out": "The converted genomes."},
+    outputs={"collated_genomes": GenomeData[DNASequence]},
+    input_descriptions={"genomes": "A  list of FeatureData[Sequence] artifacts."},
+    output_descriptions={"collated_genomes": "The converted genomes."},
     name="Convert a list of FeatureData[Sequence] to GenomeData[DNASequence].",
     description="This method converts a list of FeatureData[Sequence] "
     "to GenomeData[DNASequence].",

@@ -62,17 +62,17 @@ class TestUtils(TestPluginBase):
 
     def test_collate_genomes_dnafastaformat_single(self):
         genomes1 = DNAFASTAFormat(
-            self.get_data_path("dna-fasta-format1/dna-sequences.fasta"), "r"
+            self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
         )
         collated_genomes = collate_genomes(genomes_in=[genomes1])
         self.assertEqual(len(os.listdir(collated_genomes.path)), 2)
 
     def test_collate_genomes_dnafastaformat_multiple(self):
         genomes1 = DNAFASTAFormat(
-            self.get_data_path("dna-fasta-format1/dna-sequences.fasta"), "r"
+            self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
         )
         genomes2 = DNAFASTAFormat(
-            self.get_data_path("dna-fasta-format2/dna-sequences.fasta"), "r"
+            self.get_data_path("dna-fasta-format/dna-sequences2.fasta"), "r"
         )
         collated_genomes = collate_genomes(genomes_in=[genomes1, genomes2])
         self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
@@ -91,7 +91,7 @@ class TestUtils(TestPluginBase):
     def test_collate_genomes_mix(self):
         # should throw TypeError
         genomes1 = DNAFASTAFormat(
-            self.get_data_path("dna-fasta-format1/dna-sequences.fasta"), "r"
+            self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
         )
         genomes2 = GenomeSequencesDirectoryFormat(
             self.get_data_path("genomes-dir-format1"), "r"
@@ -101,7 +101,7 @@ class TestUtils(TestPluginBase):
 
         with self.assertRaises(TypeError):
             # collate_genomes(genomes_in=genomes) this does not throw the exception
-            assembly.methods.collate_genomes(genomes_in=genomes)
+            assembly.methods.collate_genomes(genomes=genomes)
 
     @parameterized.expand(
         [
