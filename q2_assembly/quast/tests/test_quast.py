@@ -733,12 +733,26 @@ class TestQuast(TestPluginBase):
     @patch("pandas.read_csv")
     @patch("q2_assembly.quast._parse_columns")
     def test_create_tabular_results(self, p1, p2):
-        temp_dir = MockTempDir()
-        report_path = os.path.join(temp_dir.name, "transposed_report.tsv")
+        report_path = os.path.join(self.temp_dir.name, "transposed_report.tsv")
         mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         p2.return_value = mock_df
 
-        _ = _create_tabular_results(temp_dir.name, [1000, 5000, 25000, 50000])
+        _ = _create_tabular_results(self.temp_dir.name, [1000, 5000, 25000, 50000])
+
+        p2.assert_called_once_with(report_path, sep="\t", header=0)
+        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
+
+    @patch("pandas.read_csv")
+    @patch("q2_assembly.quast._parse_columns")
+    def test_create_tabular_results_in_combined_subdir(self, p1, p2):
+        report_path = os.path.join(
+            self.temp_dir.name, "combined_reference", "transposed_report.tsv"
+        )
+        os.makedirs(os.path.join(self.temp_dir.name, "combined_reference"))
+        mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
+        p2.return_value = mock_df
+
+        _ = _create_tabular_results(self.temp_dir.name, [1000, 5000, 25000, 50000])
 
         p2.assert_called_once_with(report_path, sep="\t", header=0)
         p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
