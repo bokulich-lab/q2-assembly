@@ -894,38 +894,39 @@ class TestQuast(TestPluginBase):
                 get_action=MagicMock(return_value=action),
                 make_artifact=make_artifact,
             )
-            with warnings.catch_warnings(record=True) as w:
-                with patch(
-                    "q2_assembly.quast.GenomeSequencesDirectoryFormat"
-                ) as MockGenomeSequencesDirectoryFormat:
+            with patch(
+                "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+            ) as MockGenomeSequencesDirectoryFormat:
+                with warnings.catch_warnings(record=True) as w:
                     # corrupt file
-                    with tempfile.TemporaryDirectory() as tmp1:
-                        corrupt_file = os.path.join(tmp1, "empty.txt")
-                        open(corrupt_file, "w").close()
-                        MockGenomeSequencesDirectoryFormat.return_value = (
-                            GenomeSequencesDirectoryFormat(path=tmp1, mode="r")
-                        )
-
-                        tab_report, _, _ = evaluate_contigs(
-                            ctx=mock_ctx, contigs=contigs
-                        )
-                        make_artifact.assert_has_calls(
-                            [
-                                call("QUASTResults", self.assert_is_dataframe((2, 43))),
-                                call("GenomeData[DNASequence]", ANY),
-                            ]
-                        )
-                self.assertRaises(ValidationError)
-                self.assertTrue(
-                    any(
-                        "WARNING: There is a problem with "
-                        "the downloaded genome files." in str(msg.message)
-                        for msg in w
+                    genomes_dir = os.path.join(tmp, "genomes_dir")
+                    os.makedirs(genomes_dir, exist_ok=True)
+                    MockGenomeSequencesDirectoryFormat.return_value = (
+                        GenomeSequencesDirectoryFormat(path=genomes_dir, mode="r")
                     )
-                )
-                tab_report.validate()
-                self.assertEqual(action.call_args[0][0], contigs)
-                export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
+                    corrupt_file = os.path.join(genomes_dir, "corrupt.fasta")
+                    with open(corrupt_file, "w") as f:
+                        f.write("seq1")
+                        f.write("ACGTXCGTA")
+
+                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+                    make_artifact.assert_has_calls(
+                        [
+                            call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                            call("GenomeData[DNASequence]", ANY),
+                        ]
+                    )
+                    self.assertRaises(ValidationError)
+                    self.assertTrue(
+                        any(
+                            "WARNING: There is a problem with "
+                            "the downloaded genome files." in str(msg.message)
+                            for msg in w
+                        )
+                    )
+        tab_report.validate()
+        self.assertEqual(action.call_args[0][0], contigs)
+        export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
     def test_move_references(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -942,12 +943,13 @@ class TestQuast(TestPluginBase):
             # tmp file should have the empty file
             # and the 2 reference files
             self.assertTrue(len(os.listdir(tmp_ref_dir)) == 3)
-            _move_references(tmp_ref_dir, tmp)
-            files = os.listdir(os.path.join(tmp, "quast_downloaded_references"))
-            self.assertTrue(len(files) == 3)
-            self.assertTrue(
-                ["ref1.1.fasta", "ref1.2.fasta", "ref2.1.fasta"], sorted(files)
-            )
+            with tempfile.TemporaryDirectory() as tmp2:
+                _move_references(tmp_ref_dir, tmp2)
+                files = os.listdir(tmp2)
+                self.assertTrue(len(files) == 3)
+                self.assertTrue(
+                    ["ref1.1.fasta", "ref1.2.fasta", "ref2.1.fasta"], sorted(files)
+                )
 
     def test_zip_dir(self):
         # Get path to test data

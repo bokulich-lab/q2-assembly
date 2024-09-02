@@ -10,6 +10,7 @@ import glob
 import json
 import os
 import platform
+import shutil
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
@@ -220,14 +221,11 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
 
 
 def _move_references(src, dest):
-    os.makedirs(os.path.join(dest, "quast_downloaded_references"), exist_ok=True)
     for fp in glob.glob(os.path.join(src, "*.fa*")):
         seqs = skbio.io.read(fp, format="fasta")
         for seq in seqs:
             seq_id = seq.metadata["id"]
-            new_fp = os.path.join(
-                dest, "quast_downloaded_references", seq_id + ".fasta"
-            )
+            new_fp = os.path.join(dest, seq_id + ".fasta")
             with open(new_fp, "w") as f:
                 skbio.io.write(seq, format="fasta", into=f)
 
@@ -416,23 +414,32 @@ def evaluate_contigs(
 
         # 4. create the Genomes
         if not references:
-            if not os.listdir(genomes_dir.path):  # no genomes downloaded
-                open(os.path.join(genomes_dir.path, "empty.fasta"), "w").close()
-                warn(
-                    "WARNING: QUAST did not download any genomes. The returned "
-                    "GenomeData[DNASequence] artifact is empty. Please check "
-                    "the network connection or provide the reference genomes."
-                )
+            try:
                 genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
-            else:  # there are genome files present
-                try:
-                    genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
-                except ValidationError:  # corrupt files
+            except ValidationError as e:  # corrupt files
+                if "Missing one or more" in str(e):
+                    warn(
+                        "WARNING: QUAST did not download any genomes. The returned "
+                        "GenomeData[DNASequence] artifact is empty. Please check "
+                        "the network connection or provide the reference genomes."
+                    )
+                else:
                     warn(
                         "WARNING: There is a problem with the downloaded genome files. "
                         "The returned GenomeData[DNASequence] artifact will be empty. "
                         "You can either try again or provide the reference genomes."
                     )
-                    open(os.path.join(genomes_dir.path, "empty.fasta"), "w").close()
+                    # we also need to remove whatever is in the directory that
+                    # will not comply with the GenomeSequencesDirectoryFormat
+                    for f in os.listdir(genomes_dir.path):
+                        fp = os.path.join(genomes_dir.path, f)
+                        if os.path.isdir(fp):
+                            shutil.rmtree(fp)
+                        else:
+                            os.remove(fp)
+                        print(f"Deleted file {fp}")
+
+                open(os.path.join(genomes_dir.path, "empty.fasta"), "w").close()
+                genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
 
         return tabular_results, visualization, genomes
