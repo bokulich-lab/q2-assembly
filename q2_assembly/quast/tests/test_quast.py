@@ -943,8 +943,10 @@ class TestQuast(TestPluginBase):
             # and the 2 reference files
             self.assertTrue(len(os.listdir(tmp_ref_dir)) == 3)
             _move_references(tmp_ref_dir, tmp)
+            files = os.listdir(os.path.join(tmp, "quast_downloaded_references"))
+            self.assertTrue(len(files) == 3)
             self.assertTrue(
-                len(os.listdir(os.path.join(tmp, "quast_downloaded_references"))) == 2
+                ["ref1.1.fasta", "ref1.2.fasta", "ref2.1.fasta"], sorted(files)
             )
 
     def test_zip_dir(self):

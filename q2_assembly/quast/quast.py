@@ -10,7 +10,6 @@ import glob
 import json
 import os
 import platform
-import shutil
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
@@ -21,6 +20,7 @@ from zipfile import ZipFile
 import pandas as pd
 import pkg_resources
 import q2templates
+import skbio
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import (
@@ -222,7 +222,14 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
 def _move_references(src, dest):
     os.makedirs(os.path.join(dest, "quast_downloaded_references"), exist_ok=True)
     for fp in glob.glob(os.path.join(src, "*.fa*")):
-        shutil.move(fp, os.path.join(dest, "quast_downloaded_references"))
+        seqs = skbio.io.read(fp, format="fasta")
+        for seq in seqs:
+            seq_id = seq.metadata["id"]
+            new_fp = os.path.join(
+                dest, "quast_downloaded_references", seq_id + ".fasta"
+            )
+            with open(new_fp, "w") as f:
+                skbio.io.write(seq, format="fasta", into=f)
 
 
 def _visualize_quast(
