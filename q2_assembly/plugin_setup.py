@@ -408,9 +408,16 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2_assembly.helpers.collate_genomes,
     inputs={"genomes": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
-    parameters={},
+    parameters={"on_duplicates": Str % Choices(["error", "warn"])},
     outputs={"collated_genomes": GenomeData[DNASequence]},
     input_descriptions={"genomes": "A  list of genomes to be collated."},
+    parameter_descriptions={
+        "on_duplicates": "Preferred behaviour when duplicated genome IDs "
+        'are encountered: "warn" displays a warning and '
+        "continues with the combination of the genomes "
+        'while "error" raises an error and aborts further '
+        "execution."
+    },
     output_descriptions={"collated_genomes": "The converted genomes."},
     name="Convert a list of FeatureData[Sequence] or a list of GenomeData[DNASequence] "
     "to GenomeData[DNASequence].",

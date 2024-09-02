@@ -10,6 +10,7 @@ import os
 import shutil
 import warnings
 from typing import Union
+from warnings import warn
 
 import numpy as np
 import skbio.io
@@ -116,15 +117,35 @@ def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
 
 
 def collate_genomes(
-    genomes: Union[DNAFASTAFormat, GenomeSequencesDirectoryFormat]
+    genomes: Union[DNAFASTAFormat, GenomeSequencesDirectoryFormat],
+    on_duplicates: str = "error",
 ) -> GenomeSequencesDirectoryFormat:
     genomes_dir = GenomeSequencesDirectoryFormat()
     if isinstance(genomes[0], DNAFASTAFormat):
+        error_on_duplicates = True if on_duplicates == "error" else False
+        has_duplicates = False
+        ids = set()
+        duplicate_ids = set()
         for genome_file in genomes:
             for genome in genome_file.view(DNAIterator):
                 name = genome.metadata["id"]
                 with open(os.path.join(genomes_dir.path, name + ".fasta"), "w") as f:
                     skbio.io.write(genome, format="fasta", into=f)
+                if name in ids:
+                    has_duplicates = True
+                    duplicate_ids.add(name)
+                else:
+                    ids.add(name)
+
+        if has_duplicates:
+            msg = (
+                "Duplicate sequence files were found for the "
+                "following IDs{}: %s." % ", ".join(duplicate_ids)
+            )
+            if error_on_duplicates:
+                raise ValueError(msg.format(""))
+            else:
+                warn(msg.format(" - duplicates will be dropped."))
     else:
         for genome in genomes:
             for genome_fp in genome.path.iterdir():
