@@ -19,8 +19,6 @@ from unittest.mock import ANY, MagicMock, Mock, call, mock_open, patch
 from zipfile import ZipFile
 
 import pandas as pd
-from future.moves import itertools
-from globus_sdk.experimental.auth_requirements_error import ValidationError
 from parameterized import parameterized
 from q2_types.feature_data import DNAFASTAFormat
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
@@ -31,6 +29,7 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from qiime2 import Artifact
+from qiime2.core.exceptions import ValidationError
 from qiime2.plugin.testing import TestPluginBase
 from qiime2.sdk import Context
 
@@ -754,9 +753,7 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(report_path, sep="\t", header=0)
         p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
 
-    @parameterized.expand(
-        [(a, b) for a, b in itertools.product([True, False], repeat=2)]
-    )
+    @parameterized.expand([(True, True), (False, True), (False, False)])
     @patch("warnings.warn")
     def test_evaluate_contigs_pipeline(self, pass_refs, empty_dir, p_warn):
         # this is used for mocking
@@ -834,7 +831,7 @@ class TestQuast(TestPluginBase):
                             )
                             self.assertTrue(
                                 any(
-                                    "WARNING: QUAST did not download any genomes."
+                                    "QUAST did not download any genomes."
                                     in str(msg.message)
                                     for msg in w
                                 )
@@ -901,29 +898,37 @@ class TestQuast(TestPluginBase):
                     # corrupt file
                     genomes_dir = os.path.join(tmp, "genomes_dir")
                     os.makedirs(genomes_dir, exist_ok=True)
-                    MockGenomeSequencesDirectoryFormat.return_value = (
-                        GenomeSequencesDirectoryFormat(path=genomes_dir, mode="r")
-                    )
                     corrupt_file = os.path.join(genomes_dir, "corrupt.fasta")
                     with open(corrupt_file, "w") as f:
                         f.write("seq1")
                         f.write("ACGTXCGTA")
 
-                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
-                    make_artifact.assert_has_calls(
-                        [
-                            call("QUASTResults", self.assert_is_dataframe((2, 43))),
-                            call("GenomeData[DNASequence]", ANY),
-                        ]
+                    mocked_dir = GenomeSequencesDirectoryFormat(
+                        path=genomes_dir, mode="r"
                     )
+                    MockGenomeSequencesDirectoryFormat.side_effect = [
+                        mocked_dir,
+                        GenomeSequencesDirectoryFormat(),
+                    ]
+
+                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+
                     self.assertRaises(ValidationError)
                     self.assertTrue(
                         any(
-                            "WARNING: There is a problem with "
-                            "the downloaded genome files." in str(msg.message)
+                            "There was a problem with "
+                            "the genome files " in str(msg.message)
                             for msg in w
                         )
                     )
+
+        make_artifact.assert_has_calls(
+            [
+                call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                call("GenomeData[DNASequence]", ANY),
+            ]
+        )
+
         tab_report.validate()
         self.assertEqual(action.call_args[0][0], contigs)
         export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))

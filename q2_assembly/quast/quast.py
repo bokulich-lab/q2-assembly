@@ -10,7 +10,6 @@ import glob
 import json
 import os
 import platform
-import shutil
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
@@ -309,10 +308,10 @@ def _visualize_quast(
 
         # Save the downloaded references
         if not references:
-            download_references = os.path.join(
+            downloaded_references = os.path.join(
                 results_dir, "quast_downloaded_references"
             )
-            _move_references(download_references, genomes_dir)
+            _move_references(downloaded_references, genomes_dir)
 
         # Zip summary, not_aligned and runs_per_reference dirs for download
         dirnames = ["not_aligned", "runs_per_reference", "summary"]
@@ -416,29 +415,22 @@ def evaluate_contigs(
         if not references:
             try:
                 genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
-            except ValidationError as e:  # corrupt files
-                if "Missing one or more" in str(e):
+            except ValidationError as e:
+                if "Missing one or more" in str(e):  # no downloaded genomes
                     warn(
-                        "WARNING: QUAST did not download any genomes. The returned "
+                        "QUAST did not download any genomes. The returned "
                         "GenomeData[DNASequence] artifact is empty. Please check "
-                        "the network connection or provide the reference genomes."
+                        "the network connection or provide the reference genomes. The "
+                        f"original error was '{e}'"
                     )
-                else:
+                else:  # corrupt files
                     warn(
-                        "WARNING: There is a problem with the downloaded genome files. "
-                        "The returned GenomeData[DNASequence] artifact will be empty. "
-                        "You can either try again or provide the reference genomes."
+                        "There was a problem with the genome files downloaded by "
+                        "QUAST. The returned GenomeData[DNASequence] artifact will "
+                        f"be empty. The original error was '{e}'"
                     )
-                    # we also need to remove whatever is in the directory that
-                    # will not comply with the GenomeSequencesDirectoryFormat
-                    for f in os.listdir(genomes_dir.path):
-                        fp = os.path.join(genomes_dir.path, f)
-                        if os.path.isdir(fp):
-                            shutil.rmtree(fp)
-                        else:
-                            os.remove(fp)
-                        print(f"Deleted file {fp}")
 
+                genomes_dir = GenomeSequencesDirectoryFormat()
                 open(os.path.join(genomes_dir.path, "empty.fasta"), "w").close()
                 genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
 
