@@ -171,9 +171,7 @@ plugin.visualizers.register_function(
     parameter_descriptions={
         **quast_param_descriptions,
         "genomes_dir": "Path of the directory from which GenomeData[DNASequence] "
-        "will be created."
-        "artifact that will be returned if"
-        "reference genomes are downloaded.",
+        "will be created.",
     },
     name="Visualize the quality of the assembled contigs after using metaQUAST.",
     description="This method visualizes the results of metaQUAST after "
