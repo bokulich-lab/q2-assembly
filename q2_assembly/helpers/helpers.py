@@ -121,37 +121,53 @@ def collate_genomes(
     on_duplicates: str = "error",
 ) -> GenomeSequencesDirectoryFormat:
     genomes_dir = GenomeSequencesDirectoryFormat()
+    error_on_duplicates = True if on_duplicates == "error" else False
+    has_duplicates = False
+    ids = set()
+    duplicate_ids = set()
     if isinstance(genomes[0], DNAFASTAFormat):
-        error_on_duplicates = True if on_duplicates == "error" else False
-        has_duplicates = False
-        ids = set()
-        duplicate_ids = set()
         for genome_file in genomes:
             for genome in genome_file.view(DNAIterator):
-                name = genome.metadata["id"]
-                with open(os.path.join(genomes_dir.path, name + ".fasta"), "w") as f:
-                    skbio.io.write(genome, format="fasta", into=f)
-                if name in ids:
-                    has_duplicates = True
-                    duplicate_ids.add(name)
+                fn = genome.metadata["id"]
+                if fn not in ids:
+                    with open(os.path.join(genomes_dir.path, fn + ".fasta"), "w") as f:
+                        skbio.io.write(genome, format="fasta", into=f)
+                    ids.add(fn)
                 else:
-                    ids.add(name)
+                    has_duplicates = True
+                    duplicate_ids.add(fn)
+                    if error_on_duplicates:
+                        msg = (
+                            "Duplicate sequence files were found for the "
+                            "following IDs{}: %s." % ", ".join(duplicate_ids)
+                        )
+                        raise ValueError(msg.format(""))
 
-        if has_duplicates:
-            msg = (
-                "Duplicate sequence files were found for the "
-                "following IDs{}: %s." % ", ".join(duplicate_ids)
-            )
-            if error_on_duplicates:
-                raise ValueError(msg.format(""))
-            else:
-                warn(msg.format(" - duplicates will be dropped."))
     else:
         for genome in genomes:
-            for genome_fp in genome.path.iterdir():
-                shutil.copyfile(
-                    genome_fp,
-                    os.path.join(genomes_dir.path, os.path.basename(genome_fp)),
-                )
+            for fp in genome.path.iterdir():
+                fn = os.path.basename(fp)
+                if fn not in ids:
+                    shutil.copyfile(
+                        fp,
+                        os.path.join(genomes_dir.path, fn),
+                    )
+                    ids.add(fn)
+                else:
+                    has_duplicates = True
+                    duplicate_ids.add(fn)
+                    if error_on_duplicates:
+                        msg = (
+                            "Duplicate sequence files were found for the "
+                            "following IDs{}: %s." % ", ".join(duplicate_ids)
+                        )
+                        raise ValueError(msg.format(""))
+
+    if has_duplicates:
+        msg = (
+            "Duplicate sequence files were found for the "
+            "following IDs{}: %s." % ", ".join(duplicate_ids)
+        )
+        warn(msg.format(" - duplicates will be dropped."))
 
     return genomes_dir

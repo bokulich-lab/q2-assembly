@@ -13,6 +13,7 @@ import shutil
 import tempfile
 import unittest
 import uuid
+import warnings
 from unittest.mock import ANY, call, patch
 
 import shortuuid
@@ -100,14 +101,46 @@ class TestUtils(TestPluginBase):
             self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
         )
         genomes2 = GenomeSequencesDirectoryFormat(
-            self.get_data_path("genomes-dir-format1"), "r"
+            self.get_data_path("genomes-dir-format2"), "r"
         )
-
-        genomes = [genomes1, genomes2]
-
+        genomes = [genomes2, genomes1]
         with self.assertRaises(TypeError):
-            # collate_genomes(genomes_in=genomes) this does not throw the exception
             assembly.methods.collate_genomes(genomes=genomes)
+
+    @parameterized.expand(["GenomeData", "DNAFASTAFormat"])
+    def test_collate_genomes_dnafastaformat_multiple_duplicates_warn(self, dir_fmt):
+        if dir_fmt == "GenomeData":
+            genomes1 = GenomeSequencesDirectoryFormat(
+                self.get_data_path("genomes-dir-format1"), "r"
+            )
+        else:
+            genomes1 = DNAFASTAFormat(
+                self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
+            )
+        with warnings.catch_warnings(record=True) as w:
+            collated_genomes = collate_genomes(
+                genomes=[genomes1, genomes1], on_duplicates="warn"
+            )
+            self.assertEqual(len(os.listdir(collated_genomes.path)), 2)
+            exp_files = ["ref1.fasta", "ref2.fasta"]
+            actual_files = sorted(os.listdir(collated_genomes.path))
+            self.assertEqual(actual_files, exp_files)
+            self.assertTrue(
+                any("- duplicates will be dropped." in str(msg.message) for msg in w)
+            )
+
+    @parameterized.expand(["GenomeData", "DNAFASTAFormat"])
+    def test_collate_genomes_duplicates_error(self, dir_fmt):
+        if dir_fmt == "GenomeData":
+            genomes1 = GenomeSequencesDirectoryFormat(
+                self.get_data_path("genomes-dir-format1"), "r"
+            )
+        else:
+            genomes1 = DNAFASTAFormat(
+                self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
+            )
+        with self.assertRaises(ValueError):
+            _ = collate_genomes(genomes=[genomes1, genomes1])
 
     @parameterized.expand(
         [
