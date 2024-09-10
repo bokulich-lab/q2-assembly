@@ -118,11 +118,10 @@ def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
 
 def collate_genomes(
     genomes: Union[DNAFASTAFormat, GenomeSequencesDirectoryFormat],
-    on_duplicates: str = "error",
+    on_duplicates: str = "warn",
 ) -> GenomeSequencesDirectoryFormat:
     genomes_dir = GenomeSequencesDirectoryFormat()
     error_on_duplicates = True if on_duplicates == "error" else False
-    has_duplicates = False
     ids = set()
     duplicate_ids = set()
     if isinstance(genomes[0], DNAFASTAFormat):
@@ -134,7 +133,6 @@ def collate_genomes(
                         skbio.io.write(genome, format="fasta", into=f)
                     ids.add(fn)
                 else:
-                    has_duplicates = True
                     duplicate_ids.add(fn)
                     if error_on_duplicates:
                         msg = (
@@ -154,7 +152,6 @@ def collate_genomes(
                     )
                     ids.add(fn)
                 else:
-                    has_duplicates = True
                     duplicate_ids.add(fn)
                     if error_on_duplicates:
                         msg = (
@@ -163,11 +160,16 @@ def collate_genomes(
                         )
                         raise ValueError(msg.format(""))
 
-    if has_duplicates:
+    if duplicate_ids:
         msg = (
             "Duplicate sequence files were found for the "
             "following IDs{}: %s." % ", ".join(duplicate_ids)
         )
-        warn(msg.format(" - duplicates will be dropped."))
+        warn(
+            msg.format(
+                " The latest occurrence will overwrite all previous "
+                "occurrences for each corresponding ID."
+            )
+        )
 
     return genomes_dir

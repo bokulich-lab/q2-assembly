@@ -61,28 +61,49 @@ class TestUtils(TestPluginBase):
         self.assertTrue(self.is_valid_shortuuid(true_shortuuid))
         self.assertFalse(self.is_valid_shortuuid(false_shortuuid))
 
-    def test_collate_genomes_dnafastaformat_single(self):
-        genomes1 = DNAFASTAFormat(
-            self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
-        )
-        collated_genomes = collate_genomes(genomes=[genomes1])
-        self.assertEqual(len(os.listdir(collated_genomes.path)), 2)
-        exp_files = ["ref1.fasta", "ref2.fasta"]
-        actual_files = sorted(os.listdir(collated_genomes.path))
-        self.assertEqual(actual_files, exp_files)
-
-    def test_collate_genomes_dnafastaformat_multiple(self):
+    @parameterized.expand(["single", "multiple"])
+    def test_collate_genomes_dnafastaformat(self, input):
         genomes1 = DNAFASTAFormat(
             self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
         )
         genomes2 = DNAFASTAFormat(
             self.get_data_path("dna-fasta-format/dna-sequences2.fasta"), "r"
         )
-        collated_genomes = collate_genomes(genomes=[genomes1, genomes2])
-        exp_files = ["ref1.fasta", "ref2.fasta", "ref5.fasta", "ref6.fasta"]
+        if input == "single":
+            genomes = [genomes1]
+            content = {
+                "ref1": {"description": "d_Bacteria_1", "sequence": "ACGTACGT"},
+                "ref2": {"description": "d_Bacteria_2", "sequence": "CGTCGTCC"},
+            }
+            exp_files = ["ref1.fasta", "ref2.fasta"]
+        else:
+            genomes = [genomes1, genomes2]
+            content = {
+                "ref1": {"description": "d_Bacteria_1", "sequence": "ACGTACGT"},
+                "ref2": {"description": "d_Bacteria_2", "sequence": "CGTCGTCC"},
+                "ref5": {"description": "d_Bacteria_3", "sequence": "ACGTACGT"},
+                "ref6": {"description": "d_Bacteria_4", "sequence": "CGTCGTCC"},
+            }
+            exp_files = ["ref1.fasta", "ref2.fasta", "ref5.fasta", "ref6.fasta"]
+
+        collated_genomes = collate_genomes(genomes=genomes)
         actual_files = sorted(os.listdir(collated_genomes.path))
-        self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
-        self.assertEqual(exp_files, actual_files)
+        self.assertEqual(actual_files, exp_files)
+
+        for fn in actual_files:
+            fp = os.path.join(collated_genomes.path, fn)
+            with open(fp, "r") as fasta_file:
+                for seq in skbio.io.read(fasta_file, "fasta"):
+                    actual_id = seq.metadata["id"]
+                    actual_description = seq.metadata["description"]
+                    actual_sequence = str(seq)
+                    expected_id = fn.split(".")[0]
+                    expected_desc = content[expected_id]["description"]
+                    expected_sequence = content[expected_id]["sequence"]
+
+                    self.assertEquals(actual_id, expected_id)
+                    self.assertEqual(actual_description, expected_desc)
+                    self.assertEqual(actual_sequence, expected_sequence)
 
     def test_collate_genomes_genome_dir_multiple(self):
         genomes1 = GenomeSequencesDirectoryFormat(
@@ -93,7 +114,9 @@ class TestUtils(TestPluginBase):
         )
         genomes = [genomes1, genomes2]
         collated_genomes = collate_genomes(genomes=genomes)
-        self.assertEqual(len(os.listdir(collated_genomes.path)), 4)
+        exp_files = ["ref1.fasta", "ref2.fasta", "ref3.fasta", "ref4.fasta"]
+        actual_files = sorted(os.listdir(collated_genomes.path))
+        self.assertEqual(exp_files, actual_files)
 
     def test_collate_genomes_mix(self):
         # should throw TypeError
@@ -118,16 +141,38 @@ class TestUtils(TestPluginBase):
                 self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
             )
         with warnings.catch_warnings(record=True) as w:
-            collated_genomes = collate_genomes(
-                genomes=[genomes1, genomes1], on_duplicates="warn"
-            )
-            self.assertEqual(len(os.listdir(collated_genomes.path)), 2)
+            collated_genomes = collate_genomes(genomes=[genomes1, genomes1])
             exp_files = ["ref1.fasta", "ref2.fasta"]
             actual_files = sorted(os.listdir(collated_genomes.path))
             self.assertEqual(actual_files, exp_files)
             self.assertTrue(
-                any("- duplicates will be dropped." in str(msg.message) for msg in w)
+                any(
+                    "The latest occurrence will "
+                    "overwrite all previous" in str(msg.message)
+                    for msg in w
+                )
             )
+
+            if dir_fmt == "DNAFASTAFormat":
+                content = {
+                    "ref1": {"description": "d_Bacteria_1", "sequence": "ACGTACGT"},
+                    "ref2": {"description": "d_Bacteria_2", "sequence": "CGTCGTCC"},
+                }
+
+                for fn in actual_files:
+                    fp = os.path.join(collated_genomes.path, fn)
+                    with open(fp, "r") as fasta_file:
+                        for seq in skbio.io.read(fasta_file, "fasta"):
+                            actual_id = seq.metadata["id"]
+                            actual_description = seq.metadata["description"]
+                            actual_sequence = str(seq)
+                            expected_id = fn.split(".")[0]
+                            expected_desc = content[expected_id]["description"]
+                            expected_sequence = content[expected_id]["sequence"]
+
+                            self.assertEquals(actual_id, expected_id)
+                            self.assertEqual(actual_description, expected_desc)
+                            self.assertEqual(actual_sequence, expected_sequence)
 
     @parameterized.expand(["GenomeData", "DNAFASTAFormat"])
     def test_collate_genomes_duplicates_error(self, dir_fmt):
@@ -140,7 +185,7 @@ class TestUtils(TestPluginBase):
                 self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
             )
         with self.assertRaises(ValueError):
-            _ = collate_genomes(genomes=[genomes1, genomes1])
+            _ = collate_genomes(genomes=[genomes1, genomes1], on_duplicates="error")
 
     @parameterized.expand(
         [
