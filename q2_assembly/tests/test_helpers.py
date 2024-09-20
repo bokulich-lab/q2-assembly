@@ -132,6 +132,16 @@ class TestUtils(TestPluginBase):
 
     @parameterized.expand(["GenomeData", "DNAFASTAFormat"])
     def test_collate_genomes_dnafastaformat_multiple_duplicates_warn(self, dir_fmt):
+        duplicate_ids = (
+            ["ref1.fasta", "ref2.fasta"]
+            if dir_fmt == "GenomeData"
+            else ["ref1", "ref2"]
+        )
+        warn_msg = (
+            "Duplicate sequence files were found for the following IDs: {}. "
+            "The latest occurrence will overwrite all previous occurrences "
+            "for each corresponding ID."
+        ).format(", ".join(duplicate_ids))
         if dir_fmt == "GenomeData":
             genomes1 = GenomeSequencesDirectoryFormat(
                 self.get_data_path("genomes-dir-format1"), "r"
@@ -145,13 +155,7 @@ class TestUtils(TestPluginBase):
             exp_files = ["ref1.fasta", "ref2.fasta"]
             actual_files = sorted(os.listdir(collated_genomes.path))
             self.assertEqual(actual_files, exp_files)
-            self.assertTrue(
-                any(
-                    "The latest occurrence will "
-                    "overwrite all previous" in str(msg.message)
-                    for msg in w
-                )
-            )
+            self.assertEqual(warn_msg, str(w[0].message))
 
             if dir_fmt == "DNAFASTAFormat":
                 content = {
@@ -176,6 +180,11 @@ class TestUtils(TestPluginBase):
 
     @parameterized.expand(["GenomeData", "DNAFASTAFormat"])
     def test_collate_genomes_duplicates_error(self, dir_fmt):
+        duplicate_ids = ["ref1"]
+        error_msg = (
+            "Duplicate sequence files were found for the "
+            "following IDs: %s." % ", ".join(duplicate_ids)
+        )
         if dir_fmt == "GenomeData":
             genomes1 = GenomeSequencesDirectoryFormat(
                 self.get_data_path("genomes-dir-format1"), "r"
@@ -184,7 +193,7 @@ class TestUtils(TestPluginBase):
             genomes1 = DNAFASTAFormat(
                 self.get_data_path("dna-fasta-format/dna-sequences1.fasta"), "r"
             )
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, error_msg):
             _ = collate_genomes(genomes=[genomes1, genomes1], on_duplicates="error")
 
     @parameterized.expand(

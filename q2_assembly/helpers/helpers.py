@@ -124,6 +124,7 @@ def collate_genomes(
     error_on_duplicates = True if on_duplicates == "error" else False
     ids = set()
     duplicate_ids = set()
+    msg = "Duplicate sequence files were found for the " "following IDs: {}."
     if isinstance(genomes[0], DNAFASTAFormat):
         for genome_file in genomes:
             for genome in genome_file.view(DNAIterator):
@@ -135,11 +136,7 @@ def collate_genomes(
                 else:
                     duplicate_ids.add(fn)
                     if error_on_duplicates:
-                        msg = (
-                            "Duplicate sequence files were found for the "
-                            "following IDs{}: %s." % ", ".join(duplicate_ids)
-                        )
-                        raise ValueError(msg.format(""))
+                        raise ValueError(msg.format(", ".join(duplicate_ids)))
 
     else:
         for genome in genomes:
@@ -154,22 +151,13 @@ def collate_genomes(
                 else:
                     duplicate_ids.add(fn)
                     if error_on_duplicates:
-                        msg = (
-                            "Duplicate sequence files were found for the "
-                            "following IDs{}: %s." % ", ".join(duplicate_ids)
-                        )
-                        raise ValueError(msg.format(""))
+                        raise ValueError(msg.format(", ".join(duplicate_ids)))
 
     if duplicate_ids:
-        msg = (
-            "Duplicate sequence files were found for the "
-            "following IDs{}: %s." % ", ".join(duplicate_ids)
-        )
         warn(
-            msg.format(
-                " The latest occurrence will overwrite all previous "
-                "occurrences for each corresponding ID."
-            )
+            msg.format(", ".join(sorted(duplicate_ids)))
+            + " The latest occurrence will overwrite all previous "
+            "occurrences for each corresponding ID."
         )
 
     return genomes_dir
