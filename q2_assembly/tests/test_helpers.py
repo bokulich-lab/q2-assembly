@@ -114,7 +114,7 @@ class TestUtils(TestPluginBase):
         )
         genomes = [genomes1, genomes2]
         collated_genomes = collate_genomes(genomes=genomes)
-        exp_files = ["ref1.fasta", "ref2.fasta", "ref3.fasta", "ref4.fasta"]
+        exp_files = ["ref1.fasta", "ref2.fasta", "ref3.fasta"]
         actual_files = sorted(os.listdir(collated_genomes.path))
         self.assertEqual(exp_files, actual_files)
 
@@ -180,14 +180,14 @@ class TestUtils(TestPluginBase):
 
     @parameterized.expand(["GenomeData", "DNAFASTAFormat"])
     def test_collate_genomes_duplicates_error(self, dir_fmt):
-        duplicate_ids = ["ref1"]
+        duplicate_ids = ["ref3.fasta"] if dir_fmt == "GenomeData" else ["ref1"]
         error_msg = (
             "Duplicate sequence files were found for the "
             "following IDs: %s." % ", ".join(duplicate_ids)
         )
         if dir_fmt == "GenomeData":
             genomes1 = GenomeSequencesDirectoryFormat(
-                self.get_data_path("genomes-dir-format1"), "r"
+                self.get_data_path("genomes-dir-format2"), "r"
             )
         else:
             genomes1 = DNAFASTAFormat(
