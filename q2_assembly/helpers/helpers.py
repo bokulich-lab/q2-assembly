@@ -124,7 +124,7 @@ def collate_genomes(
     error_on_duplicates = True if on_duplicates == "error" else False
     ids = set()
     duplicate_ids = set()
-    msg = "Duplicate sequence files were found for the " "following IDs: {}."
+    msg = "Duplicate sequence files were found for the following IDs: {}."
     if isinstance(genomes[0], DNAFASTAFormat):
         for genome_file in genomes:
             for genome in genome_file.view(DNAIterator):
