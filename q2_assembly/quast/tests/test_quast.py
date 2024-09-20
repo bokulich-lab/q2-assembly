@@ -12,6 +12,7 @@ import os
 import shutil
 import tempfile
 import unittest
+import warnings
 from filecmp import dircmp
 from subprocess import CalledProcessError
 from unittest.mock import ANY, MagicMock, Mock, call, mock_open, patch
@@ -19,6 +20,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 from q2_types.feature_data import DNAFASTAFormat
+from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
     ContigSequencesDirFmt,
@@ -26,12 +28,14 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
 from qiime2 import Artifact
+from qiime2.core.exceptions import ValidationError
 from qiime2.plugin.testing import TestPluginBase
 from qiime2.sdk import Context
 
 from ..quast import (
     _create_tabular_results,
     _evaluate_contigs,
+    _move_references,
     _process_quast_arg,
     _split_reference,
     _visualize_quast,
@@ -397,26 +401,22 @@ class TestQuast(TestPluginBase):
                 common_args=["-m", "10", "-t", "1"],
             )
 
-    @patch("q2_assembly.quast._split_reference")
-    @patch("os.makedirs")
     @patch("subprocess.run")
-    def test_evaluate_contigs_with_refs(self, p1, p2, p3):
+    def test_evaluate_contigs_with_refs(self, p1):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        ref1 = DNAFASTAFormat(self.get_data_path("references/ref1.fasta"), "r")
-        ref2 = DNAFASTAFormat(self.get_data_path("references/ref2.fasta"), "r")
+        refs = GenomeSequencesDirectoryFormat(self.get_data_path("references"), "r")
 
         exp_refs = [
-            ["some/dir/references/ref1.1.fasta", "some/dir/references/ref1.2.fasta"],
-            ["some/dir/references/ref2.1.fasta"],
+            os.path.join(str(refs.path), "ref1.fasta"),
+            os.path.join(str(refs.path), "ref2.fasta"),
         ]
-        p3.side_effect = exp_refs
 
         obs_samples = _evaluate_contigs(
             results_dir="some/dir",
             contigs=contigs,
             reads={},
             paired=False,
-            references=[ref1, ref2],
+            references=refs,
             mapped_reads=None,
             common_args=["-t", "1"],
         )
@@ -430,21 +430,12 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "-r",
-            exp_refs[0][0],
+            exp_refs[0],
             "-r",
-            exp_refs[0][1],
-            "-r",
-            exp_refs[1][0],
+            exp_refs[1],
         ]
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p1.assert_called_once_with(exp_command, check=True)
-        p2.assert_called_once_with("some/dir/references", exist_ok=True)
-        p3.assert_has_calls(
-            [
-                call(ref1, "some/dir/references"),
-                call(ref2, "some/dir/references"),
-            ]
-        )
 
     @patch("q2_assembly.quast._create_tabular_results")
     @patch("platform.system", return_value="Linux")
@@ -469,6 +460,7 @@ class TestQuast(TestPluginBase):
             threads=5,
             k_mer_size=101,
             contig_thresholds=[10, 20],
+            genomes_dir=test_temp_dir.name,
         )
 
         p4.assert_called_once_with(
@@ -534,6 +526,7 @@ class TestQuast(TestPluginBase):
             threads=1,
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+            genomes_dir=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -609,6 +602,7 @@ class TestQuast(TestPluginBase):
             threads=1,
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
+            genomes_dir=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -681,6 +675,7 @@ class TestQuast(TestPluginBase):
             k_mer_size=101,
             contig_thresholds=[0, 1000, 5000, 10000, 25000, 50000],
             no_icarus=True,
+            genomes_dir=test_temp_dir.name,
         )
 
         exp_reads_dict = {
@@ -757,16 +752,14 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(report_path, sep="\t", header=0)
         p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
 
-    def test_evaluate_contigs_pipeline(self):
-        # this is used for mocking
-        def _copy(dst_dir):
-            os.makedirs(dst_dir, exist_ok=True)
-            shutil.copy2(
-                src=os.path.join(
-                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
-                ),
-                dst=os.path.join(dst_dir, "quast_results.tsv"),
-            )
+    def test_evaluate_contigs_pipeline_with_refs(self):
+        def _copy_references(refs_dir, tmp):
+            new_refs_dir = os.path.join(tmp, "vis_files", "quast_downloaded_references")
+            os.makedirs(new_refs_dir, exist_ok=True)
+            for ref in os.listdir(refs_dir):
+                shutil.copy(
+                    src=os.path.join(refs_dir, ref), dst=os.path.join(new_refs_dir, ref)
+                )
 
         contigs = Artifact.import_data(
             "SampleData[Contigs]", self.get_data_path("contigs")
@@ -776,29 +769,192 @@ class TestQuast(TestPluginBase):
             "tempfile.TemporaryDirectory"
         ) as mock_temp_dir:
             mock_temp_dir.return_value.__enter__.return_value = tmp
-            export_data = MagicMock(
-                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
-            )
-            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
-            ctx = Context()
-            ctx._scope = MagicMock()
-            make_artifact = MagicMock(
-                side_effect=lambda *args: ctx.make_artifact(*args)
-            )
-            mock_ctx = MagicMock(
-                spec=Context,
-                get_action=MagicMock(return_value=action),
-                make_artifact=make_artifact,
-            )
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
-            tab_report, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
-            tab_report.validate()
+            refs_dir = self.get_data_path("references")
+            _copy_references(refs_dir, tmp)
 
+            refs = Artifact.import_data("GenomeData[DNASequence]", refs_dir)
+            tab_report, _, _ = evaluate_contigs(
+                ctx=mock_ctx, contigs=contigs, references=refs
+            )
             make_artifact.assert_called_once_with(
                 "QUASTResults", self.assert_is_dataframe((2, 43))
             )
+
+        tab_report.validate()
+        self.assertEqual(action.call_args[0][0], contigs)
+        export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
+
+    def create_mock_ctx(self):
+        export_data = MagicMock(
+            side_effect=lambda x: self._copy(os.path.join(x, "quast_data"))
+        )
+        action = MagicMock(return_value=(MagicMock(export_data=export_data),))
+        ctx = Context()
+        ctx._scope = MagicMock()
+        make_artifact = MagicMock(side_effect=lambda *args: ctx.make_artifact(*args))
+        mock_ctx = MagicMock(
+            spec=Context,
+            get_action=MagicMock(return_value=action),
+            make_artifact=make_artifact,
+        )
+        return action, export_data, make_artifact, mock_ctx
+
+    def _copy(self, dst_dir):
+        os.makedirs(dst_dir, exist_ok=True)
+        shutil.copy2(
+            src=os.path.join(
+                self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
+            ),
+            dst=os.path.join(dst_dir, "quast_results.tsv"),
+        )
+
+    def test_evaluate_contigs_pipeline_no_refs_normal(self):
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs")
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "tempfile.TemporaryDirectory"
+        ) as mock_temp_dir:
+            mock_temp_dir.return_value.__enter__.return_value = tmp
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
+
+            with patch(
+                "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+            ) as MockGenomeSequencesDirectoryFormat:
+                MockGenomeSequencesDirectoryFormat.return_value = (
+                    GenomeSequencesDirectoryFormat(
+                        path=self.get_data_path("references"), mode="r"
+                    )
+                )
+                tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+                make_artifact.assert_has_calls(
+                    [
+                        call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                        call("GenomeData[DNASequence]", ANY),
+                    ]
+                )
+
+        tab_report.validate()
+        self.assertEqual(action.call_args[0][0], contigs)
+        export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
+
+    def test_evaluate_contigs_pipeline_no_refs_no_downloaded_genomes(self):
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs")
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "tempfile.TemporaryDirectory"
+        ) as mock_temp_dir:
+            mock_temp_dir.return_value.__enter__.return_value = tmp
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
+
+            with patch(
+                "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+            ) as MockGenomeSequencesDirectoryFormat:
+
+                with warnings.catch_warnings(record=True) as w:
+                    MockGenomeSequencesDirectoryFormat.return_value = (
+                        GenomeSequencesDirectoryFormat()
+                    )
+                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+                    make_artifact.assert_has_calls(
+                        [
+                            call(
+                                "QUASTResults",
+                                self.assert_is_dataframe((2, 43)),
+                            ),
+                            call("GenomeData[DNASequence]", ANY),
+                        ]
+                    )
+                    self.assertTrue(
+                        any(
+                            "QUAST did not download any genomes." in str(msg.message)
+                            for msg in w
+                        )
+                    )
+
+            tab_report.validate()
             self.assertEqual(action.call_args[0][0], contigs)
             export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
+
+    def test_evaluate_contigs_pipeline_no_refs_corrupt_files(self):
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs")
+        )
+
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            "tempfile.TemporaryDirectory"
+        ) as mock_temp_dir:
+            mock_temp_dir.return_value.__enter__.return_value = tmp
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
+            with patch(
+                "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+            ) as MockGenomeSequencesDirectoryFormat:
+                with warnings.catch_warnings(record=True) as w:
+                    # corrupt file
+                    genomes_dir = os.path.join(tmp, "genomes_dir")
+                    os.makedirs(genomes_dir, exist_ok=True)
+                    corrupt_file = os.path.join(genomes_dir, "corrupt.fasta")
+                    with open(corrupt_file, "w") as f:
+                        f.write("seq1")
+                        f.write("ACGTXCGTA")
+
+                    mocked_dir = GenomeSequencesDirectoryFormat(
+                        path=genomes_dir, mode="r"
+                    )
+                    MockGenomeSequencesDirectoryFormat.side_effect = [
+                        mocked_dir,
+                        GenomeSequencesDirectoryFormat(),
+                    ]
+
+                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+
+                    self.assertRaises(ValidationError)
+                    self.assertTrue(
+                        any(
+                            "There was a problem with "
+                            "the genome files " in str(msg.message)
+                            for msg in w
+                        )
+                    )
+
+        make_artifact.assert_has_calls(
+            [
+                call("QUASTResults", self.assert_is_dataframe((2, 43))),
+                call("GenomeData[DNASequence]", ANY),
+            ]
+        )
+
+        tab_report.validate()
+        self.assertEqual(action.call_args[0][0], contigs)
+        export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
+
+    def test_move_references(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            refs_dir = self.get_data_path("references")
+            os.makedirs(os.path.join(tmp, "references1"), exist_ok=True)
+            tmp_ref_dir = os.path.join(tmp, "references1")
+            empty_fp = os.path.join(tmp_ref_dir, "empty.txt")
+
+            for file in os.listdir(refs_dir):
+                shutil.copy(src=os.path.join(refs_dir, file), dst=tmp_ref_dir)
+
+            with open(empty_fp, "w"):
+                pass
+            # tmp file should have the empty file
+            # and the 2 reference files
+            self.assertTrue(len(os.listdir(tmp_ref_dir)) == 3)
+            with tempfile.TemporaryDirectory() as tmp2:
+                _move_references(tmp_ref_dir, tmp2)
+                files = os.listdir(tmp2)
+                self.assertTrue(len(files) == 3)
+                self.assertTrue(
+                    ["ref1.1.fasta", "ref1.2.fasta", "ref2.1.fasta"], sorted(files)
+                )
 
     def test_zip_dir(self):
         # Get path to test data

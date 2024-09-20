@@ -11,14 +11,15 @@ import importlib
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
+from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
+    AlignmentMap,
     Contigs,
     MAGs,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
     SingleBowtie2Index,
 )
-from q2_types.per_sample_sequences import AlignmentMap
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
@@ -156,10 +157,10 @@ plugin.visualizers.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
-        "references": List[FeatureData[Sequence]],
+        "references": GenomeData[DNASequence],
         "mapped_reads": SampleData[AlignmentMap],
     },
-    parameters=quast_params,
+    parameters={**quast_params, "genomes_dir": Str},
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
@@ -167,10 +168,16 @@ plugin.visualizers.register_function(
         "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
         "directly.",
     },
-    parameter_descriptions=quast_param_descriptions,
+    parameter_descriptions={
+        **quast_param_descriptions,
+        "genomes_dir": "Path of the directory from which GenomeData[DNASequence] "
+        "will be created.",
+    },
     name="Visualize the quality of the assembled contigs after using metaQUAST.",
     description="This method visualizes the results of metaQUAST after "
-    "assessing the quality of assembled metagenomes.",
+    "assessing the quality of assembled metagenomes. WARNING: This action "
+    "should not be used as a standalone-action. It is designed to be called "
+    "by the evaluate-contigs action!",
     citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
 )
 
@@ -179,11 +186,15 @@ plugin.pipelines.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
-        "references": List[FeatureData[Sequence]],
+        "references": GenomeData[DNASequence],
         "mapped_reads": SampleData[AlignmentMap],
     },
     parameters=quast_params,
-    outputs={"results_table": QUASTResults, "visualization": Visualization},
+    outputs=[
+        ("results_table", QUASTResults),
+        ("visualization", Visualization),
+        ("reference_genomes", GenomeData[DNASequence]),
+    ],
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
@@ -195,6 +206,9 @@ plugin.pipelines.register_function(
     output_descriptions={
         "results_table": "QUAST result table.",
         "visualization": "Visualization of the QUAST results.",
+        "reference_genomes": "Genome sequences downloaded by QUAST. NOTE: If the user"
+        "provides the sequences as input, then this artifact"
+        "will be the input artifact.",
     },
     name="Evaluate quality of the assembled contigs using metaQUAST.",
     description="This method uses metaQUAST to assess the quality of "
