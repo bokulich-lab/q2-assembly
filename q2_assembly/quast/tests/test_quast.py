@@ -753,16 +753,6 @@ class TestQuast(TestPluginBase):
         p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
 
     def test_evaluate_contigs_pipeline_with_refs(self):
-        # this is used for mocking
-        def _copy(dst_dir):
-            os.makedirs(dst_dir, exist_ok=True)
-            shutil.copy2(
-                src=os.path.join(
-                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
-                ),
-                dst=os.path.join(dst_dir, "quast_results.tsv"),
-            )
-
         def _copy_references(refs_dir, tmp):
             new_refs_dir = os.path.join(tmp, "vis_files", "quast_downloaded_references")
             os.makedirs(new_refs_dir, exist_ok=True)
@@ -779,20 +769,7 @@ class TestQuast(TestPluginBase):
             "tempfile.TemporaryDirectory"
         ) as mock_temp_dir:
             mock_temp_dir.return_value.__enter__.return_value = tmp
-            export_data = MagicMock(
-                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
-            )
-            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
-            ctx = Context()
-            ctx._scope = MagicMock()
-            make_artifact = MagicMock(
-                side_effect=lambda *args: ctx.make_artifact(*args)
-            )
-            mock_ctx = MagicMock(
-                spec=Context,
-                get_action=MagicMock(return_value=action),
-                make_artifact=make_artifact,
-            )
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
             refs_dir = self.get_data_path("references")
             _copy_references(refs_dir, tmp)
@@ -809,17 +786,31 @@ class TestQuast(TestPluginBase):
         self.assertEqual(action.call_args[0][0], contigs)
         export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
-    def test_evaluate_contigs_pipeline_no_refs_normal(self):
-        # this is used for mocking
-        def _copy(dst_dir):
-            os.makedirs(dst_dir, exist_ok=True)
-            shutil.copy2(
-                src=os.path.join(
-                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
-                ),
-                dst=os.path.join(dst_dir, "quast_results.tsv"),
-            )
+    def create_mock_ctx(self):
+        export_data = MagicMock(
+            side_effect=lambda x: self._copy(os.path.join(x, "quast_data"))
+        )
+        action = MagicMock(return_value=(MagicMock(export_data=export_data),))
+        ctx = Context()
+        ctx._scope = MagicMock()
+        make_artifact = MagicMock(side_effect=lambda *args: ctx.make_artifact(*args))
+        mock_ctx = MagicMock(
+            spec=Context,
+            get_action=MagicMock(return_value=action),
+            make_artifact=make_artifact,
+        )
+        return action, export_data, make_artifact, mock_ctx
 
+    def _copy(self, dst_dir):
+        os.makedirs(dst_dir, exist_ok=True)
+        shutil.copy2(
+            src=os.path.join(
+                self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
+            ),
+            dst=os.path.join(dst_dir, "quast_results.tsv"),
+        )
+
+    def test_evaluate_contigs_pipeline_no_refs_normal(self):
         contigs = Artifact.import_data(
             "SampleData[Contigs]", self.get_data_path("contigs")
         )
@@ -828,20 +819,7 @@ class TestQuast(TestPluginBase):
             "tempfile.TemporaryDirectory"
         ) as mock_temp_dir:
             mock_temp_dir.return_value.__enter__.return_value = tmp
-            export_data = MagicMock(
-                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
-            )
-            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
-            ctx = Context()
-            ctx._scope = MagicMock()
-            make_artifact = MagicMock(
-                side_effect=lambda *args: ctx.make_artifact(*args)
-            )
-            mock_ctx = MagicMock(
-                spec=Context,
-                get_action=MagicMock(return_value=action),
-                make_artifact=make_artifact,
-            )
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
             with patch(
                 "q2_assembly.quast.GenomeSequencesDirectoryFormat"
@@ -863,27 +841,7 @@ class TestQuast(TestPluginBase):
         self.assertEqual(action.call_args[0][0], contigs)
         export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
-    def test_evaluate_contigs_pipeline_no_refs_no_downloaded_genomes(
-        self,
-    ):
-        # this is used for mocking
-        def _copy(dst_dir):
-            os.makedirs(dst_dir, exist_ok=True)
-            shutil.copy2(
-                src=os.path.join(
-                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
-                ),
-                dst=os.path.join(dst_dir, "quast_results.tsv"),
-            )
-
-        def _copy_references(refs_dir, tmp):
-            new_refs_dir = os.path.join(tmp, "vis_files", "quast_downloaded_references")
-            os.makedirs(new_refs_dir, exist_ok=True)
-            for ref in os.listdir(refs_dir):
-                shutil.copy(
-                    src=os.path.join(refs_dir, ref), dst=os.path.join(new_refs_dir, ref)
-                )
-
+    def test_evaluate_contigs_pipeline_no_refs_no_downloaded_genomes(self):
         contigs = Artifact.import_data(
             "SampleData[Contigs]", self.get_data_path("contigs")
         )
@@ -892,20 +850,7 @@ class TestQuast(TestPluginBase):
             "tempfile.TemporaryDirectory"
         ) as mock_temp_dir:
             mock_temp_dir.return_value.__enter__.return_value = tmp
-            export_data = MagicMock(
-                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
-            )
-            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
-            ctx = Context()
-            ctx._scope = MagicMock()
-            make_artifact = MagicMock(
-                side_effect=lambda *args: ctx.make_artifact(*args)
-            )
-            mock_ctx = MagicMock(
-                spec=Context,
-                get_action=MagicMock(return_value=action),
-                make_artifact=make_artifact,
-            )
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
             with patch(
                 "q2_assembly.quast.GenomeSequencesDirectoryFormat"
@@ -937,16 +882,6 @@ class TestQuast(TestPluginBase):
             export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
     def test_evaluate_contigs_pipeline_no_refs_corrupt_files(self):
-        # this is used for mocking
-        def _copy(dst_dir):
-            os.makedirs(dst_dir, exist_ok=True)
-            shutil.copy2(
-                src=os.path.join(
-                    self.get_data_path("quast-results"), "enhanced_tabular_results.tsv"
-                ),
-                dst=os.path.join(dst_dir, "quast_results.tsv"),
-            )
-
         contigs = Artifact.import_data(
             "SampleData[Contigs]", self.get_data_path("contigs")
         )
@@ -955,20 +890,7 @@ class TestQuast(TestPluginBase):
             "tempfile.TemporaryDirectory"
         ) as mock_temp_dir:
             mock_temp_dir.return_value.__enter__.return_value = tmp
-            export_data = MagicMock(
-                side_effect=lambda x: _copy(os.path.join(x, "quast_data"))
-            )
-            action = MagicMock(return_value=(MagicMock(export_data=export_data),))
-            ctx = Context()
-            ctx._scope = MagicMock()
-            make_artifact = MagicMock(
-                side_effect=lambda *args: ctx.make_artifact(*args)
-            )
-            mock_ctx = MagicMock(
-                spec=Context,
-                get_action=MagicMock(return_value=action),
-                make_artifact=make_artifact,
-            )
+            action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
             with patch(
                 "q2_assembly.quast.GenomeSequencesDirectoryFormat"
             ) as MockGenomeSequencesDirectoryFormat:
