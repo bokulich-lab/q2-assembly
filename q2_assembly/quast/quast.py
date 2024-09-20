@@ -14,18 +14,22 @@ import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
 from typing import List, Union
+from warnings import warn
 from zipfile import ZipFile
 
 import pandas as pd
 import pkg_resources
 import q2templates
+import skbio
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
+from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from qiime2.core.exceptions import ValidationError
 
 from q2_assembly.quast.utils import _parse_columns
 
@@ -87,7 +91,7 @@ def _evaluate_contigs(
     contigs: ContigSequencesDirFmt,
     reads: dict,
     paired: bool,
-    references: List[DNAFASTAFormat],
+    references: GenomeSequencesDirectoryFormat,
     mapped_reads: BAMDirFmt,
     common_args: list,
 ) -> List[str]:
@@ -153,17 +157,9 @@ def _evaluate_contigs(
                 )
 
     if references:
-        all_refs_dir = os.path.join(results_dir, "references")
-        os.makedirs(all_refs_dir, exist_ok=True)
-        all_ref_fps = []
-        # we need to split the references into separate files so that QUAST
-        # can correctly display alignment details per reference (otherwise it
-        # will show those as if all the provided sequences belonged to a single
-        # reference
-        for ref in references:
-            all_ref_fps.extend(_split_reference(ref, all_refs_dir))
-        for fp in all_ref_fps:
-            cmd.extend(["-r", fp])
+        files = sorted(os.listdir(references.path))
+        for fp in files:
+            cmd.extend(["-r", os.path.join(references.path, fp)])
 
     try:
         run_command(cmd, verbose=True)
@@ -223,6 +219,16 @@ def _zip_additional_reports(path_to_dirs: list, output_filename: str) -> None:
             _zip_dir(zipf, directory)
 
 
+def _move_references(src, dest):
+    for fp in glob.glob(os.path.join(src, "*.fa*")):
+        seqs = skbio.io.read(fp, format="fasta")
+        for seq in seqs:
+            seq_id = seq.metadata["id"]
+            new_fp = os.path.join(dest, seq_id + ".fasta")
+            with open(new_fp, "w") as f:
+                skbio.io.write(seq, format="fasta", into=f)
+
+
 def _visualize_quast(
     output_dir: str,
     contigs: ContigSequencesDirFmt,
@@ -240,14 +246,23 @@ def _visualize_quast(
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ] = None,
-    references: DNAFASTAFormat = None,
+    references: GenomeSequencesDirectoryFormat = None,
+    genomes_dir: str = None,
     mapped_reads: BAMDirFmt = None,
 ) -> None:
     kwargs = {
         k: v
         for k, v in locals().items()
         if k
-        not in ["output_dir", "contigs", "reads", "references", "mapped_reads", "ctx"]
+        not in [
+            "output_dir",
+            "contigs",
+            "reads",
+            "references",
+            "mapped_reads",
+            "ctx",
+            "genomes_dir",
+        ]
     }
 
     common_args = _process_common_input_params(
@@ -290,6 +305,13 @@ def _visualize_quast(
 
         # Copy results to output dir
         copy_tree(results_dir, os.path.join(output_dir, "quast_data"))
+
+        # Save the downloaded references
+        if not references:
+            downloaded_references = os.path.join(
+                results_dir, "quast_downloaded_references"
+            )
+            _move_references(downloaded_references, genomes_dir)
 
         # Zip summary, not_aligned and runs_per_reference dirs for download
         dirnames = ["not_aligned", "runs_per_reference", "summary"]
@@ -365,10 +387,17 @@ def evaluate_contigs(
     ambiguity_score=0.99,
 ):
     kwargs = {k: v for k, v in locals().items() if k not in ["contigs", "ctx"]}
+    # 1. generate the visualization
+    _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
+    genomes = references
     with tempfile.TemporaryDirectory() as tmp:
-        # 1. generate the visualization
-        _visualize_quast = ctx.get_action("assembly", "_visualize_quast")
-        (visualization,) = _visualize_quast(contigs, **kwargs)
+        if references:
+            (visualization,) = _visualize_quast(contigs, **kwargs)
+        else:
+            genomes_dir = GenomeSequencesDirectoryFormat()
+            (visualization,) = _visualize_quast(
+                contigs, **kwargs, genomes_dir=str(genomes_dir.path)
+            )
 
         # 2. after the visualization is generated we need to export the files
         # to get the results table out
@@ -382,4 +411,27 @@ def evaluate_contigs(
         # 3. read it as a pandas dataframe then we create the QUASTResults
         tabular_results = ctx.make_artifact("QUASTResults", report_df)
 
-    return tabular_results, visualization
+        # 4. create the Genomes
+        if not references:
+            try:
+                genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
+            except ValidationError as e:
+                if "Missing one or more" in str(e):  # no downloaded genomes
+                    warn(
+                        "QUAST did not download any genomes. The returned "
+                        "GenomeData[DNASequence] artifact is empty. Please check "
+                        "the network connection or provide the reference genomes. The "
+                        f"original error was '{e}'"
+                    )
+                else:  # corrupt files
+                    warn(
+                        "There was a problem with the genome files downloaded by "
+                        "QUAST. The returned GenomeData[DNASequence] artifact will "
+                        f"be empty. The original error was '{e}'"
+                    )
+
+                genomes_dir = GenomeSequencesDirectoryFormat()
+                open(os.path.join(genomes_dir.path, "empty.fasta"), "w").close()
+                genomes = ctx.make_artifact("GenomeData[DNASequence]", genomes_dir)
+
+        return tabular_results, visualization, genomes
