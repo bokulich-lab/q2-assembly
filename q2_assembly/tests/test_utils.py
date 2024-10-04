@@ -161,14 +161,12 @@ class TestUtils(TestPluginBase):
         hash_original = hashlib.md5(open(concat_file, mode="rb").read()).hexdigest()
 
         # output of our method
-        output_file = self.get_data_path(
-            "reads/small-single-end/file1_file2_concat.fastq"
-        )
-        concatenate_files([file1, file2], output_file)
-        hash_test_file = hashlib.md5(open(output_file, "rb").read()).hexdigest()
+        output_file = tempfile.NamedTemporaryFile()
+        concatenate_files([file1, file2], output_file.name)
+        hash_test_file = hashlib.md5(open(output_file.name, "rb").read()).hexdigest()
 
         self.assertEqual(hash_original, hash_test_file)
-        os.remove(output_file)
+        output_file.close()
 
     @parameterized.expand(("shortuuid", "uuid3", "uuid4", "uuid5"))
     def test_modify_contig_ids(self, uuid_type):
