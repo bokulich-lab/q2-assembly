@@ -21,7 +21,6 @@ from q2_types.per_sample_sequences import (
 )
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
-from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly.megahit.megahit import (
     _assemble_megahit,
@@ -388,7 +387,6 @@ class TestMegahit(TestPluginBase):
             bubble_level=1,
             k_list=[1, 2],
             no_mercy=True,
-            uuid_type="shortuuid",
         )
         exp_args = [
             "--presets",
@@ -430,7 +428,7 @@ class TestMegahit(TestPluginBase):
             "SampleData[PairedEndSequencesWithQuality]", _input
         )
 
-        with ParallelConfig():
+        with self.test_config:
             (out,) = self.assemble_megahit.parallel(samples)._result()
 
         out.validate()
@@ -441,7 +439,7 @@ class TestMegahit(TestPluginBase):
         _input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
         samples = Artifact.import_data("SampleData[SequencesWithQuality]", _input)
 
-        with ParallelConfig():
+        with self.test_config:
             (out,) = self.assemble_megahit.parallel(samples)._result()
 
         out.validate()

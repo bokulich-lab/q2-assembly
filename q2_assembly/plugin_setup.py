@@ -11,17 +11,18 @@ import importlib
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
+from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
+    AlignmentMap,
     Contigs,
     MAGs,
     PairedEndSequencesWithQuality,
     SequencesWithQuality,
     SingleBowtie2Index,
 )
-from q2_types.per_sample_sequences._type import AlignmentMap
 from q2_types.sample_data import SampleData
 from qiime2 import Metadata
-from qiime2.core.type import Bool, Choices, Properties, TypeMap, Visualization
+from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 
 import q2_assembly
@@ -129,6 +130,18 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
+    function=q2_assembly.helpers.rename_contigs,
+    inputs={"contigs": SampleData[Contigs]},
+    parameters={"uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"])},
+    outputs={"renamed_contigs": SampleData[Contigs]},
+    input_descriptions={"contigs": "The contigs to be renamed."},
+    name="Rename contigs using unique IDs.",
+    description="Takes contigs for each samples in SampleData[Contigs] "
+    "and renames them by changing their IDs using one of the following "
+    "functions: shortuuid, uuid3, uuid4, uuid5.",
+)
+
+plugin.methods.register_function(
     function=q2_assembly.spades.assemble_spades,
     inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**spades_params, "coassemble": P_coassemble},
@@ -147,10 +160,10 @@ plugin.visualizers.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
-        "references": List[FeatureData[Sequence]],
+        "references": GenomeData[DNASequence],
         "mapped_reads": SampleData[AlignmentMap],
     },
-    parameters=quast_params,
+    parameters={**quast_params, "genomes_dir": Str},
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
@@ -158,10 +171,16 @@ plugin.visualizers.register_function(
         "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
         "directly.",
     },
-    parameter_descriptions=quast_param_descriptions,
+    parameter_descriptions={
+        **quast_param_descriptions,
+        "genomes_dir": "Path of the directory from which GenomeData[DNASequence] "
+        "will be created.",
+    },
     name="Visualize the quality of the assembled contigs after using metaQUAST.",
     description="This method visualizes the results of metaQUAST after "
-    "assessing the quality of assembled metagenomes.",
+    "assessing the quality of assembled metagenomes. WARNING: This action "
+    "should not be used as a standalone-action. It is designed to be called "
+    "by the evaluate-contigs action!",
     citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
 )
 
@@ -170,11 +189,15 @@ plugin.pipelines.register_function(
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
-        "references": List[FeatureData[Sequence]],
+        "references": GenomeData[DNASequence],
         "mapped_reads": SampleData[AlignmentMap],
     },
     parameters=quast_params,
-    outputs={"results_table": QUASTResults, "visualization": Visualization},
+    outputs=[
+        ("results_table", QUASTResults),
+        ("visualization", Visualization),
+        ("reference_genomes", GenomeData[DNASequence]),
+    ],
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
@@ -186,6 +209,9 @@ plugin.pipelines.register_function(
     output_descriptions={
         "results_table": "QUAST result table.",
         "visualization": "Visualization of the QUAST results.",
+        "reference_genomes": "Genome sequences downloaded by QUAST. NOTE: If the user"
+        "provides the sequences as input, then this artifact"
+        "will be the input artifact.",
     },
     name="Evaluate quality of the assembled contigs using metaQUAST.",
     description="This method uses metaQUAST to assess the quality of "
@@ -393,6 +419,26 @@ plugin.methods.register_function(
     },
     name="Map reads to contigs helper.",
     description="Not to be called directly. Used by map_reads.",
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.helpers.collate_genomes,
+    inputs={"genomes": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
+    parameters={"on_duplicates": Str % Choices(["error", "warn"])},
+    outputs={"collated_genomes": GenomeData[DNASequence]},
+    input_descriptions={"genomes": "A  list of genomes to be collated."},
+    parameter_descriptions={
+        "on_duplicates": "Preferred behaviour when duplicated genome IDs "
+        'are encountered: "warn" displays a warning and '
+        "continues with the combination of the genomes "
+        'while "error" raises an error and aborts further '
+        "execution."
+    },
+    output_descriptions={"collated_genomes": "The converted genomes."},
+    name="Convert a list of FeatureData[Sequence] or a list of GenomeData[DNASequence] "
+    "to GenomeData[DNASequence].",
+    description="This method converts a list of FeatureData[Sequence] or a list of "
+    "GenomeData[DNASequence] to a GenomeData[DNASequence] artifact.",
 )
 
 plugin.methods.register_function(
