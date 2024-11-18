@@ -46,26 +46,6 @@ def _process_mason_arg(arg_key, arg_val):
         return flags
 
 
-def _simulate_reads(samples, args, result_fp):
-    base_cmd = ["mason_simulator"]
-    base_cmd.extend(args)
-
-    for s in samples:
-        cmd = base_cmd.copy()
-        sample_prefix = os.path.join(result_fp, f"{s}_00_L001")
-
-        cmd.extend(["--output", sample_prefix])
-
-        try:
-            run_command(cmd, verbose=True)
-        except subprocess.CalledProcessError as e:
-            raise Exception(
-                "An error was encountered while running Mason, "
-                f"(return code {e.returncode}), please inspect "
-                "stdout and stderr to learn more."
-            )
-
-
 def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5):
     abundances = []
     if profile == "uniform":
@@ -90,6 +70,30 @@ def abundances_to_df(abundances, genome_files, sample_id):
     df = pd.DataFrame(data)
     df.set_index("id", inplace=True)
     return df
+
+
+def _process_sample(sample, genome_files, abundances, total_reads, tmp_dir, threads, read_len, seed):
+    for genome_file, abundance in zip(genome_files, abundances):
+        genome_reads = int(total_reads * abundance)
+        _id = os.path.basename(genome_file).replace('.fasta', '')
+        print(f"Generating {genome_reads} reads for {_id}")
+
+        cmd = [
+            "mason_simulator",
+            "-v",
+            "--seed", str(seed),
+            "--illumina-read-length", str(read_len),
+            "--seq-technology", "illumina",
+            "--num-threads", str(threads),
+            "-ir", genome_file,
+            "-n", str(genome_reads),
+            "-o", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R1_001.fastq.gz"),
+            "-or", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R2_001.fastq.gz")
+        ]
+
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            print(f"Error generating reads for {_id}")
 
 
 def simulate_reads(
@@ -143,25 +147,8 @@ def simulate_reads(
             genome_files.append(genome_fp)
 
         abundances = generate_abundances(abundance_profile, len(genome_files))
-        for genome_file, abundance in zip(genome_files, abundances):
-            genome_reads = int(num_reads * abundance)
-            for sample_name in sample_names:
-                _id = os.path.basename(genome_file).replace('.fasta', '')
-                cmd = [
-                    "mason_simulator",
-                    "-v",
-                    "--seed", str(random_seed),
-                    "--illumina-read-length", str(read_length),
-                    "--seq-technology", "illumina",
-                    "--num-threads", str(threads),
-                    "-ir", genome_file,
-                    "-n", str(genome_reads),
-                    "-o", os.path.join(tmp, f"{sample_name}_{_id}_L001_R1_001.fastq.gz"),
-                    "-or", os.path.join(tmp, f"{sample_name}_{_id}_L001_R2_001.fastq.gz")
-                ]
-                result = subprocess.run(cmd)
-                if result.returncode != 0:
-                    print(f"Error generating reads for {_id}")
+        for sample_name in sample_names:
+            _process_sample(sample_name, genome_files, abundances, num_reads, tmp, threads, read_length, random_seed)
 
         # move reads into CasavaFmt
         for f in os.listdir(tmp):
