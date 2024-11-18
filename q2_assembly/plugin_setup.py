@@ -22,7 +22,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
-from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
+from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range, Float
 
 import q2_assembly
 from q2_assembly import __version__
@@ -47,6 +47,7 @@ from q2_assembly.quast.types import (
     QUASTResultsDirectoryFormat,
     QUASTResultsFormat,
 )
+from q2_assembly.mason import simulate_reads
 
 citations = Citations.load("citations.bib", package="q2_assembly")
 
@@ -319,6 +320,46 @@ plugin.methods.register_function(
     description="This method uses InSilicoSeq to generate reads simulated "
     "from given genomes for an indicated number of samples.",
     citations=[citations["Gourle2019"]],
+)
+
+plugin.methods.register_function(
+    function=simulate_reads,
+    inputs={"reference_genomes": GenomeData[DNASequence]},
+    parameters={
+        "sample_names": List[Str],
+        "num_reads": Int % Range(1, None),
+        "read_length": Int % Range(1, None),
+        "fragment_mean_size": Int % Range(1, None),
+        "fragment_size_stddev": Int % Range(1, None),
+        "error_rate": Float % Range(0, 1, inclusive_end=True),
+        "random_seed": Int % Range(0, None),
+        "haplotype_count": Int % Range(1, None),
+        "haplotype_diversity": Float % Range(0, 1, inclusive_end=True),
+        "indel_probability": Float % Range(0, 1, inclusive_end=True),
+        "indel_max_length": Int % Range(0, None),
+        "snp_probability": Float % Range(0, 1, inclusive_end=True),
+        "snp_transition_transversion_ratio": Float % Range(0, None),
+    },
+    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    input_descriptions={"reference_genomes": "Input reference genomes for read simulation."},
+    parameter_descriptions={
+        "sample_names": "List of sample names for the simulated reads.",
+        "num_reads": "Number of reads to simulate.",
+        "read_length": "Length of each simulated read.",
+        "fragment_mean_size": "Mean size of the fragments.",
+        "fragment_size_stddev": "Standard deviation of the fragment sizes.",
+        "error_rate": "Error rate for the simulated reads.",
+        "random_seed": "Random seed for reproducibility.",
+        "haplotype_count": "Number of haplotypes to simulate.",
+        "haplotype_diversity": "Diversity of the simulated haplotypes.",
+        "indel_probability": "Probability of indels in the simulated reads.",
+        "indel_max_length": "Maximum length of indels in the simulated reads.",
+        "snp_probability": "Probability of SNPs in the simulated reads.",
+        "snp_transition_transversion_ratio": "Transition/transversion ratio for SNPs.",
+    },
+    output_descriptions={"reads": "Simulated paired-end reads."},
+    name="Simulate NGS reads using Mason.",
+    description="This method uses Mason to generate reads simulated from given reference genomes.",
 )
 
 I_index, O_alignment = TypeMap(

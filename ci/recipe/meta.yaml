@@ -32,6 +32,7 @@ requirements:
     - samtools
     - shortuuid
     - spades ==3.15.2
+    - mason
 
 test:
   requires:
