@@ -85,10 +85,10 @@ def _process_sample(sample, genome_files, abundances, total_reads, tmp_dir, thre
             "--illumina-read-length", str(read_len),
             "--seq-technology", "illumina",
             "--num-threads", str(threads),
-            "-ir", genome_file,
-            "-n", str(genome_reads),
-            "-o", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R1_001.fastq.gz"),
-            "-or", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R2_001.fastq.gz")
+            "--input-reference", genome_file,
+            "--num-reads", str(genome_reads),
+            "--output", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R1_001.fastq.gz"),
+            "--output-reverse", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R2_001.fastq.gz")
         ]
 
         result = subprocess.run(cmd)
