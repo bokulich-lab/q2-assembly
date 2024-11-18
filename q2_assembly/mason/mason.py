@@ -13,8 +13,7 @@ from typing import List
 
 import numpy as np
 import pandas as pd
-from q2_types.feature_data import DNAIterator
-from q2_types.genome_data import GenomeData
+from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFmt
 
 from .._utils import run_command
@@ -92,21 +91,19 @@ def _process_sample(
             str(threads),
             "--input-reference",
             genome_file,
-            "--num-reads",
+            "--num-fragments",
             str(genome_reads),
-            "--output",
+            "--out",
             os.path.join(tmp_dir, f"{sample}_{_id}_L001_R1_001.fastq.gz"),
-            "--output-reverse",
+            "--out-right",
             os.path.join(tmp_dir, f"{sample}_{_id}_L001_R2_001.fastq.gz"),
         ]
 
-        result = run_command(cmd, verbose=True)
-        if result.returncode != 0:
-            print(f"Error generating reads for {_id}")
+        run_command(cmd, verbose=True)
 
 
 def simulate_reads_mason(
-    reference_genomes: GenomeData,
+    reference_genomes: GenomeSequencesDirectoryFormat,
     sample_names: List[str],
     num_reads: int = 1000000,
     read_length: int = 100,
@@ -136,13 +133,7 @@ def simulate_reads_mason(
     with tempfile.TemporaryDirectory() as tmp:
         result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
 
-        genome_files = []
-        for genome in reference_genomes.file.view(DNAIterator):
-            genome_fp = os.path.join(tmp, f"{genome.metadata['id']}.fasta")
-            with open(genome_fp, "w") as f:
-                genome.write(f)
-            genome_files.append(genome_fp)
-
+        genome_files = reference_genomes.genome_dict().values()
         abundances = generate_abundances(abundance_profile, len(genome_files))
         for sample_name in sample_names:
             _process_sample(
