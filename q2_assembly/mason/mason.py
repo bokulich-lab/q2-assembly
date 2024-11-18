@@ -5,7 +5,7 @@
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
+import glob
 import os
 import shutil
 import tempfile
@@ -102,7 +102,7 @@ def _process_sample(
         run_command(cmd, verbose=True)
 
 
-def simulate_reads_mason(
+def _simulate_reads_mason(
     reference_genomes: GenomeSequencesDirectoryFormat,
     sample_names: List[str],
     num_reads: int = 1000000,
@@ -152,3 +152,47 @@ def simulate_reads_mason(
             shutil.move(os.path.join(tmp, f), str(result_reads))
 
         return result_reads
+
+
+def simulate_reads_mason(
+    ctx,
+    reference_genomes,
+    sample_names,
+    num_reads=1000000,
+    read_length=100,
+    fragment_mean_size=500,
+    fragment_size_stddev=50,
+    error_rate=0.01,
+    random_seed=42,
+    abundance_profile="uniform",
+    threads=1,
+    num_partitions=None,
+):
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["reference_genomes", "sample_names", "num_partitions", "ctx"]
+    }
+
+    _simulate = ctx.get_action("assembly", "_simulate_reads_mason")
+    collate_reads = ctx.get_action("fondue", "combine_seqs")
+
+    samples = []
+    for sample_name in sample_names:
+        (sample,) = _simulate(
+            reference_genomes=reference_genomes,
+            sample_names=[sample_name],
+            **kwargs,
+        )
+        samples.append(sample)
+
+    (collated_samples,) = collate_reads(samples)
+
+    for f in glob.glob(
+        os.path.join(
+            str(reference_genomes.view(GenomeSequencesDirectoryFormat).path), "*.fai"
+        )
+    ):
+        os.remove(f)
+
+    return collated_samples

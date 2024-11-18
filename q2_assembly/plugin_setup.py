@@ -321,39 +321,64 @@ plugin.methods.register_function(
     citations=[citations["Gourle2019"]],
 )
 
+mason_simulate_params = {
+    "sample_names": List[Str],
+    "num_reads": Int % Range(1, None),
+    "read_length": Int % Range(1, None),
+    "fragment_mean_size": Int % Range(1, None),
+    "fragment_size_stddev": Int % Range(1, None),
+    "error_rate": Float % Range(0, 1, inclusive_end=True),
+    "random_seed": Int % Range(0, None),
+    "abundance_profile": Str % Choices(["uniform", "lognormal", "exponential"]),
+    "threads": Int % Range(1, None),
+}
+mason_simulate_param_descriptions = {
+    "sample_names": "List of sample names for the simulated reads.",
+    "num_reads": "Number of reads to simulate.",
+    "read_length": "Length of each simulated read.",
+    "fragment_mean_size": "Mean size of the fragments.",
+    "fragment_size_stddev": "Standard deviation of the fragment sizes.",
+    "error_rate": "Error rate for the simulated reads.",
+    "random_seed": "Random seed for reproducibility.",
+    "abundance_profile": "Abundance profile for the simulated reads.",
+    "threads": "Number of threads to use for read simulation.",
+}
+
 plugin.methods.register_function(
+    function=q2_assembly.mason._simulate_reads_mason,
+    inputs={"reference_genomes": GenomeData[DNASequence]},
+    parameters=mason_simulate_params,
+    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    input_descriptions={
+        "reference_genomes": "Input reference genomes for read simulation."
+    },
+    parameter_descriptions=mason_simulate_param_descriptions,
+    output_descriptions={"reads": "Simulated paired-end reads."},
+    name="Simulate NGS reads using Mason.",
+    description=(
+        "This method uses Mason to generate reads simulated from given "
+        "reference genomes."
+    ),
+)
+
+plugin.pipelines.register_function(
     function=q2_assembly.mason.simulate_reads_mason,
     inputs={"reference_genomes": GenomeData[DNASequence]},
-    parameters={
-        "sample_names": List[Str],
-        "num_reads": Int % Range(1, None),
-        "read_length": Int % Range(1, None),
-        "fragment_mean_size": Int % Range(1, None),
-        "fragment_size_stddev": Int % Range(1, None),
-        "error_rate": Float % Range(0, 1, inclusive_end=True),
-        "random_seed": Int % Range(0, None),
-        "abundance_profile": Str % Choices(["uniform", "lognormal", "exponential"]),
-        "threads": Int % Range(1, None),
-    },
+    parameters={**mason_simulate_params, **partition_params},
     outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation."
     },
     parameter_descriptions={
-        "sample_names": "List of sample names for the simulated reads.",
-        "num_reads": "Number of reads to simulate.",
-        "read_length": "Length of each simulated read.",
-        "fragment_mean_size": "Mean size of the fragments.",
-        "fragment_size_stddev": "Standard deviation of the fragment sizes.",
-        "error_rate": "Error rate for the simulated reads.",
-        "random_seed": "Random seed for reproducibility.",
-        "abundance_profile": "Abundance profile for the simulated reads.",
-        "threads": "Number of threads to use for read simulation.",
+        **mason_simulate_param_descriptions,
+        **partition_param_descriptions,
     },
     output_descriptions={"reads": "Simulated paired-end reads."},
-    name="Simulate NGS reads using Mason.",
-    description="This method uses Mason to generate reads simulated from given "
-    "reference genomes.",
+    name="Short read simulation with Mason.",
+    description=(
+        "This method uses Mason to generate reads simulated from given "
+        "reference genomes."
+    ),
 )
 
 I_index, O_alignment = TypeMap(
