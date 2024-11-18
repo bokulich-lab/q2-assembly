@@ -8,12 +8,12 @@
 
 import os
 import shutil
-import subprocess
 import tempfile
 from typing import List
 
 import numpy as np
 import pandas as pd
+from q2_types.feature_data import DNAIterator
 from q2_types.genome_data import GenomeData
 from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFmt
 
@@ -49,7 +49,7 @@ def _process_mason_arg(arg_key, arg_val):
 def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5):
     abundances = []
     if profile == "uniform":
-        abundances = [1/num_genomes] * num_genomes
+        abundances = [1 / num_genomes] * num_genomes
     elif profile == "exponential":
         abundances = np.exp(-lambd * np.arange(num_genomes))
         abundances /= abundances.sum()
@@ -58,45 +58,54 @@ def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5):
         abundances /= abundances.sum()
     else:
         print(f"Invalid abundance profile option: {profile}")
-        sys.exit(1)
     return abundances
 
 
 def abundances_to_df(abundances, genome_files, sample_id):
     data = {
         "id": [os.path.basename(f).split(".")[0] for f in genome_files],
-        sample_id: abundances
+        sample_id: abundances,
     }
     df = pd.DataFrame(data)
     df.set_index("id", inplace=True)
     return df
 
 
-def _process_sample(sample, genome_files, abundances, total_reads, tmp_dir, threads, read_len, seed):
+def _process_sample(
+    sample, genome_files, abundances, total_reads, tmp_dir, threads, read_len, seed
+):
     for genome_file, abundance in zip(genome_files, abundances):
         genome_reads = int(total_reads * abundance)
-        _id = os.path.basename(genome_file).replace('.fasta', '')
+        _id = os.path.basename(genome_file).replace(".fasta", "")
         print(f"Generating {genome_reads} reads for {_id}")
 
         cmd = [
             "mason_simulator",
             "-v",
-            "--seed", str(seed),
-            "--illumina-read-length", str(read_len),
-            "--seq-technology", "illumina",
-            "--num-threads", str(threads),
-            "--input-reference", genome_file,
-            "--num-reads", str(genome_reads),
-            "--output", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R1_001.fastq.gz"),
-            "--output-reverse", os.path.join(tmp_dir, f"{sample}_{_id}_L001_R2_001.fastq.gz")
+            "--seed",
+            str(seed),
+            "--illumina-read-length",
+            str(read_len),
+            "--seq-technology",
+            "illumina",
+            "--num-threads",
+            str(threads),
+            "--input-reference",
+            genome_file,
+            "--num-reads",
+            str(genome_reads),
+            "--output",
+            os.path.join(tmp_dir, f"{sample}_{_id}_L001_R1_001.fastq.gz"),
+            "--output-reverse",
+            os.path.join(tmp_dir, f"{sample}_{_id}_L001_R2_001.fastq.gz"),
         ]
 
-        result = subprocess.run(cmd)
+        result = run_command(cmd, verbose=True)
         if result.returncode != 0:
             print(f"Error generating reads for {_id}")
 
 
-def simulate_reads(
+def simulate_reads_mason(
     reference_genomes: GenomeData,
     sample_names: List[str],
     num_reads: int = 1000000,
@@ -105,14 +114,8 @@ def simulate_reads(
     fragment_size_stddev: int = 50,
     error_rate: float = 0.01,
     random_seed: int = 42,
-    haplotype_count: int = 1,
-    haplotype_diversity: float = 0.0,
-    indel_probability: float = 0.0,
-    indel_max_length: int = 0,
-    snp_probability: float = 0.0,
-    snp_transition_transversion_ratio: float = 2.0,
     abundance_profile: str = "uniform",
-    threads: int = 1
+    threads: int = 1,
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
     sample_names = sample_names or ["sample"]
 
@@ -129,12 +132,6 @@ def simulate_reads(
     args.extend(_process_mason_arg("fragment_size_stddev", fragment_size_stddev))
     args.extend(_process_mason_arg("error_rate", error_rate))
     args.extend(_process_mason_arg("random_seed", random_seed))
-    args.extend(_process_mason_arg("haplotype_count", haplotype_count))
-    args.extend(_process_mason_arg("haplotype_diversity", haplotype_diversity))
-    args.extend(_process_mason_arg("indel_probability", indel_probability))
-    args.extend(_process_mason_arg("indel_max_length", indel_max_length))
-    args.extend(_process_mason_arg("snp_probability", snp_probability))
-    args.extend(_process_mason_arg("snp_transition_transversion_ratio", snp_transition_transversion_ratio))
 
     with tempfile.TemporaryDirectory() as tmp:
         result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
@@ -142,13 +139,22 @@ def simulate_reads(
         genome_files = []
         for genome in reference_genomes.file.view(DNAIterator):
             genome_fp = os.path.join(tmp, f"{genome.metadata['id']}.fasta")
-            with open(genome_fp, 'w') as f:
+            with open(genome_fp, "w") as f:
                 genome.write(f)
             genome_files.append(genome_fp)
 
         abundances = generate_abundances(abundance_profile, len(genome_files))
         for sample_name in sample_names:
-            _process_sample(sample_name, genome_files, abundances, num_reads, tmp, threads, read_length, random_seed)
+            _process_sample(
+                sample_name,
+                genome_files,
+                abundances,
+                num_reads,
+                tmp,
+                threads,
+                read_length,
+                random_seed,
+            )
 
         # move reads into CasavaFmt
         for f in os.listdir(tmp):

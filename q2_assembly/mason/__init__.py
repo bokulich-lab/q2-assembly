@@ -6,6 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .mason import simulate_reads
+from .mason import simulate_reads_mason
 
-__all__ = ["simulate_reads"]
+__all__ = ["simulate_reads_mason"]
