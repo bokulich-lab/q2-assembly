@@ -193,7 +193,7 @@ def simulate_reads_mason(
 
     samples = []
     for sample_name, abundance_profile in zip(sample_names, abundance_profiles):
-        kwargs["abundance_profile"] = abundance_profile
+        kwargs["abundance_profiles"] = abundance_profile
         (sample,) = _simulate(
             reference_genomes=reference_genomes,
             sample_names=[sample_name],
