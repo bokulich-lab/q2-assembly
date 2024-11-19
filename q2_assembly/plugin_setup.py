@@ -364,7 +364,11 @@ plugin.methods.register_function(
 plugin.pipelines.register_function(
     function=q2_assembly.mason.simulate_reads_mason,
     inputs={"reference_genomes": GenomeData[DNASequence]},
-    parameters={**mason_simulate_params, **partition_params},
+    parameters={
+        **mason_simulate_params,
+        **partition_params,
+        "abundance_profiles": List[Str],
+    },
     outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation."
@@ -372,6 +376,7 @@ plugin.pipelines.register_function(
     parameter_descriptions={
         **mason_simulate_param_descriptions,
         **partition_param_descriptions,
+        "abundance_profiles": "Abundance profiles for the simulated reads.",
     },
     output_descriptions={"reads": "Simulated paired-end reads."},
     name="Short read simulation with Mason.",

@@ -158,27 +158,39 @@ def simulate_reads_mason(
     ctx,
     reference_genomes,
     sample_names,
+    abundance_profiles,
     num_reads=1000000,
     read_length=100,
     fragment_mean_size=500,
     fragment_size_stddev=50,
     error_rate=0.01,
     random_seed=42,
-    abundance_profile="uniform",
     threads=1,
     num_partitions=None,
 ):
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["reference_genomes", "sample_names", "num_partitions", "ctx"]
+        if k
+        not in [
+            "reference_genomes",
+            "sample_names",
+            "num_partitions",
+            "ctx",
+            "abundance_profiles",
+        ]
     }
-
+    # check that the length of sample_names and abundance_profiles match
+    if len(sample_names) != len(abundance_profiles):
+        raise ValueError(
+            "The number of sample names and abundance profiles must match."
+        )
     _simulate = ctx.get_action("assembly", "_simulate_reads_mason")
     collate_reads = ctx.get_action("fondue", "combine_seqs")
 
     samples = []
-    for sample_name in sample_names:
+    for sample_name, abundance_profile in zip(sample_names, abundance_profiles):
+        kwargs["abundance_profile"] = abundance_profile
         (sample,) = _simulate(
             reference_genomes=reference_genomes,
             sample_names=[sample_name],
