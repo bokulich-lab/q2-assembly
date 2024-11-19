@@ -154,7 +154,10 @@ def _simulate_reads_mason(
         for f in os.listdir(tmp):
             shutil.move(os.path.join(tmp, f), str(result_reads))
 
-        return result_reads
+    for f in glob.glob(os.path.join(str(reference_genomes.path), "*.fai")):
+        os.remove(f)
+
+    return result_reads
 
 
 def simulate_reads_mason(
@@ -202,12 +205,5 @@ def simulate_reads_mason(
         samples.append(sample)
 
     (collated_samples,) = collate_reads(samples)
-
-    for f in glob.glob(
-        os.path.join(
-            str(reference_genomes.view(GenomeSequencesDirectoryFormat).path), "*.fai"
-        )
-    ):
-        os.remove(f)
 
     return collated_samples
