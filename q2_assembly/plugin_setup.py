@@ -329,7 +329,7 @@ mason_simulate_params = {
     "fragment_size_stddev": Int % Range(1, None),
     "error_rate": Float % Range(0, 1, inclusive_end=True),
     "random_seed": Int % Range(0, None),
-    "abundance_profile": Str % Choices(["uniform", "lognormal", "exponential"]),
+    "abundance_profiles": List[Str % Choices(["uniform", "lognormal", "exponential"])],
     "threads": Int % Range(1, None),
 }
 mason_simulate_param_descriptions = {
@@ -340,7 +340,7 @@ mason_simulate_param_descriptions = {
     "fragment_size_stddev": "Standard deviation of the fragment sizes.",
     "error_rate": "Error rate for the simulated reads.",
     "random_seed": "Random seed for reproducibility.",
-    "abundance_profile": "Abundance profile for the simulated reads.",
+    "abundance_profiles": "Abundance profile for the simulated reads.",
     "threads": "Number of threads to use for read simulation.",
 }
 

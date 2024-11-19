@@ -45,19 +45,22 @@ def _process_mason_arg(arg_key, arg_val):
         return flags
 
 
-def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5):
-    abundances = []
-    if profile == "uniform":
-        abundances = [1 / num_genomes] * num_genomes
-    elif profile == "exponential":
-        abundances = np.exp(-lambd * np.arange(num_genomes))
-        abundances /= abundances.sum()
-    elif profile == "lognormal":
-        abundances = np.exp(mu + sigma * np.random.randn(num_genomes))
-        abundances /= abundances.sum()
-    else:
-        print(f"Invalid abundance profile option: {profile}")
-    return abundances
+def generate_abundances(profiles, num_genomes, mu=0, sigma=1, lambd=0.5):
+    all_abundances = []
+    for profile in profiles:
+        abundances = []
+        if profile == "uniform":
+            abundances = [1 / num_genomes] * num_genomes
+        elif profile == "exponential":
+            abundances = np.exp(-lambd * np.arange(num_genomes))
+            abundances /= abundances.sum()
+        elif profile == "lognormal":
+            abundances = np.exp(mu + sigma * np.random.randn(num_genomes))
+            abundances /= abundances.sum()
+        else:
+            print(f"Invalid abundance profile option: {profile}")
+        all_abundances.append(abundances)
+    return all_abundances
 
 
 def abundances_to_df(abundances, genome_files, sample_id):
@@ -111,7 +114,7 @@ def _simulate_reads_mason(
     fragment_size_stddev: int = 50,
     error_rate: float = 0.01,
     random_seed: int = 42,
-    abundance_profile: str = "uniform",
+    abundance_profiles: List[str] = None,
     threads: int = 1,
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
     sample_names = sample_names or ["sample"]
@@ -134,12 +137,12 @@ def _simulate_reads_mason(
         result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
 
         genome_files = reference_genomes.genome_dict().values()
-        abundances = generate_abundances(abundance_profile, len(genome_files))
-        for sample_name in sample_names:
+        abundances = generate_abundances(abundance_profiles, len(genome_files))
+        for sample_name, abundance in zip(sample_names, abundances):
             _process_sample(
                 sample_name,
                 genome_files,
-                abundances,
+                abundance,
                 num_reads,
                 tmp,
                 threads,
