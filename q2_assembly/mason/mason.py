@@ -121,6 +121,10 @@ def _process_sample(
     ]
     run_command(cmd, verbose=True, concat=True)
 
+    # remove the orginal files
+    for f in glob.glob(os.path.join(tmp_dir, f"{sample}_*_L001_R?_001.fastq.gz")):
+        os.remove(f)
+
 
 def _simulate_reads_mason(
     reference_genomes: GenomeSequencesDirectoryFormat,
