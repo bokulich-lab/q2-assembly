@@ -79,7 +79,7 @@ def _process_sample(
     for genome_file, abundance in zip(genome_files, abundances):
         genome_reads = int(total_reads * abundance)
         _id = os.path.basename(genome_file).replace(".fasta", "")
-        print(f"Generating {genome_reads} reads for {_id}")
+        print(f"[Sample: {sample}] Generating {genome_reads} reads for {_id}")
 
         cmd = [
             "mason_simulator",
@@ -103,6 +103,23 @@ def _process_sample(
         ]
 
         run_command(cmd, verbose=True)
+
+    # combine all reads into a single file
+    cmd = [
+        "cat",
+        os.path.join(tmp_dir, f"{sample}_*_L001_R1_001.fastq.gz"),
+        ">",
+        os.path.join(tmp_dir, f"{sample}_L001_R1_001.fastq.gz"),
+    ]
+    run_command(cmd, verbose=True)
+
+    cmd = [
+        "cat",
+        os.path.join(tmp_dir, f"{sample}_*_L001_R2_001.fastq.gz"),
+        ">",
+        os.path.join(tmp_dir, f"{sample}_L001_R2_001.fastq.gz"),
+    ]
+    run_command(cmd, verbose=True)
 
 
 def _simulate_reads_mason(
