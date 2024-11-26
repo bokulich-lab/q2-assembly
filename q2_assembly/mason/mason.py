@@ -111,7 +111,7 @@ def _process_sample(
         ">",
         os.path.join(tmp_dir, f"{sample}_L001_R1_001.fastq.gz"),
     ]
-    run_command(cmd, verbose=True)
+    run_command(cmd, verbose=True, concat=True)
 
     cmd = [
         "cat",
@@ -119,7 +119,7 @@ def _process_sample(
         ">",
         os.path.join(tmp_dir, f"{sample}_L001_R2_001.fastq.gz"),
     ]
-    run_command(cmd, verbose=True)
+    run_command(cmd, verbose=True, concat=True)
 
 
 def _simulate_reads_mason(
