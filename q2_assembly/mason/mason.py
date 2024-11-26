@@ -97,9 +97,9 @@ def _process_sample(
             "--num-fragments",
             str(genome_reads),
             "--out",
-            os.path.join(tmp_dir, f"{sample}_{_id}_L001_R1_001.fastq.gz"),
+            os.path.join(tmp_dir, f"{sample}_{_id}_00_L001_R1_001.fastq.gz"),
             "--out-right",
-            os.path.join(tmp_dir, f"{sample}_{_id}_L001_R2_001.fastq.gz"),
+            os.path.join(tmp_dir, f"{sample}_{_id}_00_L001_R2_001.fastq.gz"),
         ]
 
         run_command(cmd, verbose=True)
@@ -107,22 +107,22 @@ def _process_sample(
     # combine all reads into a single file
     cmd = [
         "cat",
-        os.path.join(tmp_dir, f"{sample}_*_L001_R1_001.fastq.gz"),
+        os.path.join(tmp_dir, f"{sample}_*_00_L001_R1_001.fastq.gz"),
         ">",
-        os.path.join(tmp_dir, f"{sample}_L001_R1_001.fastq.gz"),
+        os.path.join(tmp_dir, f"{sample}_00_L001_R1_001.fastq.gz"),
     ]
     run_command(cmd, verbose=True, concat=True)
 
     cmd = [
         "cat",
-        os.path.join(tmp_dir, f"{sample}_*_L001_R2_001.fastq.gz"),
+        os.path.join(tmp_dir, f"{sample}_*_00_L001_R2_001.fastq.gz"),
         ">",
-        os.path.join(tmp_dir, f"{sample}_L001_R2_001.fastq.gz"),
+        os.path.join(tmp_dir, f"{sample}_00_L001_R2_001.fastq.gz"),
     ]
     run_command(cmd, verbose=True, concat=True)
 
     # remove the orginal files
-    for f in glob.glob(os.path.join(tmp_dir, f"{sample}_*_L001_R?_001.fastq.gz")):
+    for f in glob.glob(os.path.join(tmp_dir, f"{sample}_*_00_L001_R?_001.fastq.gz")):
         os.remove(f)
 
 
