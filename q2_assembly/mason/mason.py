@@ -8,6 +8,7 @@
 import glob
 import os
 import shutil
+import subprocess
 import tempfile
 from typing import List
 
@@ -73,6 +74,23 @@ def abundances_to_df(abundances, genome_files, sample_id):
     return df
 
 
+def _combine_reads(sample_id, src_dir, orientation="forward"):
+    _idx = "1" if orientation == "forward" else "2"
+
+    all_files = sorted(
+        glob.glob(os.path.join(src_dir, f"{sample_id}_*_00_L001_R{_idx}_001.fastq.gz"))
+    )
+    with open(
+        os.path.join(src_dir, f"{sample_id}_00_L001_R{_idx}_001.fastq.gz"), "wb"
+    ) as out:
+        cmd = ["cat", *all_files]
+        subprocess.run(cmd, check=True, stdout=out)
+
+    # clean up
+    for f in all_files:
+        os.remove(f)
+
+
 def _process_sample(
     sample, genome_files, abundances, total_reads, tmp_dir, threads, read_len, seed
 ):
@@ -104,26 +122,9 @@ def _process_sample(
 
         run_command(cmd, verbose=True)
 
-    # combine all reads into a single file
-    cmd = [
-        "cat",
-        os.path.join(tmp_dir, f"{sample}_*_00_L001_R1_001.fastq.gz"),
-        ">",
-        os.path.join(tmp_dir, f"{sample}_00_L001_R1_001.fastq.gz"),
-    ]
-    run_command(cmd, verbose=True, concat=True)
-
-    cmd = [
-        "cat",
-        os.path.join(tmp_dir, f"{sample}_*_00_L001_R2_001.fastq.gz"),
-        ">",
-        os.path.join(tmp_dir, f"{sample}_00_L001_R2_001.fastq.gz"),
-    ]
-    run_command(cmd, verbose=True, concat=True)
-
-    # remove the orginal files
-    for f in glob.glob(os.path.join(tmp_dir, f"{sample}_*_00_L001_R?_001.fastq.gz")):
-        os.remove(f)
+    # combine all reads into a single file and clean up
+    _combine_reads(sample, tmp_dir, orientation="forward")
+    _combine_reads(sample, tmp_dir, orientation="reverse")
 
 
 def _simulate_reads_mason(
