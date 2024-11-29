@@ -216,16 +216,23 @@ def simulate_reads_mason(
     _simulate = ctx.get_action("assembly", "_simulate_reads_mason")
     collate_reads = ctx.get_action("fondue", "combine_seqs")
 
+    # we will copy the genomes to a temporary directory: mason generates fai
+    # files that would interfere with validation
+    tmp_refs = GenomeSequencesDirectoryFormat()
+    shutil.copytree(str(reference_genomes.path), str(tmp_refs.path))
+
     samples = []
     for sample_name, abundance_profile in zip(sample_names, abundance_profiles):
         kwargs["abundance_profiles"] = [abundance_profile]
         (sample,) = _simulate(
-            reference_genomes=reference_genomes,
+            reference_genomes=tmp_refs,
             sample_names=[sample_name],
             **kwargs,
         )
         samples.append(sample)
 
     (collated_samples,) = collate_reads(samples)
+
+    del tmp_refs
 
     return collated_samples
