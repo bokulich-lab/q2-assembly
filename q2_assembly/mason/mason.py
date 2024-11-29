@@ -158,7 +158,7 @@ def _simulate_reads_mason(
     # we will copy the genomes to a temporary directory: mason generates fai
     # files that would interfere with validation
     tmp_refs = GenomeSequencesDirectoryFormat()
-    shutil.copytree(str(reference_genomes.path), str(tmp_refs.path))
+    shutil.copytree(str(reference_genomes.path), str(tmp_refs.path), dirs_exist_ok=True)
 
     with tempfile.TemporaryDirectory() as tmp:
         result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
