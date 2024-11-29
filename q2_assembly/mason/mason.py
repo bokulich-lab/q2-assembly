@@ -155,10 +155,15 @@ def _simulate_reads_mason(
     args.extend(_process_mason_arg("error_rate", error_rate))
     args.extend(_process_mason_arg("random_seed", random_seed))
 
+    # we will copy the genomes to a temporary directory: mason generates fai
+    # files that would interfere with validation
+    tmp_refs = GenomeSequencesDirectoryFormat()
+    shutil.copytree(str(reference_genomes.path), str(tmp_refs.path))
+
     with tempfile.TemporaryDirectory() as tmp:
         result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
 
-        genome_files = reference_genomes.genome_dict().values()
+        genome_files = tmp_refs.genome_dict().values()
         abundances = generate_abundances(abundance_profiles, len(genome_files))
         for sample_name, abundance in zip(sample_names, abundances):
             _process_sample(
@@ -176,8 +181,7 @@ def _simulate_reads_mason(
         for f in os.listdir(tmp):
             shutil.move(os.path.join(tmp, f), str(result_reads))
 
-    for f in glob.glob(os.path.join(str(reference_genomes.path), "*.fai")):
-        os.remove(f)
+    del tmp_refs
 
     return result_reads
 
@@ -216,23 +220,16 @@ def simulate_reads_mason(
     _simulate = ctx.get_action("assembly", "_simulate_reads_mason")
     collate_reads = ctx.get_action("fondue", "combine_seqs")
 
-    # we will copy the genomes to a temporary directory: mason generates fai
-    # files that would interfere with validation
-    tmp_refs = GenomeSequencesDirectoryFormat()
-    shutil.copytree(str(reference_genomes.path), str(tmp_refs.path))
-
     samples = []
     for sample_name, abundance_profile in zip(sample_names, abundance_profiles):
         kwargs["abundance_profiles"] = [abundance_profile]
         (sample,) = _simulate(
-            reference_genomes=tmp_refs,
+            reference_genomes=reference_genomes,
             sample_names=[sample_name],
             **kwargs,
         )
         samples.append(sample)
 
     (collated_samples,) = collate_reads(samples)
-
-    del tmp_refs
 
     return collated_samples
