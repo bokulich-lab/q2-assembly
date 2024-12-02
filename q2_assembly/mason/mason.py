@@ -226,6 +226,8 @@ def simulate_reads_mason(
             "num_partitions",
             "ctx",
             "abundance_profiles",
+            "num_reads",
+            "read_length",
         ]
     }
     # check that the length of sample_names and abundance_profiles match
@@ -257,9 +259,9 @@ def simulate_reads_mason(
     for sample_name, abundance_profile, reads, length in zip(
             sample_names, abundance_profiles, num_reads, read_length
     ):
-        kwargs["abundance_profiles"] = [abundance_profile]
         (sample,) = _simulate(
             reference_genomes=reference_genomes,
+            abundance_profiles=[abundance_profile],
             sample_names=[sample_name],
             num_reads=[reads],
             read_length=[length],
