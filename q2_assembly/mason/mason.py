@@ -150,12 +150,12 @@ def _simulate_reads_mason(
 
     if len(num_reads) != len(sample_names) and len(num_reads) != 1:
         raise ValueError(
-            "The length of num_reads must be either 1 or equal to the number of sample names."
+            f"The length of num_reads must be either 1 or equal to the number of sample names. Provided: {len(num_reads)}, Expected: 1 or {len(sample_names)}"
         )
 
     if len(read_length) != len(sample_names) and len(read_length) != 1:
         raise ValueError(
-            "The length of read_length must be either 1 or equal to the number of sample names."
+            f"The length of read_length must be either 1 or equal to the number of sample names. Provided: {len(read_length)}, Expected: 1 or {len(sample_names)}"
         )
 
     if len(num_reads) == 1:
@@ -231,7 +231,7 @@ def simulate_reads_mason(
     # check that the length of sample_names and abundance_profiles match
     if len(sample_names) != len(abundance_profiles):
         raise ValueError(
-            "The number of sample names and abundance profiles must match."
+            f"The number of sample names and abundance profiles must match. Provided: {len(sample_names)}, Expected: {len(abundance_profiles)}"
         )
     _simulate = ctx.get_action("assembly", "_simulate_reads_mason")
     collate_reads = ctx.get_action("fondue", "combine_seqs")
