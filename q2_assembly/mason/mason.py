@@ -130,8 +130,8 @@ def _process_sample(
 def _simulate_reads_mason(
     reference_genomes: GenomeSequencesDirectoryFormat,
     sample_names: List[str],
-    num_reads: int = 1000000,
-    read_length: int = 100,
+    num_reads: List[int] = [1000000],
+    read_length: List[int] = [100],
     fragment_mean_size: int = 500,
     fragment_size_stddev: int = 50,
     error_rate: float = 0.01,
@@ -148,9 +148,23 @@ def _simulate_reads_mason(
             f'names: {", ".join(sorted(dupl))}'
         )
 
-    args = _process_mason_arg("num_reads", num_reads)
-    args.extend(_process_mason_arg("read_length", read_length))
-    args.extend(_process_mason_arg("fragment_mean_size", fragment_mean_size))
+    if len(num_reads) != len(sample_names) and len(num_reads) != 1:
+        raise ValueError(
+            "The length of num_reads must be either 1 or equal to the number of sample names."
+        )
+
+    if len(read_length) != len(sample_names) and len(read_length) != 1:
+        raise ValueError(
+            "The length of read_length must be either 1 or equal to the number of sample names."
+        )
+
+    if len(num_reads) == 1:
+        num_reads = num_reads * len(sample_names)
+
+    if len(read_length) == 1:
+        read_length = read_length * len(sample_names)
+
+    args = _process_mason_arg("fragment_mean_size", fragment_mean_size)
     args.extend(_process_mason_arg("fragment_size_stddev", fragment_size_stddev))
     args.extend(_process_mason_arg("error_rate", error_rate))
     args.extend(_process_mason_arg("random_seed", random_seed))
@@ -165,15 +179,17 @@ def _simulate_reads_mason(
 
         genome_files = tmp_refs.genome_dict().values()
         abundances = generate_abundances(abundance_profiles, len(genome_files))
-        for sample_name, abundance in zip(sample_names, abundances):
+        for sample_name, abundance, reads, length in zip(
+            sample_names, abundances, num_reads, read_length
+        ):
             _process_sample(
                 sample_name,
                 genome_files,
                 abundance,
-                num_reads,
+                reads,
                 tmp,
                 threads,
-                read_length,
+                length,
                 random_seed,
             )
 
@@ -191,8 +207,8 @@ def simulate_reads_mason(
     reference_genomes,
     sample_names,
     abundance_profiles,
-    num_reads=1000000,
-    read_length=100,
+    num_reads=[1000000],
+    read_length=[100],
     fragment_mean_size=500,
     fragment_size_stddev=50,
     error_rate=0.01,

@@ -323,8 +323,8 @@ plugin.methods.register_function(
 
 mason_simulate_params = {
     "sample_names": List[Str],
-    "num_reads": Int % Range(1, None),
-    "read_length": Int % Range(1, None),
+    "num_reads": List[Int % Range(1, None)],
+    "read_length": List[Int % Range(1, None)],
     "fragment_mean_size": Int % Range(1, None),
     "fragment_size_stddev": Int % Range(1, None),
     "error_rate": Float % Range(0, 1, inclusive_end=True),
