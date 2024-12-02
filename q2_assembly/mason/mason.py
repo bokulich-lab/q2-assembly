@@ -254,11 +254,15 @@ def simulate_reads_mason(
     collate_reads = ctx.get_action("fondue", "combine_seqs")
 
     samples = []
-    for sample_name, abundance_profile in zip(sample_names, abundance_profiles):
+    for sample_name, abundance_profile, reads, length in zip(
+            sample_names, abundance_profiles, num_reads, read_length
+    ):
         kwargs["abundance_profiles"] = [abundance_profile]
         (sample,) = _simulate(
             reference_genomes=reference_genomes,
             sample_names=[sample_name],
+            num_reads=[reads],
+            read_length=[length],
             **kwargs,
         )
         samples.append(sample)
