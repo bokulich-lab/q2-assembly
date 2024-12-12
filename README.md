@@ -6,21 +6,7 @@
 QIIME 2 plugin for (meta)genome assembly.
 
 ## Installation
-To install _q2-assembly_, follow the installation steps described below.
-
-```shell
-mamba create -yn q2-shotgun \
-  -c https://packages.qiime2.org/qiime2/2022.8/tested \
-  -c bioconda -c conda-forge -c default q2-assembly q2cli
-
-conda activate q2-shotgun
-```
-
-Refresh cache and check that everything worked:
-```shell
-qiime dev refresh-cache
-qiime info
-```
+_q2-assembly_ is available as part of the QIIME 2 metagenome distribution. For installation and usage instructions please consult the official [QIIME 2 documentation](https://www.docs.qiime2.org).
 
 ## Functionality
 This QIIME 2 plugin contains actions used to assemble (meta)genomes from short single/paired-end
@@ -35,8 +21,10 @@ find an overview of actions available in the plugin.
 | evaluate-contigs     | Evaluate quality of the assembled contigs using metaQUAST. | [QUAST](https://github.com/ablab/quast)                |
 | generate-reads       | Simulate NGS reads using InSilicoSeq.                      | [InSilicoSeq](https://github.com/HadrienG/InSilicoSeq) |
 | index-contigs        | Index contigs using Bowtie 2.                              | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
+| index-derep-mags     | Index dereplicated MAGs using Bowtie2.                     | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
 | index-mags           | Index MAGs using Bowtie 2.                                 | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
-| map-reads-to-contigs | Map reads to contigs using Bowtie 2.                       | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
+| map-reads            | Map reads to contigs/MAGs using Bowtie 2.                  | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
+| rename-contigs       | Rename contigs using unique IDs.                           | -                                                      |
 
 ## Dev environment
 This repository follows the _black_ code style. To make the development slightly easier
