@@ -10,9 +10,7 @@ _q2-assembly_ is available as part of the QIIME 2 metagenome distribution. For i
 
 ## Functionality
 This QIIME 2 plugin contains actions used to assemble (meta)genomes from short single/paired-end
-sequencing reads. Currently, two assemblers are supported: SPAdes and MEGAHIT (for details on
-the implementation and usage, please refer to the respective documentation). Below you will
-find an overview of actions available in the plugin.
+sequencing reads:
 
 | Action               | Description                                                | Underlying tool                                        |
 |----------------------|------------------------------------------------------------|--------------------------------------------------------|
