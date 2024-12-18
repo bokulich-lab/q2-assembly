@@ -6,7 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from ._version import get_versions
 from .bowtie2 import indexing, mapping
 from .helpers import helpers
 from .iss import iss
