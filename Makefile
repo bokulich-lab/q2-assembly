@@ -16,7 +16,7 @@ test-cov: all
 	coverage xml
 
 install: all
-	$(PYTHON) setup.py install
+	$(PYTHON) -m pip install -v .
 
 dev: all
 	pip install pre-commit
