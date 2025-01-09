@@ -21,7 +21,6 @@ from q2_types.per_sample_sequences import (
     SingleBowtie2Index,
 )
 from q2_types.sample_data import SampleData
-from qiime2 import Metadata
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
 from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 
