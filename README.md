@@ -6,7 +6,7 @@
 QIIME 2 plugin for (meta)genome assembly.
 
 ## Installation
-_q2-assembly_ is available as part of the QIIME 2 metagenome distribution. For installation and usage instructions please consult the official [QIIME 2 documentation](https://docs.qiime2.org).
+_q2-assembly_ is available as part of the QIIME 2 moshpit distribution. For installation and usage instructions please consult the official [QIIME 2 documentation](https://docs.qiime2.org).
 
 ## Functionality
 This QIIME 2 plugin contains actions used to assemble (meta)genomes from short single/paired-end
