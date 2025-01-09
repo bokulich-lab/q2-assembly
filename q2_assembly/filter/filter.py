@@ -54,6 +54,18 @@ def filter_contigs(
     length_threshold: int = 0,
     remove_empty: bool = False,
 ) -> ContigSequencesDirFmt:
+    if not any([metadata, length_threshold, remove_empty]):
+        raise ValueError(
+            "At least one of the following parameters must be provided: "
+            "metadata, length_threshold, remove_empty."
+        )
+
+    if metadata and not where:
+        raise ValueError(
+            "A filter query must be provided through the 'when' parameter "
+            "when filtering by metadata."
+        )
+
     if length_threshold > 0:
         contigs = _filter_by_length(contigs, length_threshold)
 
