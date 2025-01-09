@@ -6,7 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from ._version import get_versions
 from .bowtie2 import indexing, mapping
 from .filter import filter
 from .helpers import helpers
@@ -15,8 +14,10 @@ from .megahit import megahit
 from .quast import quast
 from .spades import spades
 
-__version__ = get_versions()["version"]
-del get_versions
+try:
+    from ._version import __version__
+except ModuleNotFoundError:
+    __version__ = '0.0.0+notfound'
 
 __all__ = [
     "indexing",
