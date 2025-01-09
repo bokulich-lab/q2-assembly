@@ -475,7 +475,7 @@ filter_contigs_param_descriptions = {
              "criteria that must be met to be included in the filtered "
              "data. If not provided, all samples in `metadata` that are "
              "also in the contig data will be retained.",
-    "exclude_ids": "Defaults to False. If True, the samples selected by "
+    "exclude_ids": "If True, the samples selected by "
                    "the `metadata` and optional `where` parameter will be "
                    "excluded from the filtered data.",
     "remove_empty": "If True, samples with no contigs will be removed from "
