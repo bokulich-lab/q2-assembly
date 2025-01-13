@@ -26,7 +26,7 @@ requirements:
   - q2-demux {{ qiime2_epoch }}.*
   - samtools
   - shortuuid
-  - spades
+  - spades {{ spades }}
   build:
   - setuptools
   - versioningit
