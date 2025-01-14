@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from .bowtie2 import indexing, mapping
+from .filter import filter
 from .helpers import helpers
 from .iss import iss
 from .megahit import megahit
@@ -18,4 +19,13 @@ try:
 except ModuleNotFoundError:
     __version__ = '0.0.0+notfound'
 
-__all__ = ["indexing", "mapping", "iss", "megahit", "quast", "spades", "helpers"]
+__all__ = [
+    "indexing",
+    "mapping",
+    "iss",
+    "megahit",
+    "quast",
+    "spades",
+    "helpers",
+    "filter",
+]
