@@ -62,7 +62,7 @@ def filter_contigs(
 
     if metadata and not where:
         raise ValueError(
-            "A filter query must be provided through the 'when' parameter "
+            "A filter query must be provided through the 'where' parameter "
             "when filtering by metadata."
         )
 
