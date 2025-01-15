@@ -31,6 +31,8 @@ from q2_assembly._action_params import (
     bowtie2_indexing_params,
     bowtie2_mapping_param_descriptions,
     bowtie2_mapping_params,
+    filter_contigs_param_descriptions,
+    filter_contigs_params,
     iss_param_descriptions,
     iss_params,
     megahit_param_descriptions,
@@ -41,8 +43,6 @@ from q2_assembly._action_params import (
     quast_params,
     spades_param_descriptions,
     spades_params,
-    filter_contigs_params,
-    filter_contigs_param_descriptions,
 )
 from q2_assembly.quast.types import (
     QUASTResults,

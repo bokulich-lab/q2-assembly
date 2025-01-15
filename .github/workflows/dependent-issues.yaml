@@ -41,4 +41,3 @@ jobs:
           comment: >
             This PR/issue depends on:
             {{ dependencies }}
-  

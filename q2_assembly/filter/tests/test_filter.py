@@ -22,11 +22,11 @@ class TestFilterContigs(TestPluginBase):
     def setUp(self):
         super().setUp()
         self.contigs = ContigSequencesDirFmt(
-            self.get_data_path("contigs-with-empty"), 'r'
+            self.get_data_path("contigs-with-empty"), "r"
         )
         self.metadata_df = pd.DataFrame(
-            data={'col1': ['yes', 'no', 'yes']},
-            index=pd.Index(['sample1', 'sample2', 'sample3'], name='id')
+            data={"col1": ["yes", "no", "yes"]},
+            index=pd.Index(["sample1", "sample2", "sample3"], name="id"),
         )
         self.metadata = q2.Metadata(self.metadata_df)
 
@@ -37,33 +37,32 @@ class TestFilterContigs(TestPluginBase):
 
         self.assertDictEqual(
             obs.sample_dict(),
-            {'sample1': os.path.join(obs.path, 'sample1_contigs.fa'),
-             'sample3': os.path.join(obs.path, 'sample3_contigs.fa')}
+            {
+                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
+                "sample3": os.path.join(obs.path, "sample3_contigs.fa"),
+            },
         )
 
     def test_filter_metadata_exclude_ids(self):
         obs = filter_contigs(
-            contigs=self.contigs, metadata=self.metadata,
-            where="col1='yes'", exclude_ids=True
+            contigs=self.contigs,
+            metadata=self.metadata,
+            where="col1='yes'",
+            exclude_ids=True,
         )
 
         self.assertDictEqual(
-            obs.sample_dict(),
-            {'sample2': os.path.join(obs.path, 'sample2_contigs.fa')}
+            obs.sample_dict(), {"sample2": os.path.join(obs.path, "sample2_contigs.fa")}
         )
 
     def test_filter_metadata_no_query_no_metadata(self):
         with self.assertRaisesRegex(
-                ValueError,
-                'At least one of the following parameters must be provided'
+            ValueError, "At least one of the following parameters must be provided"
         ):
             filter_contigs(contigs=self.contigs)
 
     def test_filter_metadata_no_query(self):
-        with self.assertRaisesRegex(
-                ValueError,
-                'A filter query must be provided'
-        ):
+        with self.assertRaisesRegex(ValueError, "A filter query must be provided"):
             filter_contigs(contigs=self.contigs, metadata=self.metadata)
 
     def test_filter_by_length(self):
@@ -74,17 +73,17 @@ class TestFilterContigs(TestPluginBase):
         exp_counts = (6, 1, 0)
         for (_id, fp), count in zip(obs.sample_dict().items(), exp_counts):
             with (open(fp) as f):
-                self.assertEqual(
-                    len(list(skbio.io.read(f, format='fasta'))), count
-                )
+                self.assertEqual(len(list(skbio.io.read(f, format="fasta"))), count)
 
     def test_filter_remove_empty(self):
         obs = filter_contigs(contigs=self.contigs, remove_empty=True)
 
         self.assertDictEqual(
             obs.sample_dict(),
-            {'sample1': os.path.join(obs.path, 'sample1_contigs.fa'),
-             'sample2': os.path.join(obs.path, 'sample2_contigs.fa')}
+            {
+                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
+                "sample2": os.path.join(obs.path, "sample2_contigs.fa"),
+            },
         )
 
     def test_filter_by_length_and_remove_empty(self):
@@ -94,15 +93,11 @@ class TestFilterContigs(TestPluginBase):
 
         self.assertEqual(len(obs.sample_dict()), 1)
 
-        with (open(os.path.join(obs.path, 'sample1_contigs.fa')) as f):
-            self.assertEqual(
-                len(list(skbio.io.read(f, format='fasta'))), 2
-            )
+        with (open(os.path.join(obs.path, "sample1_contigs.fa")) as f):
+            self.assertEqual(len(list(skbio.io.read(f, format="fasta"))), 2)
 
     def test_filter_everything(self):
-        with self.assertRaisesRegex(
-                ValueError, 'No samples remain after filtering'
-        ):
+        with self.assertRaisesRegex(ValueError, "No samples remain after filtering"):
             filter_contigs(
                 contigs=self.contigs, length_threshold=1000, remove_empty=True
             )

@@ -70,7 +70,6 @@ class TestMason(unittest.TestCase):
     @patch("subprocess.run")
     def test_simulate_reads_mason(self, p):
         samples = ["sample1", "sample2"]
-        result_fp = "/there"
         _simulate_reads_mason(
             reference_genomes="test_genome.fa",
             sample_names=samples,
@@ -95,7 +94,6 @@ class TestMason(unittest.TestCase):
     )
     def test_simulate_reads_mason_with_error(self, p):
         samples = ["sample1", "sample2"]
-        result_fp = "/there"
 
         with self.assertRaisesRegex(
             Exception, r"An error.*while running Mason.*code 123"
