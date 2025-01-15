@@ -144,3 +144,7 @@ test_megahit.py
 exported_*
 reads/*
 *.qza
+
+# Version file from versioningit
+_version.py
+

@@ -41,6 +41,8 @@ from q2_assembly._action_params import (
     quast_params,
     spades_param_descriptions,
     spades_params,
+    filter_contigs_params,
+    filter_contigs_param_descriptions,
 )
 from q2_assembly.quast.types import (
     QUASTResults,
@@ -501,6 +503,17 @@ plugin.methods.register_function(
     "to GenomeData[DNASequence].",
     description="This method converts a list of FeatureData[Sequence] or a list of "
     "GenomeData[DNASequence] to a GenomeData[DNASequence] artifact.",
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.filter.filter_contigs,
+    inputs={"contigs": SampleData[Contigs]},
+    parameters=filter_contigs_params,
+    outputs={"filtered_contigs": SampleData[Contigs]},
+    input_descriptions={"contigs": "The contigs to filter."},
+    parameter_descriptions=filter_contigs_param_descriptions,
+    name="Filter contigs.",
+    description="Filter contigs based on metadata.",
 )
 
 plugin.register_semantic_types(QUASTResults)

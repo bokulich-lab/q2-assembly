@@ -9,7 +9,8 @@ jobs:
   ci:
     uses: qiime2/distributions/.github/workflows/lib-ci-dev.yaml@dev
     with:
-      distro: metagenome
+      distro: moshpit
+      recipe-path: 'conda-recipe'
       additional-reports-path: ./coverage.xml
       additional-reports-name: coverage
 
@@ -19,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         name: 'Fetch coverage from builds'
         with:
           name: ${{ needs.ci.outputs.additional-reports-name }}

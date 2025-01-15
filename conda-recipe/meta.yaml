@@ -1,0 +1,48 @@
+package:
+  name: q2-assembly
+  version: {{ PLUGIN_VERSION }}
+source:
+  path: ..
+build:
+  script: make install
+requirements:
+  host:
+  - python {{ python }}
+  - setuptools
+  - versioningit
+  - wheel
+  run:
+  - quast
+  - beautifulsoup4
+  - biopython
+  - bowtie2 {{ bowtie2 }}
+  - gridss
+  - insilicoseq
+  - mason
+  - megahit ==1.2.9
+  - pysam {{ pysam }}
+  - qiime2 {{ qiime2_epoch }}.*
+  - q2-types {{ qiime2_epoch }}.*
+  - q2templates {{ qiime2_epoch }}.*
+  - q2-demux {{ qiime2_epoch }}.*
+  - samtools
+  - shortuuid
+  - spades {{ spades }}
+  build:
+  - setuptools
+  - versioningit
+test:
+  requires:
+  - coverage
+  - pytest
+  - pytest-cov
+  - parameterized
+  imports:
+  - q2_assembly
+  - qiime2.plugins.assembly
+  commands:
+  - pytest --cov q2_assembly --cov-report xml:coverage.xml --pyargs q2_assembly
+about:
+  home: https://github.com/bokulich-lab/q2-assembly
+  license: BSD-3-Clause
+  license_family: BSD
