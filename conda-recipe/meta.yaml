@@ -28,6 +28,7 @@ requirements:
   - shortuuid
   - spades {{ spades }}
   build:
+  - python {{ python }}
   - setuptools
   - versioningit
 test:
