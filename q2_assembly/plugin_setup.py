@@ -8,7 +8,7 @@
 
 import importlib
 
-from q2_types.feature_data import FeatureData, Sequence
+from q2_types.feature_data import FeatureData, Sequence, SequenceCharacteristics
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.genome_data import DNASequence, GenomeData
@@ -457,6 +457,21 @@ plugin.methods.register_function(
     parameter_descriptions=filter_contigs_param_descriptions,
     name="Filter contigs.",
     description="Filter contigs based on metadata.",
+)
+
+plugin.visualizers.register_function(
+    function=q2_assembly.qc.evaluate_contigs_new,
+    inputs={
+        "contigs": SampleData[Contigs],
+    },
+    parameters={},
+    input_descriptions={
+        "contigs": "Assembled contigs to be analyzed.",
+    },
+    parameter_descriptions={},
+    name="",
+    description="",
+    citations=[],
 )
 
 plugin.register_semantic_types(QUASTResults)

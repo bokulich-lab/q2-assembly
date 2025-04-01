@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from .bowtie2 import indexing, mapping
+from .contig_qc import qc
 from .filter import filter
 from .helpers import helpers
 from .iss import iss
@@ -20,6 +21,7 @@ except ModuleNotFoundError:
     __version__ = '0.0.0+notfound'
 
 __all__ = [
+    "abundance",
     "indexing",
     "mapping",
     "iss",
@@ -28,4 +30,5 @@ __all__ = [
     "spades",
     "helpers",
     "filter",
+    "qc"
 ]
