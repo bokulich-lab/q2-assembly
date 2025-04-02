@@ -97,7 +97,7 @@ def _process_sample(sample, fwd, rev, common_args, out):
 
 
 def _assemble_spades(
-    seqs, meta, common_args, uuid_type, coassemble=False
+    reads, meta, common_args, uuid_type, coassemble=False
 ) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
@@ -105,7 +105,7 @@ def _assemble_spades(
     be adjusted accordingly.
 
     Args:
-        seqs: Sequences to be processed.
+        reads: Sequences to be processed.
         meta: True if it is a metagenomic assembly.
         common_args: List of common flags and their values for
             the metaSPAdes command.
@@ -118,12 +118,12 @@ def _assemble_spades(
 
     """
 
-    paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
+    paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
     if not paired and meta:
         raise NotImplementedError(
             'SPAdes v3.15.2 in "meta" mode supports only ' "paired-end reads."
         )
-    manifest = seqs.manifest.view(pd.DataFrame)
+    manifest = reads.manifest.view(pd.DataFrame)
     result = ContigSequencesDirFmt()
 
     if coassemble:
@@ -167,7 +167,7 @@ def _assemble_spades(
 
 
 def assemble_spades(
-    seqs: Union[
+    reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
     isolate: bool = False,
@@ -193,14 +193,14 @@ def assemble_spades(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["seqs", "uuid_type", "coassemble"]
+        if k not in ["reads", "uuid_type", "coassemble"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_spades_arg, params=kwargs
     )
 
     return _assemble_spades(
-        seqs=seqs,
+        reads=reads,
         meta=meta,
         coassemble=coassemble,
         uuid_type=uuid_type,

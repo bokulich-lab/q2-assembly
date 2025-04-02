@@ -215,7 +215,7 @@ class TestSpades(TestPluginBase):
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
         obs = _assemble_spades(
-            seqs=input,
+            reads=input,
             meta=False,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
@@ -237,7 +237,7 @@ class TestSpades(TestPluginBase):
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
         obs = _assemble_spades(
-            seqs=input,
+            reads=input,
             meta=False,
             coassemble=True,
             uuid_type="shortuuid",
@@ -265,7 +265,7 @@ class TestSpades(TestPluginBase):
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
         obs = _assemble_spades(
-            seqs=input,
+            reads=input,
             meta=False,
             coassemble=True,
             uuid_type="shortuuid",
@@ -291,7 +291,7 @@ class TestSpades(TestPluginBase):
             NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
         ):
             _assemble_spades(
-                seqs=input,
+                reads=input,
                 meta=True,
                 uuid_type="shortuuid",
                 common_args=self.test_params_list,
@@ -307,7 +307,7 @@ class TestSpades(TestPluginBase):
             NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
         ):
             _assemble_spades(
-                seqs=input,
+                reads=input,
                 meta=True,
                 coassemble=True,
                 uuid_type="shortuuid",
@@ -325,7 +325,7 @@ class TestSpades(TestPluginBase):
             NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
         ):
             _assemble_spades(
-                seqs=input,
+                reads=input,
                 meta=True,
                 coassemble=True,
                 uuid_type="shortuuid",
@@ -340,7 +340,7 @@ class TestSpades(TestPluginBase):
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
         _ = assemble_spades(
-            seqs=input, meta=True, threads=14, k=[1, 2], cov_cutoff="off"
+            reads=input, meta=True, threads=14, k=[1, 2], cov_cutoff="off"
         )
         exp_args = [
             "--meta",
@@ -354,7 +354,7 @@ class TestSpades(TestPluginBase):
             "off",
         ]
         p1.assert_called_with(
-            seqs=input,
+            reads=input,
             meta=True,
             coassemble=False,
             uuid_type="shortuuid",
@@ -369,7 +369,7 @@ class TestSpades(TestPluginBase):
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
         _assemble_spades(
-            seqs=input,
+            reads=input,
             meta=False,
             coassemble=False,
             uuid_type=uuid_type,

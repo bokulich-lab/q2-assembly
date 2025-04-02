@@ -131,7 +131,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
-            mapped_reads=None,
+            alignment_maps=None,
             common_args=["-t", "1"],
         )
 
@@ -156,7 +156,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
-            mapped_reads=None,
+            alignment_maps=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -183,7 +183,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=None,
-            mapped_reads=None,
+            alignment_maps=None,
             common_args=["-m", "10", "-t", "1", "--memory-efficient"],
         )
 
@@ -205,14 +205,14 @@ class TestQuast(TestPluginBase):
     @patch("subprocess.run")
     def test_evaluate_contigs_with_map(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        alignment_map = BAMDirFmt(self.get_data_path("alignment_map"), "r")
+        alignment_maps = BAMDirFmt(self.get_data_path("alignment_map"), "r")
         obs_samples = _evaluate_contigs(
             results_dir="some/dir",
             contigs=contigs,
             reads=None,
             paired=False,
             references=None,
-            mapped_reads=alignment_map,
+            alignment_maps=alignment_maps,
             common_args=["-m", "10", "-t", "1"],
         )
         exp_command = [
@@ -226,8 +226,8 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "--bam",
-            f"{os.path.join(str(alignment_map), 'sample1_alignment.bam')},"
-            f"{os.path.join(str(alignment_map), 'sample2_alignment.bam')}",
+            f"{os.path.join(str(alignment_maps), 'sample1_alignment.bam')},"
+            f"{os.path.join(str(alignment_maps), 'sample2_alignment.bam')}",
         ]
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p.assert_called_once_with(exp_command, check=True)
@@ -235,7 +235,7 @@ class TestQuast(TestPluginBase):
     @patch("subprocess.run")
     def test_evaluate_contigs_with_map_and_reads(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        alignment_map = BAMDirFmt(self.get_data_path("alignment_map"), "r")
+        alignment_maps = BAMDirFmt(self.get_data_path("alignment_map"), "r")
         reads = {
             "sample1": {"fwd": "path/to/s1fwd", "rev": None},
             "sample2": {"fwd": "path/to/s2fwd", "rev": None},
@@ -246,7 +246,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=False,
             references=None,
-            mapped_reads=alignment_map,
+            alignment_maps=alignment_maps,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -261,8 +261,8 @@ class TestQuast(TestPluginBase):
             os.path.join(str(contigs), "sample1_contigs.fa"),
             os.path.join(str(contigs), "sample2_contigs.fa"),
             "--bam",
-            f"{os.path.join(str(alignment_map), 'sample1_alignment.bam')},"
-            f"{os.path.join(str(alignment_map), 'sample2_alignment.bam')}",
+            f"{os.path.join(str(alignment_maps), 'sample1_alignment.bam')},"
+            f"{os.path.join(str(alignment_maps), 'sample2_alignment.bam')}",
         ]
 
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
@@ -281,7 +281,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=False,
             references=None,
-            mapped_reads=None,
+            alignment_maps=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -316,7 +316,7 @@ class TestQuast(TestPluginBase):
             reads=reads,
             paired=True,
             references=None,
-            mapped_reads=None,
+            alignment_maps=None,
             common_args=["-m", "10", "-t", "1"],
         )
 
@@ -356,7 +356,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
-                mapped_reads=None,
+                alignment_maps=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -375,7 +375,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
-                mapped_reads=None,
+                alignment_maps=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -397,7 +397,7 @@ class TestQuast(TestPluginBase):
                 reads=reads,
                 paired=True,
                 references=None,
-                mapped_reads=None,
+                alignment_maps=None,
                 common_args=["-m", "10", "-t", "1"],
             )
 
@@ -417,7 +417,7 @@ class TestQuast(TestPluginBase):
             reads={},
             paired=False,
             references=refs,
-            mapped_reads=None,
+            alignment_maps=None,
             common_args=["-t", "1"],
         )
 

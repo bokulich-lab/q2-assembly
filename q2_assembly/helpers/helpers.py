@@ -105,10 +105,10 @@ def collate_indices(indices: Bowtie2IndexDirFmt) -> Bowtie2IndexDirFmt:
     return collated_indices
 
 
-def collate_alignments(alignments: BAMDirFmt) -> BAMDirFmt:
+def collate_alignments(alignment_maps: BAMDirFmt) -> BAMDirFmt:
     collated_alignments = BAMDirFmt()
 
-    for alignment in alignments:
+    for alignment in alignment_maps:
         for _alignment in alignment.path.iterdir():
             filename = os.path.basename(_alignment)
             duplicate(_alignment, os.path.join(collated_alignments.path, filename))

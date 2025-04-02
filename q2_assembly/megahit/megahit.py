@@ -107,7 +107,7 @@ def warn_about_presets():
 
 def assemble_megahit(
     ctx,
-    seqs,
+    reads,
     presets=None,
     min_count=2,
     k_list=[21, 29, 39, 59, 79, 99, 119, 141],
@@ -137,15 +137,15 @@ def assemble_megahit(
         # removing num_partitions from this dict to include it in the parameters
         k: v
         for k, v in locals().items()
-        if k not in ["seqs", "num_partitions", "ctx"]
+        if k not in ["reads", "num_partitions", "ctx"]
     }
 
     _assemble_megahit = ctx.get_action("assembly", "_assemble_megahit")
     collate_contigs = ctx.get_action("assembly", "collate_contigs")
 
-    if seqs.type <= SampleData[SequencesWithQuality]:
+    if reads.type <= SampleData[SequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_single")
-    elif seqs.type <= SampleData[PairedEndSequencesWithQuality]:
+    elif reads.type <= SampleData[PairedEndSequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_paired")
     else:
         raise NotImplementedError()
@@ -153,10 +153,10 @@ def assemble_megahit(
     if coassemble:
         num_partitions = 1
         print("WARNING: num_partitions set to 1 since co_assemble is used!")
-        (contig,) = _assemble_megahit(seqs, **kwargs)
+        (contig,) = _assemble_megahit(reads, **kwargs)
         return contig
 
-    (partitioned_seqs,) = partition_method(seqs, num_partitions)
+    (partitioned_seqs,) = partition_method(reads, num_partitions)
 
     contigs = []
     for seq in partitioned_seqs.values():
@@ -168,7 +168,7 @@ def assemble_megahit(
 
 
 def _assemble_megahit(
-    seqs: Union[
+    reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
     presets: str = None,
@@ -210,19 +210,19 @@ def _assemble_megahit(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["seqs", "uuid_type", "coassemble"]
+        if k not in ["reads", "uuid_type", "coassemble"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_megahit_arg, params=kwargs
     )
 
     return assemble_megahit_helper(
-        seqs=seqs, coassemble=coassemble, uuid_type=uuid_type, common_args=common_args
+        reads=reads, coassemble=coassemble, uuid_type=uuid_type, common_args=common_args
     )
 
 
 def assemble_megahit_helper(
-    seqs, coassemble, uuid_type, common_args
+    reads, coassemble, uuid_type, common_args
 ) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
@@ -230,7 +230,7 @@ def assemble_megahit_helper(
     be adjusted accordingly.
 
     Args:
-        seqs: Sequences to be processed.
+        reads: Sequences to be processed.
         common_args: List of common flags and their values for
             the MEGAHIT command.
         coassemble: boolean variable that specifies whether
@@ -242,8 +242,8 @@ def assemble_megahit_helper(
 
     """
 
-    paired = isinstance(seqs, SingleLanePerSamplePairedEndFastqDirFmt)
-    manifest = seqs.manifest.view(pd.DataFrame)
+    paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
+    manifest = reads.manifest.view(pd.DataFrame)
     result = ContigSequencesDirFmt()
 
     if coassemble:
