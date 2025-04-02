@@ -75,7 +75,9 @@ plugin.pipelines.register_function(
     inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**megahit_params, "coassemble": P_coassemble, **partition_params},
     outputs=[("contigs", T_coassembled_seqs)],
-    input_descriptions={"reads": "The paired- or single-end sequences to be assembled."},
+    input_descriptions={
+        "reads": "The paired- or single-end sequences to be assembled."
+    },
     parameter_descriptions={
         **megahit_param_descriptions,
         **partition_param_descriptions,
@@ -92,7 +94,9 @@ plugin.methods.register_function(
     inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**megahit_params, "coassemble": P_coassemble},  # megahit_params,
     outputs=[("contigs", T_coassembled_seqs)],
-    input_descriptions={"reads": "The paired- or single-end sequences to be assembled."},
+    input_descriptions={
+        "reads": "The paired- or single-end sequences to be assembled."
+    },
     parameter_descriptions=megahit_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled contigs."},
     name="Assemble contigs using MEGAHIT.",
@@ -145,7 +149,9 @@ plugin.methods.register_function(
     inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**spades_params, "coassemble": P_coassemble},
     outputs=[("contigs", T_coassembled_seqs)],
-    input_descriptions={"reads": "The paired- or single-end sequences to be assembled."},
+    input_descriptions={
+        "reads": "The paired- or single-end sequences to be assembled."
+    },
     parameter_descriptions=spades_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled contigs."},
     name="Assemble contigs using SPAdes.",
