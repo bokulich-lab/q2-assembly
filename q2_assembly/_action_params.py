@@ -104,8 +104,12 @@ spades_param_descriptions = {
     "only_assembler": "Runs only assembling (without read error correction).",
     "careful": "Tries to reduce number of mismatches and short indels.",
     "disable_rr": "Disables repeat resolution stage of assembling.",
-    "threads": "Number of threads.",
-    "memory": "RAM limit for SPAdes in Gb (terminates if exceeded).",
+    "threads": "Number of threads. By default SPAdes uses 512 Mb per thread for "
+               "buffers, which results in higher memory consumption. This can be "
+               "further affected by the --p-memory option.",
+    "memory": "RAM limit for SPAdes in Gb (terminates if exceeded). If a smaller "
+              "memory limit is set, SPAdes will use smaller buffers and thus less "
+              "memory per --p-threads.",
     "k": "List of k-mer sizes (must be odd and less than 128).",
     "cov_cutoff": "Coverage cutoff value (a positive float number, or 'auto', or "
                   "'off').",
