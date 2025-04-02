@@ -128,7 +128,9 @@ def _evaluate_contigs(
         samples.append(_get_sample_from_path(fp))
 
     if alignment_maps:
-        bam_fps = sorted(glob.glob(os.path.join(str(alignment_maps), "*_alignment.bam")))
+        bam_fps = sorted(
+            glob.glob(os.path.join(str(alignment_maps), "*_alignment.bam"))
+        )
         cmd.extend(["--bam", ",".join(bam_fps)])
     elif reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
