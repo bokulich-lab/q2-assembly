@@ -264,7 +264,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
         obs = assemble_megahit_helper(
-            seqs=input,
+            reads=input,
             coassemble=False,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
@@ -283,7 +283,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
         obs = assemble_megahit_helper(
-            seqs=input,
+            reads=input,
             coassemble=False,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
@@ -302,7 +302,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
         obs = assemble_megahit_helper(
-            seqs=input,
+            reads=input,
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
@@ -322,7 +322,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
         obs = assemble_megahit_helper(
-            seqs=input,
+            reads=input,
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
@@ -342,7 +342,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
         obs = assemble_megahit_helper(
-            seqs=input,
+            reads=input,
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
@@ -362,7 +362,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
         obs = assemble_megahit_helper(
-            seqs=input,
+            reads=input,
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
@@ -382,7 +382,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
         _ = _assemble_megahit(
-            seqs=input,
+            reads=input,
             presets="meta-sensitive",
             bubble_level=1,
             k_list=[1, 2],
@@ -418,7 +418,7 @@ class TestMegahit(TestPluginBase):
             "200",
         ]
         p1.assert_called_with(
-            seqs=input, coassemble=False, uuid_type="shortuuid", common_args=exp_args
+            reads=input, coassemble=False, uuid_type="shortuuid", common_args=exp_args
         )
 
     def test_assemble_megahit_parallel_paired(self):
@@ -453,7 +453,7 @@ class TestMegahit(TestPluginBase):
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
         _ = assemble_megahit_helper(
-            seqs=input,
+            reads=input,
             coassemble=False,
             uuid_type=uuid_type,
             common_args=self.test_params_list,

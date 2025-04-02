@@ -92,7 +92,7 @@ def _evaluate_contigs(
     reads: dict,
     paired: bool,
     references: GenomeSequencesDirectoryFormat,
-    mapped_reads: BAMDirFmt,
+    alignment_maps: BAMDirFmt,
     common_args: list,
 ) -> List[str]:
     """Runs the contig assembly QC using QUAST.
@@ -105,7 +105,7 @@ def _evaluate_contigs(
         reads (dict): Dictionary containing mapping of samples to their
             forward and reverse reads, e.g.:
             {'sample1': {'fwd': '/path/to/reads', 'rev': '/path/to/reads'}}.
-        mapped_reads (BAMDirFmt): Mapping of reads to contigs
+        alignment_maps (BAMDirFmt): Mapping of reads to contigs
         common_args (list): List of common flags and their values for
             the QUAST command.
 
@@ -119,7 +119,7 @@ def _evaluate_contigs(
     cmd.extend(common_args)
     samples = []
 
-    if reads and mapped_reads:
+    if reads and alignment_maps:
         reads = None
         print("Both reads and mapped reads are provided. Reads will be ignored.")
 
@@ -127,8 +127,8 @@ def _evaluate_contigs(
         cmd.append(fp)
         samples.append(_get_sample_from_path(fp))
 
-    if mapped_reads:
-        bam_fps = sorted(glob.glob(os.path.join(str(mapped_reads), "*_alignment.bam")))
+    if alignment_maps:
+        bam_fps = sorted(glob.glob(os.path.join(str(alignment_maps), "*_alignment.bam")))
         cmd.extend(["--bam", ",".join(bam_fps)])
     elif reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
@@ -248,7 +248,7 @@ def _visualize_quast(
     ] = None,
     references: GenomeSequencesDirectoryFormat = None,
     genomes_dir: str = None,
-    mapped_reads: BAMDirFmt = None,
+    alignment_maps: BAMDirFmt = None,
 ) -> None:
     kwargs = {
         k: v
@@ -259,7 +259,7 @@ def _visualize_quast(
             "contigs",
             "reads",
             "references",
-            "mapped_reads",
+            "alignment_maps",
             "ctx",
             "genomes_dir",
         ]
@@ -290,7 +290,7 @@ def _visualize_quast(
             reads_fps,
             paired,
             references,
-            mapped_reads,
+            alignment_maps,
             common_args,
         )
 
@@ -373,7 +373,7 @@ def evaluate_contigs(
     contigs,
     reads=None,
     references=None,
-    mapped_reads=None,
+    alignment_maps=None,
     min_contig=500,
     threads=1,
     k_mer_stats=False,
