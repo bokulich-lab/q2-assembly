@@ -6,6 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .quast import evaluate_contigs
+from .quast import evaluate_quast
 
-__all__ = ["evaluate_contigs"]
+__all__ = ["evaluate_quast"]
