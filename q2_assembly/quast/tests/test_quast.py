@@ -34,14 +34,14 @@ from qiime2.sdk import Context
 
 from ..quast import (
     _create_tabular_results,
-    _evaluate_contigs,
+    _evaluate_quast,
     _move_references,
     _process_quast_arg,
     _split_reference,
     _visualize_quast,
     _zip_additional_reports,
     _zip_dir,
-    evaluate_contigs,
+    evaluate_quast,
 )
 
 
@@ -123,9 +123,9 @@ class TestQuast(TestPluginBase):
         )
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_minimal(self, p):
+    def test_evaluate_quast_minimal(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads={},
@@ -148,9 +148,9 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_more_params(self, p):
+    def test_evaluate_quast_more_params(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads={},
@@ -175,9 +175,9 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_more_params_memory_efficient(self, p):
+    def test_evaluate_quast_more_params_memory_efficient(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads={},
@@ -203,10 +203,10 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_with_map(self, p):
+    def test_evaluate_quast_with_map(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         alignment_maps = BAMDirFmt(self.get_data_path("alignment_map"), "r")
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads=None,
@@ -233,14 +233,14 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_with_map_and_reads(self, p):
+    def test_evaluate_quast_with_map_and_reads(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         alignment_maps = BAMDirFmt(self.get_data_path("alignment_map"), "r")
         reads = {
             "sample1": {"fwd": "path/to/s1fwd", "rev": None},
             "sample2": {"fwd": "path/to/s2fwd", "rev": None},
         }
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads=reads,
@@ -269,13 +269,13 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_single_end(self, p):
+    def test_evaluate_quast_single_end(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = {
             "sample1": {"fwd": "path/to/s1fwd", "rev": None},
             "sample2": {"fwd": "path/to/s2fwd", "rev": None},
         }
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads=reads,
@@ -304,13 +304,13 @@ class TestQuast(TestPluginBase):
         p.assert_called_once_with(exp_command, check=True)
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_paired_end(self, p):
+    def test_evaluate_quast_paired_end(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = {
             "sample1": {"fwd": "path/to/s1fwd", "rev": "path/to/s1rev"},
             "sample2": {"fwd": "path/to/s2fwd", "rev": "path/to/s2rev"},
         }
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads=reads,
@@ -342,7 +342,7 @@ class TestQuast(TestPluginBase):
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p.assert_called_once_with(exp_command, check=True)
 
-    def test_evaluate_contigs_missing_rev_reads(self):
+    def test_evaluate_quast_missing_rev_reads(self):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = {
             "sample1": {"fwd": "path/to/s1fwd", "rev": "path/to/s1rev"},
@@ -350,7 +350,7 @@ class TestQuast(TestPluginBase):
         with self.assertRaisesRegex(
             Exception, r".*reverse reads \(1\) does not match.*contig files \(2\).*"
         ):
-            _ = _evaluate_contigs(
+            _ = _evaluate_quast(
                 results_dir="some/dir",
                 contigs=contigs,
                 reads=reads,
@@ -360,7 +360,7 @@ class TestQuast(TestPluginBase):
                 common_args=["-m", "10", "-t", "1"],
             )
 
-    def test_evaluate_contigs_non_matching_samples(self):
+    def test_evaluate_quast_non_matching_samples(self):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = {
             "sample1": {"fwd": "path/to/s1fwd", "rev": "path/to/s1rev"},
@@ -369,7 +369,7 @@ class TestQuast(TestPluginBase):
         with self.assertRaisesRegex(
             Exception, "Some samples are missing from the reads file."
         ):
-            _ = _evaluate_contigs(
+            _ = _evaluate_quast(
                 results_dir="some/dir",
                 contigs=contigs,
                 reads=reads,
@@ -382,7 +382,7 @@ class TestQuast(TestPluginBase):
     @patch(
         "subprocess.run", side_effect=CalledProcessError(returncode=123, cmd="some cmd")
     )
-    def test_evaluate_contigs_with_error(self, p):
+    def test_evaluate_quast_with_error(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         reads = {
             "sample1": {"fwd": "path/to/s1fwd", "rev": "path/to/s1rev"},
@@ -391,7 +391,7 @@ class TestQuast(TestPluginBase):
         with self.assertRaisesRegex(
             Exception, r"An error.*while running QUAST.*code 123"
         ):
-            _ = _evaluate_contigs(
+            _ = _evaluate_quast(
                 results_dir="some/dir",
                 contigs=contigs,
                 reads=reads,
@@ -402,7 +402,7 @@ class TestQuast(TestPluginBase):
             )
 
     @patch("subprocess.run")
-    def test_evaluate_contigs_with_refs(self, p1):
+    def test_evaluate_quast_with_refs(self, p1):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         refs = GenomeSequencesDirectoryFormat(self.get_data_path("references"), "r")
 
@@ -411,7 +411,7 @@ class TestQuast(TestPluginBase):
             os.path.join(str(refs.path), "ref2.fasta"),
         ]
 
-        obs_samples = _evaluate_contigs(
+        obs_samples = _evaluate_quast(
             results_dir="some/dir",
             contigs=contigs,
             reads={},
@@ -439,7 +439,7 @@ class TestQuast(TestPluginBase):
 
     @patch("q2_assembly.quast._create_tabular_results")
     @patch("platform.system", return_value="Linux")
-    @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
@@ -501,7 +501,7 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
     @patch("q2_assembly.quast._create_tabular_results")
-    @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
@@ -578,7 +578,7 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
     @patch("q2_assembly.quast._create_tabular_results")
-    @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
@@ -653,11 +653,11 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
     @patch("q2_assembly.quast._create_tabular_results")
-    @patch("q2_assembly.quast._evaluate_contigs", return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
     @patch("q2_assembly.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
-    def test_evaluate_contigs_action_paired_end_no_icarus(self, p1, p2, p3, p4, p5):
+    def test_evaluate_quast_action_paired_end_no_icarus(self, p1, p2, p3, p4, p5):
         test_temp_dir = MockTempDir()
         os.mkdir(os.path.join(test_temp_dir.name, "results"))
         p1.return_value = test_temp_dir
@@ -752,7 +752,7 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(report_path, sep="\t", header=0)
         p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
 
-    def test_evaluate_contigs_pipeline_with_refs(self):
+    def test_evaluate_quast_pipeline_with_refs(self):
         def _copy_references(refs_dir, tmp):
             new_refs_dir = os.path.join(tmp, "vis_files", "quast_downloaded_references")
             os.makedirs(new_refs_dir, exist_ok=True)
@@ -775,7 +775,7 @@ class TestQuast(TestPluginBase):
             _copy_references(refs_dir, tmp)
 
             refs = Artifact.import_data("GenomeData[DNASequence]", refs_dir)
-            tab_report, _, _ = evaluate_contigs(
+            tab_report, _, _ = evaluate_quast(
                 ctx=mock_ctx, contigs=contigs, references=refs
             )
             make_artifact.assert_called_once_with(
@@ -810,7 +810,7 @@ class TestQuast(TestPluginBase):
             dst=os.path.join(dst_dir, "quast_results.tsv"),
         )
 
-    def test_evaluate_contigs_pipeline_no_refs_normal(self):
+    def test_evaluate_quast_pipeline_no_refs_normal(self):
         contigs = Artifact.import_data(
             "SampleData[Contigs]", self.get_data_path("contigs")
         )
@@ -829,7 +829,7 @@ class TestQuast(TestPluginBase):
                         path=self.get_data_path("references"), mode="r"
                     )
                 )
-                tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+                tab_report, _, _ = evaluate_quast(ctx=mock_ctx, contigs=contigs)
                 make_artifact.assert_has_calls(
                     [
                         call("QUASTResults", self.assert_is_dataframe((2, 43))),
@@ -841,7 +841,7 @@ class TestQuast(TestPluginBase):
         self.assertEqual(action.call_args[0][0], contigs)
         export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
-    def test_evaluate_contigs_pipeline_no_refs_no_downloaded_genomes(self):
+    def test_evaluate_quast_pipeline_no_refs_no_downloaded_genomes(self):
         contigs = Artifact.import_data(
             "SampleData[Contigs]", self.get_data_path("contigs")
         )
@@ -860,7 +860,7 @@ class TestQuast(TestPluginBase):
                     MockGenomeSequencesDirectoryFormat.return_value = (
                         GenomeSequencesDirectoryFormat()
                     )
-                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+                    tab_report, _, _ = evaluate_quast(ctx=mock_ctx, contigs=contigs)
                     make_artifact.assert_has_calls(
                         [
                             call(
@@ -881,7 +881,7 @@ class TestQuast(TestPluginBase):
             self.assertEqual(action.call_args[0][0], contigs)
             export_data.assert_called_once_with(os.path.join(tmp, "vis_files"))
 
-    def test_evaluate_contigs_pipeline_no_refs_corrupt_files(self):
+    def test_evaluate_quast_pipeline_no_refs_corrupt_files(self):
         contigs = Artifact.import_data(
             "SampleData[Contigs]", self.get_data_path("contigs")
         )
@@ -911,7 +911,7 @@ class TestQuast(TestPluginBase):
                         GenomeSequencesDirectoryFormat(),
                     ]
 
-                    tab_report, _, _ = evaluate_contigs(ctx=mock_ctx, contigs=contigs)
+                    tab_report, _, _ = evaluate_quast(ctx=mock_ctx, contigs=contigs)
 
                     self.assertRaises(ValidationError)
                     self.assertTrue(

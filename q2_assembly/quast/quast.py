@@ -86,7 +86,7 @@ def _split_reference(ref: DNAFASTAFormat, all_refs_dir: str) -> List[str]:
     return all_seq_fps
 
 
-def _evaluate_contigs(
+def _evaluate_quast(
     results_dir: str,
     contigs: ContigSequencesDirFmt,
     reads: dict,
@@ -286,7 +286,7 @@ def _visualize_quast(
         results_dir = os.path.join(tmp, "results")
 
         # run quast
-        samples = _evaluate_contigs(
+        samples = _evaluate_quast(
             results_dir,
             contigs,
             reads_fps,
@@ -369,7 +369,7 @@ def _create_tabular_results(results_dir: str, contig_thresholds: list) -> pd.Dat
     return transposed_report_parsed
 
 
-def evaluate_contigs(
+def evaluate_quast(
     # TODO: expose more parameters
     ctx,
     contigs,

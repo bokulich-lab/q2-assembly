@@ -185,12 +185,12 @@ plugin.visualizers.register_function(
     description="This method visualizes the results of metaQUAST after "
     "assessing the quality of assembled metagenomes. WARNING: This action "
     "should not be used as a standalone-action. It is designed to be called "
-    "by the evaluate-contigs action!",
+    "by the evaluate-quast action!",
     citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
 )
 
 plugin.pipelines.register_function(
-    function=q2_assembly.quast.evaluate_contigs,
+    function=q2_assembly.quast.evaluate_quast,
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
