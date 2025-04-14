@@ -10,7 +10,7 @@ from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
 from qiime2.plugin import Metadata
 
 megahit_params = {
-    "presets": Str % Choices(["meta", "meta-sensitive", "meta-large", "disabled"]),
+    "presets": Str % Choices(["meta-sensitive", "meta-large", "disabled"]),
     "min_count": Int % Range(1, None),
     "k_list": List[Int % Range(15, 255, inclusive_end=True)],
     "k_min": Int % Range(15, 255, inclusive_end=True),
