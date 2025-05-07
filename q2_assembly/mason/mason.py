@@ -46,7 +46,8 @@ def _process_mason_arg(arg_key, arg_val):
         return flags
 
 
-def generate_abundances(profiles, num_genomes, mu=0, sigma=1, lambd=0.5):
+def generate_abundances(profiles, num_genomes, mu=0, sigma=1, lambd=0.5, random_seed=42):
+    np.random.seed(random_seed)
     all_abundances = []
     for profile in profiles:
         abundances = []
@@ -60,7 +61,7 @@ def generate_abundances(profiles, num_genomes, mu=0, sigma=1, lambd=0.5):
             abundances /= abundances.sum()
         else:
             print(f"Invalid abundance profile option: {profile}")
-        all_abundances.append(abundances)
+        all_abundances.append(list(abundances))
     return all_abundances
 
 
@@ -143,7 +144,7 @@ def _simulate_reads_mason(
 
     if len(set(sample_names)) < len(sample_names):
         dupl = {str(x) for x in sample_names if sample_names.count(x) > 1}
-        raise Exception(
+        raise ValueError(
             "Sample names need to be unique. Found duplicated "
             f'names: {", ".join(sorted(dupl))}'
         )
@@ -181,8 +182,8 @@ def _simulate_reads_mason(
     with tempfile.TemporaryDirectory() as tmp:
         result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
 
-        genome_files = tmp_refs.genome_dict().values()
-        abundances = generate_abundances(abundance_profiles, len(genome_files))
+        genome_files = list(tmp_refs.file_dict().values())
+        abundances = generate_abundances(abundance_profiles, len(genome_files), random_seed=random_seed)
         for sample_name, abundance, reads, length in zip(
             sample_names, abundances, num_reads, read_length
         ):
@@ -238,7 +239,8 @@ def simulate_reads_mason(
     if len(sample_names) != len(abundance_profiles):
         raise ValueError(
             f"The number of sample names and abundance profiles must match. "
-            f"Provided: {len(sample_names)}, Expected: {len(abundance_profiles)}"
+            f"Provided: {len(sample_names)} samples, "
+            f"Expected: {len(abundance_profiles)} abundance profiles"
         )
 
     if len(num_reads) != len(sample_names) and len(num_reads) != 1:
