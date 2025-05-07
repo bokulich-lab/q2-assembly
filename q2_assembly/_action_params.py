@@ -10,7 +10,7 @@ from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
 from qiime2.plugin import Metadata
 
 megahit_params = {
-    "presets": Str % Choices(["meta", "meta-sensitive", "meta-large", "disabled"]),
+    "presets": Str % Choices(["meta-sensitive", "meta-large", "disabled"]),
     "min_count": Int % Range(1, None),
     "k_list": List[Int % Range(15, 255, inclusive_end=True)],
     "k_min": Int % Range(15, 255, inclusive_end=True),
@@ -104,8 +104,12 @@ spades_param_descriptions = {
     "only_assembler": "Runs only assembling (without read error correction).",
     "careful": "Tries to reduce number of mismatches and short indels.",
     "disable_rr": "Disables repeat resolution stage of assembling.",
-    "threads": "Number of threads.",
-    "memory": "RAM limit for SPAdes in Gb (terminates if exceeded).",
+    "threads": "Number of threads. By default SPAdes uses 512 Mb per thread for "
+               "buffers, which results in higher memory consumption. This can be "
+               "further affected by the --p-memory option.",
+    "memory": "RAM limit for SPAdes in Gb (terminates if exceeded). If a smaller "
+              "memory limit is set, SPAdes will use smaller buffers and thus less "
+              "memory per --p-threads.",
     "k": "List of k-mer sizes (must be odd and less than 128).",
     "cov_cutoff": "Coverage cutoff value (a positive float number, or 'auto', or "
                   "'off').",

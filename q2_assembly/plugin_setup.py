@@ -72,10 +72,12 @@ P_coassemble, T_coassembled_seqs = TypeMap(
 
 plugin.pipelines.register_function(
     function=q2_assembly.megahit.assemble_megahit,
-    inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**megahit_params, "coassemble": P_coassemble, **partition_params},
     outputs=[("contigs", T_coassembled_seqs)],
-    input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
+    input_descriptions={
+        "reads": "The paired- or single-end sequences to be assembled."
+    },
     parameter_descriptions={
         **megahit_param_descriptions,
         **partition_param_descriptions,
@@ -89,10 +91,12 @@ plugin.pipelines.register_function(
 
 plugin.methods.register_function(
     function=q2_assembly.megahit._assemble_megahit,
-    inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**megahit_params, "coassemble": P_coassemble},  # megahit_params,
     outputs=[("contigs", T_coassembled_seqs)],
-    input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
+    input_descriptions={
+        "reads": "The paired- or single-end sequences to be assembled."
+    },
     parameter_descriptions=megahit_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled contigs."},
     name="Assemble contigs using MEGAHIT.",
@@ -142,10 +146,12 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
     function=q2_assembly.spades.assemble_spades,
-    inputs={"seqs": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
     parameters={**spades_params, "coassemble": P_coassemble},
     outputs=[("contigs", T_coassembled_seqs)],
-    input_descriptions={"seqs": "The paired- or single-end sequences to be assembled."},
+    input_descriptions={
+        "reads": "The paired- or single-end sequences to be assembled."
+    },
     parameter_descriptions=spades_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled contigs."},
     name="Assemble contigs using SPAdes.",
@@ -160,14 +166,14 @@ plugin.visualizers.register_function(
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
         "references": GenomeData[DNASequence],
-        "mapped_reads": SampleData[AlignmentMap],
+        "alignment_maps": SampleData[AlignmentMap],
     },
     parameters={**quast_params, "genomes_dir": Str},
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
         "references": "Reference genomes to align the assembled contigs against.",
-        "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
+        "alignment_maps": "Reads-to-contigs alignment maps (alternative to 'reads')."
         "directly.",
     },
     parameter_descriptions={
@@ -179,17 +185,17 @@ plugin.visualizers.register_function(
     description="This method visualizes the results of metaQUAST after "
     "assessing the quality of assembled metagenomes. WARNING: This action "
     "should not be used as a standalone-action. It is designed to be called "
-    "by the evaluate-contigs action!",
+    "by the evaluate-quast action!",
     citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
 )
 
 plugin.pipelines.register_function(
-    function=q2_assembly.quast.evaluate_contigs,
+    function=q2_assembly.quast.evaluate_quast,
     inputs={
         "contigs": SampleData[Contigs],
         "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
         "references": GenomeData[DNASequence],
-        "mapped_reads": SampleData[AlignmentMap],
+        "alignment_maps": SampleData[AlignmentMap],
     },
     parameters=quast_params,
     outputs=[
@@ -201,7 +207,7 @@ plugin.pipelines.register_function(
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
         "references": "Reference genomes to align the assembled contigs against.",
-        "mapped_reads": "Reads-to-contigs alignment maps (alternative to 'reads')."
+        "alignment_maps": "Reads-to-contigs alignment maps (alternative to 'reads')."
         "directly.",
     },
     parameter_descriptions=quast_param_descriptions,
@@ -401,7 +407,7 @@ plugin.pipelines.register_function(
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
     parameters={**bowtie2_mapping_params, **partition_params},
-    outputs=[("alignment_map", O_alignment)],
+    outputs=[("alignment_maps", O_alignment)],
     input_descriptions={
         "index": "Bowtie 2 indices generated for contigs/MAGs of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
@@ -411,7 +417,7 @@ plugin.pipelines.register_function(
         **bowtie2_mapping_param_descriptions,
         **partition_param_descriptions,
     },
-    output_descriptions={"alignment_map": "Reads-to-contigs mapping."},
+    output_descriptions={"alignment_maps": "Reads-to-contigs mapping."},
     name="Map reads to contigs using Bowtie2.",
     description="This method uses Bowtie2 to map provided reads to "
     "respective contigs.",
@@ -425,14 +431,14 @@ plugin.methods.register_function(
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
     parameters=bowtie2_mapping_params,
-    outputs=[("alignment_map", SampleData[AlignmentMap])],
+    outputs=[("alignment_maps", SampleData[AlignmentMap])],
     input_descriptions={
         "index": "Bowtie 2 indices generated for contigs of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
         "were assembled.",
     },
     parameter_descriptions=bowtie2_mapping_param_descriptions,
-    output_descriptions={"alignment_map": "Reads-to-contigs mapping."},
+    output_descriptions={"alignment_maps": "Reads-to-contigs mapping."},
     name="Map reads to contigs using Bowtie2.",
     description="This method uses Bowtie2 to map provided reads to "
     "respective contigs.",
@@ -452,14 +458,14 @@ plugin.methods.register_function(
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
     parameters=bowtie2_mapping_params,
-    outputs=[("alignment_map", O_map)],
+    outputs=[("alignment_maps", O_map)],
     input_descriptions={
         "index": "Bowtie 2 indices generated for MAGs of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
         "were assembled.",
     },
     parameter_descriptions=bowtie2_mapping_param_descriptions,
-    output_descriptions={"alignment_map": "Reads-to-MAGs mapping."},
+    output_descriptions={"alignment_maps": "Reads-to-MAGs mapping."},
     name="Map reads to MAGs using Bowtie2.",
     description="This method uses Bowtie2 to map provided reads to "
     "the respective MAGs.",
@@ -474,12 +480,14 @@ I_maps, O_maps = TypeMap(
 )
 plugin.methods.register_function(
     function=q2_assembly.helpers.collate_alignments,
-    inputs={"alignments": List[I_maps]},
+    inputs={"alignment_maps": List[I_maps]},
     parameters={},
-    outputs=[("collated_alignments", O_maps)],
-    input_descriptions={"alignments": "A collection of alignments to be collated."},
+    outputs=[("collated_alignment_maps", O_maps)],
+    input_descriptions={
+        "alignment_maps": "A collection of alignment maps to be collated."
+    },
     output_descriptions={
-        "collated_alignments": "The alignemnts collated into one artifact."
+        "collated_alignment_maps": "The alignment maps collated into one artifact."
     },
     name="Map reads to contigs helper.",
     description="Not to be called directly. Used by map_reads.",

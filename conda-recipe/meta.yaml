@@ -21,14 +21,15 @@ requirements:
   - mason
   - megahit ==1.2.9
   - pysam {{ pysam }}
-  - qiime2 {{ qiime2_epoch }}.*
-  - q2-types {{ qiime2_epoch }}.*
-  - q2templates {{ qiime2_epoch }}.*
-  - q2-demux {{ qiime2_epoch }}.*
+  - qiime2 >={{ qiime2 }}
+  - q2-types >={{ q2_types }}
+  - q2templates >={{ q2templates }}
+  - q2-demux >={{ q2_demux }}
   - samtools
   - shortuuid
   - spades {{ spades }}
   build:
+  - python {{ python }}
   - setuptools
   - versioningit
 test:
