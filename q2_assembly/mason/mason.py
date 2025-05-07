@@ -46,7 +46,9 @@ def _process_mason_arg(arg_key, arg_val):
         return flags
 
 
-def generate_abundances(profiles, num_genomes, mu=0, sigma=1, lambd=0.5, random_seed=42):
+def generate_abundances(
+    profiles, num_genomes, mu=0, sigma=1, lambd=0.5, random_seed=42
+):
     np.random.seed(random_seed)
     all_abundances = []
     for profile in profiles:
@@ -183,7 +185,9 @@ def _simulate_reads_mason(
         result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
 
         genome_files = list(tmp_refs.file_dict().values())
-        abundances = generate_abundances(abundance_profiles, len(genome_files), random_seed=random_seed)
+        abundances = generate_abundances(
+            abundance_profiles, len(genome_files), random_seed=random_seed
+        )
         for sample_name, abundance, reads, length in zip(
             sample_names, abundances, num_reads, read_length
         ):

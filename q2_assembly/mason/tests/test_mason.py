@@ -9,8 +9,7 @@
 import os
 import tempfile
 import unittest
-from subprocess import CalledProcessError
-from unittest.mock import call, patch, MagicMock, ANY
+from unittest.mock import call, patch, ANY
 
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFmt
@@ -19,7 +18,6 @@ from qiime2.plugin.testing import TestPluginBase
 from q2_assembly.mason.mason import (
     _process_mason_arg,
     _simulate_reads_mason,
-    simulate_reads_mason,
     generate_abundances,
     abundances_to_df,
     _combine_reads,
@@ -56,11 +54,13 @@ class TestMason(TestPluginBase):
         p_tmpdir.return_value.__enter__.return_value = tmp_dir
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
-        refs = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format1"), "r")
+        refs = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
 
         with patch(
-                "q2_assembly.mason.GenomeSequencesDirectoryFormat",
-                return_value=mock_genomes_dir_fmt
+            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
+            return_value=mock_genomes_dir_fmt,
         ):
             result = _simulate_reads_mason(
                 reference_genomes=refs,
@@ -70,32 +70,41 @@ class TestMason(TestPluginBase):
                 abundance_profiles=["uniform", "lognormal"],
             )
         self.assertIsInstance(result, CasavaOneEightSingleLanePerSampleDirFmt)
-        p_process.assert_has_calls([
-            call(
-                "sample1",
-                [os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"), os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta")],
-                [0.5, 0.5],
-                1000000,
-                tmp_dir,
-                1,
-                100,
-                42,
-            ),
-            call(
-                "sample2",
-                [os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"),
-                 os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta")],
-                [0.6536174529063914, 0.3463825470936087],
-                2000000,
-                tmp_dir,
-                1,
-                150,
-                42,
-            )
-        ])
+        p_process.assert_has_calls(
+            [
+                call(
+                    "sample1",
+                    [
+                        os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"),
+                        os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta"),
+                    ],
+                    [0.5, 0.5],
+                    1000000,
+                    tmp_dir,
+                    1,
+                    100,
+                    42,
+                ),
+                call(
+                    "sample2",
+                    [
+                        os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"),
+                        os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta"),
+                    ],
+                    [0.6536174529063914, 0.3463825470936087],
+                    2000000,
+                    tmp_dir,
+                    1,
+                    150,
+                    42,
+                ),
+            ]
+        )
 
     def test_simulate_reads_mason_duplicate_sample_names(self):
-        refs = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format1"), "r")
+        refs = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
         with self.assertRaisesRegex(ValueError, "Sample names need to be unique"):
             _simulate_reads_mason(
                 reference_genomes=refs,
@@ -107,8 +116,14 @@ class TestMason(TestPluginBase):
             )
 
     def test_simulate_reads_mason_num_reads_length(self):
-        refs = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format1"), "r")
-        with self.assertRaisesRegex(ValueError, "The length of read_length must be either 1 or equal to the number of sample names"):
+        refs = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
+        with self.assertRaisesRegex(
+            ValueError,
+            "The length of read_length must be either 1 "
+            "or equal to the number of sample names",
+        ):
             _simulate_reads_mason(
                 reference_genomes=refs,
                 sample_names=["sample1", "sample2"],
@@ -119,8 +134,14 @@ class TestMason(TestPluginBase):
             )
 
     def test_simulate_reads_mason_read_length_length(self):
-        refs = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format1"), "r")
-        with self.assertRaisesRegex(ValueError, "The length of num_reads must be either 1 or equal to the number of sample names"):
+        refs = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
+        with self.assertRaisesRegex(
+            ValueError,
+            "The length of num_reads must be either 1 "
+            "or equal to the number of sample names",
+        ):
             _simulate_reads_mason(
                 reference_genomes=refs,
                 sample_names=["sample1", "sample2", "sample3"],
@@ -132,14 +153,18 @@ class TestMason(TestPluginBase):
 
     @patch("q2_assembly.mason._process_sample")
     @patch("tempfile.TemporaryDirectory")
-    def test_simulate_reads_mason_expand_num_reads_and_read_length(self, p_tmpdir, p_process):
+    def test_simulate_reads_mason_expand_num_reads_and_read_length(
+        self, p_tmpdir, p_process
+    ):
         tmp_dir = tempfile.mkdtemp()
         p_tmpdir.return_value.__enter__.return_value = tmp_dir
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
-        refs = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format1"), "r")
+        refs = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
         with patch(
-                "q2_assembly.mason.GenomeSequencesDirectoryFormat",
-                return_value=mock_genomes_dir_fmt
+            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
+            return_value=mock_genomes_dir_fmt,
         ):
             result = _simulate_reads_mason(
                 reference_genomes=refs,
@@ -205,7 +230,11 @@ class TestAbundancesToDF(TestPluginBase):
 
     def test_abundances_to_df(self):
         abundances = [0.1, 0.2, 0.7]
-        genome_files = ["/tmp/genomeA.fasta", "/tmp/genomeB.fasta", "/tmp/genomeC.fasta"]
+        genome_files = [
+            "/tmp/genomeA.fasta",
+            "/tmp/genomeB.fasta",
+            "/tmp/genomeC.fasta",
+        ]
         sample_id = "sample1"
         df = abundances_to_df(abundances, genome_files, sample_id)
         self.assertListEqual(list(df.index), ["genomeA", "genomeB", "genomeC"])
@@ -245,11 +274,7 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
             self.assertFalse(os.path.exists(f2))
 
             # subprocess.run should have been called with the expected command
-            expected_cmd = [
-                "cat",
-                f1,
-                f2
-            ]
+            expected_cmd = ["cat", f1, f2]
             mock_run.assert_called_with(expected_cmd, check=True, stdout=ANY)
 
     @patch("q2_assembly.mason.run_command")
@@ -264,7 +289,16 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
         read_len = 150
         seed = 123
 
-        _process_sample(sample, genome_files, abundances, total_reads, tmp_dir, threads, read_len, seed)
+        _process_sample(
+            sample,
+            genome_files,
+            abundances,
+            total_reads,
+            tmp_dir,
+            threads,
+            read_len,
+            seed,
+        )
         # Should call run_command for each genome with the expected command
         expected_calls = []
         for genome_file, abundance in zip(genome_files, abundances):
@@ -295,10 +329,12 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
         mock_run_command.assert_has_calls(expected_calls, any_order=False)
 
         # Should call _combine_reads twice (forward and reverse)
-        mock_combine_reads.assert_has_calls([
-            call(sample, tmp_dir, orientation="forward"),
-            call(sample, tmp_dir, orientation="reverse")
-        ])
+        mock_combine_reads.assert_has_calls(
+            [
+                call(sample, tmp_dir, orientation="forward"),
+                call(sample, tmp_dir, orientation="reverse"),
+            ]
+        )
 
 
 if __name__ == "__main__":
