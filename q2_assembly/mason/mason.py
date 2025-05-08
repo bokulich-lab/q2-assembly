@@ -46,25 +46,21 @@ def _process_mason_arg(arg_key, arg_val):
         return flags
 
 
-def generate_abundances(
-    profiles, num_genomes, mu=0, sigma=1, lambd=0.5, random_seed=42
-):
+def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5, random_seed=42):
     np.random.seed(random_seed)
-    all_abundances = []
-    for profile in profiles:
-        abundances = []
-        if profile == "uniform":
-            abundances = [1 / num_genomes] * num_genomes
-        elif profile == "exponential":
-            abundances = np.exp(-lambd * np.arange(num_genomes))
-            abundances /= abundances.sum()
-        elif profile == "lognormal":
-            abundances = np.exp(mu + sigma * np.random.randn(num_genomes))
-            abundances /= abundances.sum()
-        else:
-            print(f"Invalid abundance profile option: {profile}")
-        all_abundances.append(list(abundances))
-    return all_abundances
+
+    if profile == "uniform":
+        abundances = [1 / num_genomes] * num_genomes
+    elif profile == "exponential":
+        abundances = np.exp(-lambd * np.arange(num_genomes))
+        abundances /= abundances.sum()
+    elif profile == "lognormal":
+        abundances = np.exp(mu + sigma * np.random.randn(num_genomes))
+        abundances /= abundances.sum()
+    else:
+        raise ValueError(f"Invalid abundance profile option: '{profile}'")
+
+    return list(abundances)
 
 
 def abundances_to_df(abundances, genome_files, sample_id):
@@ -77,14 +73,16 @@ def abundances_to_df(abundances, genome_files, sample_id):
     return df
 
 
-def _combine_reads(sample_id, src_dir, orientation="forward"):
+def _combine_reads(sample_id, results_dir, orientation="forward"):
     _idx = "1" if orientation == "forward" else "2"
 
     all_files = sorted(
-        glob.glob(os.path.join(src_dir, f"{sample_id}_*_00_L001_R{_idx}_001.fastq.gz"))
+        glob.glob(
+            os.path.join(results_dir, f"{sample_id}_*_00_L001_R{_idx}_001.fastq.gz")
+        )
     )
     with open(
-        os.path.join(src_dir, f"{sample_id}_00_L001_R{_idx}_001.fastq.gz"), "wb"
+        os.path.join(results_dir, f"{sample_id}_00_L001_R{_idx}_001.fastq.gz"), "wb"
     ) as out:
         cmd = ["cat", *all_files]
         subprocess.run(cmd, check=True, stdout=out)
@@ -95,11 +93,11 @@ def _combine_reads(sample_id, src_dir, orientation="forward"):
 
 
 def _process_sample(
-    sample, genome_files, abundances, total_reads, tmp_dir, threads, read_len, seed
+    sample, genome_files, abundances, total_reads, results_dir, threads, read_len, seed
 ):
     for genome_file, abundance in zip(genome_files, abundances):
         genome_reads = int(total_reads * abundance)
-        _id = os.path.basename(genome_file).replace(".fasta", "")
+        _id = os.path.splitext(os.path.basename(genome_file))[0]
         print(f"[Sample: {sample}] Generating {genome_reads} reads for {_id}")
 
         cmd = [
@@ -118,93 +116,48 @@ def _process_sample(
             "--num-fragments",
             str(genome_reads),
             "--out",
-            os.path.join(tmp_dir, f"{sample}_{_id}_00_L001_R1_001.fastq.gz"),
+            os.path.join(results_dir, f"{sample}_{_id}_00_L001_R1_001.fastq.gz"),
             "--out-right",
-            os.path.join(tmp_dir, f"{sample}_{_id}_00_L001_R2_001.fastq.gz"),
+            os.path.join(results_dir, f"{sample}_{_id}_00_L001_R2_001.fastq.gz"),
         ]
 
         run_command(cmd, verbose=True)
 
     # combine all reads into a single file and clean up
-    _combine_reads(sample, tmp_dir, orientation="forward")
-    _combine_reads(sample, tmp_dir, orientation="reverse")
+    _combine_reads(sample, results_dir, orientation="forward")
+    _combine_reads(sample, results_dir, orientation="reverse")
 
 
 def _simulate_reads_mason(
     reference_genomes: GenomeSequencesDirectoryFormat,
-    sample_names: List[str],
-    num_reads: List[int] = [1000000],
-    read_length: List[int] = [100],
-    fragment_mean_size: int = 500,
-    fragment_size_stddev: int = 50,
-    error_rate: float = 0.01,
+    sample_name: str,
+    abundance_profile: str = None,
+    num_reads: int = 1000000,
+    read_length: int = 100,
     random_seed: int = 42,
-    abundance_profiles: List[str] = None,
     threads: int = 1,
 ) -> CasavaOneEightSingleLanePerSampleDirFmt:
-    sample_names = sample_names or ["sample"]
-
-    if len(set(sample_names)) < len(sample_names):
-        dupl = {str(x) for x in sample_names if sample_names.count(x) > 1}
-        raise ValueError(
-            "Sample names need to be unique. Found duplicated "
-            f'names: {", ".join(sorted(dupl))}'
-        )
-
-    if len(num_reads) != len(sample_names) and len(num_reads) != 1:
-        raise ValueError(
-            f"The length of num_reads must be either 1 or equal to the "
-            f"number of sample names. Provided: {len(num_reads)}, Expected: 1 "
-            f"or {len(sample_names)}"
-        )
-
-    if len(read_length) != len(sample_names) and len(read_length) != 1:
-        raise ValueError(
-            f"The length of read_length must be either 1 or equal to the "
-            f"number of sample names. Provided: {len(read_length)}, "
-            f"Expected: 1 or {len(sample_names)}"
-        )
-
-    if len(num_reads) == 1:
-        num_reads = num_reads * len(sample_names)
-
-    if len(read_length) == 1:
-        read_length = read_length * len(sample_names)
-
-    args = _process_mason_arg("fragment_mean_size", fragment_mean_size)
-    args.extend(_process_mason_arg("fragment_size_stddev", fragment_size_stddev))
-    args.extend(_process_mason_arg("error_rate", error_rate))
-    args.extend(_process_mason_arg("random_seed", random_seed))
 
     # we will copy the genomes to a temporary directory: mason generates fai
     # files that would interfere with validation
     tmp_refs = GenomeSequencesDirectoryFormat()
     shutil.copytree(str(reference_genomes.path), str(tmp_refs.path), dirs_exist_ok=True)
 
-    with tempfile.TemporaryDirectory() as tmp:
-        result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
-
-        genome_files = list(tmp_refs.file_dict().values())
-        abundances = generate_abundances(
-            abundance_profiles, len(genome_files), random_seed=random_seed
-        )
-        for sample_name, abundance, reads, length in zip(
-            sample_names, abundances, num_reads, read_length
-        ):
-            _process_sample(
-                sample_name,
-                genome_files,
-                abundance,
-                reads,
-                tmp,
-                threads,
-                length,
-                random_seed,
-            )
-
-        # move reads into CasavaFmt
-        for f in os.listdir(tmp):
-            shutil.move(os.path.join(tmp, f), str(result_reads))
+    result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
+    genome_files = list(tmp_refs.file_dict().values())
+    abundances = generate_abundances(
+        abundance_profile, len(genome_files), random_seed=random_seed
+    )
+    _process_sample(
+        sample=sample_name,
+        genome_files=genome_files,
+        abundances=abundances,
+        total_reads=num_reads,
+        results_dir=str(result_reads),
+        threads=threads,
+        read_len=read_length,
+        seed=random_seed,
+    )
 
     del tmp_refs
 
@@ -218,9 +171,6 @@ def simulate_reads_mason(
     abundance_profiles,
     num_reads=[1000000],
     read_length=[100],
-    fragment_mean_size=500,
-    fragment_size_stddev=50,
-    error_rate=0.01,
     random_seed=42,
     threads=1,
     num_partitions=None,
@@ -239,12 +189,20 @@ def simulate_reads_mason(
             "read_length",
         ]
     }
-    # check that the length of sample_names and abundance_profiles match
-    if len(sample_names) != len(abundance_profiles):
+
+    sample_names = sample_names or ["sample"]
+    if len(set(sample_names)) < len(sample_names):
+        dupl = {str(x) for x in sample_names if sample_names.count(x) > 1}
         raise ValueError(
-            f"The number of sample names and abundance profiles must match. "
-            f"Provided: {len(sample_names)} samples, "
-            f"Expected: {len(abundance_profiles)} abundance profiles"
+            "Sample names need to be unique. Found duplicated "
+            f'names: {", ".join(sorted(dupl))}'
+        )
+
+    if len(abundance_profiles) != len(sample_names) and len(abundance_profiles) != 1:
+        raise ValueError(
+            f"The length of abundance_profiles must be either 1 or equal to the "
+            f"number of sample names. Provided: {len(abundance_profiles)}, "
+            f"Expected: 1 or {len(sample_names)}"
         )
 
     if len(num_reads) != len(sample_names) and len(num_reads) != 1:
@@ -261,6 +219,9 @@ def simulate_reads_mason(
             f"Expected: 1 or {len(sample_names)}"
         )
 
+    if len(abundance_profiles) == 1:
+        abundance_profiles = abundance_profiles * len(sample_names)
+
     if len(num_reads) == 1:
         num_reads = num_reads * len(sample_names)
 
@@ -276,10 +237,10 @@ def simulate_reads_mason(
     ):
         (sample,) = _simulate(
             reference_genomes=reference_genomes,
-            abundance_profiles=[abundance_profile],
-            sample_names=[sample_name],
-            num_reads=[reads],
-            read_length=[length],
+            abundance_profile=abundance_profile,
+            sample_name=sample_name,
+            num_reads=reads,
+            read_length=length,
             **kwargs,
         )
         samples.append(sample)

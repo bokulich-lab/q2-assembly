@@ -9,7 +9,7 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import call, patch, ANY
+from unittest.mock import call, patch, ANY, MagicMock
 
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFmt
@@ -22,6 +22,7 @@ from q2_assembly.mason.mason import (
     abundances_to_df,
     _combine_reads,
     _process_sample,
+    simulate_reads_mason,
 )
 
 
@@ -31,6 +32,12 @@ class MockTempDir(tempfile.TemporaryDirectory):
 
 class TestMason(TestPluginBase):
     package = "q2_assembly.tests"
+
+    def setUp(self):
+        super().setUp()
+        self.refs = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
 
     def test_process_mason_arg(self):
         obs = _process_mason_arg("num_reads", 1000000)
@@ -47,11 +54,8 @@ class TestMason(TestPluginBase):
         exp = ["--k_bool"]
         self.assertListEqual(obs, exp)
 
-    @patch("tempfile.TemporaryDirectory")
     @patch("q2_assembly.mason._process_sample")
-    def test_simulate_reads_mason(self, p_process, p_tmpdir):
-        tmp_dir = tempfile.mkdtemp()
-        p_tmpdir.return_value.__enter__.return_value = tmp_dir
+    def test_simulate_reads_mason_helper(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
         refs = GenomeSequencesDirectoryFormat(
@@ -64,86 +68,128 @@ class TestMason(TestPluginBase):
         ):
             result = _simulate_reads_mason(
                 reference_genomes=refs,
-                sample_names=["sample1", "sample2"],
-                num_reads=[1000000, 2000000],
-                read_length=[100, 150],
-                abundance_profiles=["uniform", "lognormal"],
+                sample_name="sample1",
+                num_reads=2000000,
+                read_length=125,
+                abundance_profile="uniform",
             )
         self.assertIsInstance(result, CasavaOneEightSingleLanePerSampleDirFmt)
-        p_process.assert_has_calls(
+        p_process.assert_called_once_with(
+            sample="sample1",
+            genome_files=[
+                os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"),
+                os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta"),
+            ],
+            abundances=[0.5, 0.5],
+            total_reads=2000000,
+            results_dir=str(result),
+            threads=1,
+            read_len=125,
+            seed=42,
+        )
+
+    def test_simulate_reads_mason_one_sample(self):
+        f1 = MagicMock(return_value=("reads",))
+        f2 = MagicMock(return_value=("collated_reads",))
+        mock_action = MagicMock(side_effect=[f1, f2])
+        mock_ctx = MagicMock(get_action=mock_action)
+
+        simulate_reads_mason(
+            ctx=mock_ctx,
+            reference_genomes=self.refs,
+            sample_names=["sample1"],
+            num_reads=[2000000],
+            read_length=[125],
+            abundance_profiles=["uniform"],
+        )
+
+        f1.assert_called_once_with(
+            reference_genomes=self.refs,
+            sample_name="sample1",
+            num_reads=2000000,
+            read_length=125,
+            abundance_profile="uniform",
+            random_seed=42,
+            threads=1,
+        )
+        f2.assert_called_once_with(["reads"])
+
+    def test_simulate_reads_mason_multiple_samples(self):
+        f1 = MagicMock(side_effect=(("reads1",), ("reads2",)))
+        f2 = MagicMock(return_value=("collated_reads",))
+        mock_action = MagicMock(side_effect=[f1, f2])
+        mock_ctx = MagicMock(get_action=mock_action)
+
+        simulate_reads_mason(
+            ctx=mock_ctx,
+            reference_genomes=self.refs,
+            sample_names=["sample1", "sample2"],
+            num_reads=[2000, 4000],
+            read_length=[125, 150],
+            abundance_profiles=["uniform", "lognormal"],
+        )
+
+        f1.assert_has_calls(
             [
                 call(
-                    "sample1",
-                    [
-                        os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"),
-                        os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta"),
-                    ],
-                    [0.5, 0.5],
-                    1000000,
-                    tmp_dir,
-                    1,
-                    100,
-                    42,
+                    reference_genomes=self.refs,
+                    sample_name="sample1",
+                    num_reads=2000,
+                    read_length=125,
+                    abundance_profile="uniform",
+                    random_seed=42,
+                    threads=1,
                 ),
                 call(
-                    "sample2",
-                    [
-                        os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"),
-                        os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta"),
-                    ],
-                    [0.6536174529063914, 0.3463825470936087],
-                    2000000,
-                    tmp_dir,
-                    1,
-                    150,
-                    42,
+                    reference_genomes=self.refs,
+                    sample_name="sample2",
+                    num_reads=4000,
+                    read_length=150,
+                    abundance_profile="lognormal",
+                    random_seed=42,
+                    threads=1,
                 ),
             ]
         )
+        f2.assert_called_once_with(["reads1", "reads2"])
 
     def test_simulate_reads_mason_duplicate_sample_names(self):
-        refs = GenomeSequencesDirectoryFormat(
-            self.get_data_path("genomes-dir-format1"), "r"
-        )
         with self.assertRaisesRegex(ValueError, "Sample names need to be unique"):
-            _simulate_reads_mason(
-                reference_genomes=refs,
+            simulate_reads_mason(
+                ctx=MagicMock(),
+                reference_genomes=self.refs,
                 sample_names=["sample1", "sample1"],
+                abundance_profiles=["uniform", "lognormal"],
                 num_reads=[1000000, 2000000],
                 read_length=[100, 150],
-                abundance_profiles=["uniform", "lognormal"],
                 threads=1,
             )
 
     def test_simulate_reads_mason_num_reads_length(self):
-        refs = GenomeSequencesDirectoryFormat(
-            self.get_data_path("genomes-dir-format1"), "r"
-        )
         with self.assertRaisesRegex(
             ValueError,
             "The length of read_length must be either 1 "
             "or equal to the number of sample names",
         ):
-            _simulate_reads_mason(
-                reference_genomes=refs,
+            simulate_reads_mason(
+                ctx=MagicMock(),
+                reference_genomes=self.refs,
                 sample_names=["sample1", "sample2"],
+                abundance_profiles=["uniform", "lognormal"],
                 num_reads=[1000000],
                 read_length=[100, 150, 200],
-                abundance_profiles=["uniform", "lognormal"],
                 threads=1,
             )
 
-    def test_simulate_reads_mason_read_length_length(self):
-        refs = GenomeSequencesDirectoryFormat(
-            self.get_data_path("genomes-dir-format1"), "r"
-        )
+    def test_simulate_reads_mason_num_reads(self):
         with self.assertRaisesRegex(
             ValueError,
             "The length of num_reads must be either 1 "
             "or equal to the number of sample names",
         ):
-            _simulate_reads_mason(
-                reference_genomes=refs,
+            simulate_reads_mason(
+                ctx=MagicMock(),
+                reference_genomes=self.refs,
                 sample_names=["sample1", "sample2", "sample3"],
                 num_reads=[1000000, 2000000],
                 read_length=[100, 150, 200],
@@ -151,78 +197,87 @@ class TestMason(TestPluginBase):
                 threads=1,
             )
 
-    @patch("q2_assembly.mason._process_sample")
-    @patch("tempfile.TemporaryDirectory")
-    def test_simulate_reads_mason_expand_num_reads_and_read_length(
-        self, p_tmpdir, p_process
-    ):
-        tmp_dir = tempfile.mkdtemp()
-        p_tmpdir.return_value.__enter__.return_value = tmp_dir
-        mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
-        refs = GenomeSequencesDirectoryFormat(
-            self.get_data_path("genomes-dir-format1"), "r"
-        )
-        with patch(
-            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
-            return_value=mock_genomes_dir_fmt,
+    def test_simulate_reads_mason_abundance_profiles(self):
+        with self.assertRaisesRegex(
+            ValueError,
+            "The length of abundance_profiles must be either 1 "
+            "or equal to the number of sample names",
         ):
-            result = _simulate_reads_mason(
-                reference_genomes=refs,
-                sample_names=["sample1", "sample2"],
-                num_reads=[1000000],
-                read_length=[100],
-                abundance_profiles=["uniform", "lognormal"],
+            simulate_reads_mason(
+                ctx=MagicMock(),
+                reference_genomes=self.refs,
+                sample_names=["sample1", "sample2", "sample3"],
+                num_reads=[1000, 2000, 3000],
+                read_length=[100, 150, 200],
+                abundance_profiles=["lognormal", "exponential"],
                 threads=1,
             )
-        self.assertIsInstance(result, CasavaOneEightSingleLanePerSampleDirFmt)
-        calls = p_process.call_args_list
-        self.assertEqual(len(calls), 2)
-        self.assertEqual(calls[0][0][3], 1000000)
-        self.assertEqual(calls[1][0][3], 1000000)
-        self.assertEqual(calls[0][0][6], 100)
-        self.assertEqual(calls[1][0][6], 100)
+
+    def test_simulate_reads_mason_expand_arguments(self):
+        f1 = MagicMock(side_effect=(("reads1",), ("reads2",)))
+        f2 = MagicMock(return_value=("collated_reads",))
+        mock_action = MagicMock(side_effect=[f1, f2])
+        mock_ctx = MagicMock(get_action=mock_action)
+
+        simulate_reads_mason(
+            ctx=mock_ctx,
+            reference_genomes=self.refs,
+            sample_names=["sample1", "sample2"],
+            num_reads=[2000],
+            read_length=[125],
+            abundance_profiles=["uniform"],
+        )
+
+        f1.assert_has_calls(
+            [
+                call(
+                    reference_genomes=self.refs,
+                    sample_name="sample1",
+                    num_reads=2000,
+                    read_length=125,
+                    abundance_profile="uniform",
+                    random_seed=42,
+                    threads=1,
+                ),
+                call(
+                    reference_genomes=self.refs,
+                    sample_name="sample2",
+                    num_reads=2000,
+                    read_length=125,
+                    abundance_profile="uniform",
+                    random_seed=42,
+                    threads=1,
+                ),
+            ]
+        )
+        f2.assert_called_once_with(["reads1", "reads2"])
 
 
 class TestGenerateAbundances(TestPluginBase):
     package = "q2_assembly.tests"
 
     def test_uniform_profile(self):
-        profiles = ["uniform"]
-        num_genomes = 4
-        result = generate_abundances(profiles, num_genomes)
-        expected = [[0.25, 0.25, 0.25, 0.25]]
-        for r, e in zip(result[0], expected[0]):
+        result = generate_abundances("uniform", 4)
+        expected = [0.25, 0.25, 0.25, 0.25]
+        for r, e in zip(result, expected):
             self.assertAlmostEqual(r, e)
 
     def test_exponential_profile(self):
-        profiles = ["exponential"]
-        num_genomes = 3
-        result = generate_abundances(profiles, num_genomes, lambd=1.0)
+        result = generate_abundances("exponential", 3, lambd=1.0)
         # Should sum to 1
-        self.assertAlmostEqual(sum(result[0]), 1.0)
-        self.assertTrue(all(x > 0 for x in result[0]))
+        self.assertAlmostEqual(sum(result), 1.0)
+        self.assertTrue(all(x > 0 for x in result))
 
     def test_lognormal_profile(self):
-        profiles = ["lognormal"]
-        num_genomes = 5
-        result = generate_abundances(profiles, num_genomes, mu=0, sigma=1)
-        self.assertAlmostEqual(sum(result[0]), 1.0)
-        self.assertEqual(len(result[0]), num_genomes)
+        result = generate_abundances("lognormal", 5, mu=0, sigma=1)
+        self.assertAlmostEqual(sum(result), 1.0)
+        self.assertEqual(len(result), 5)
 
     def test_invalid_profile(self):
-        profiles = ["invalid"]
-        num_genomes = 2
-        result = generate_abundances(profiles, num_genomes)
-        self.assertListEqual(result, [[]])
-
-    def test_multiple_profiles(self):
-        profiles = ["uniform", "exponential", "lognormal"]
-        num_genomes = 4
-        result = generate_abundances(profiles, num_genomes)
-        self.assertEqual(len(result), 3)
-        for abundances in result:
-            self.assertEqual(len(abundances), num_genomes)
-            self.assertAlmostEqual(sum(abundances), 1.0)
+        with self.assertRaisesRegex(
+            ValueError, "Invalid abundance profile option: 'invalid'"
+        ):
+            generate_abundances("invalid", 2)
 
 
 class TestAbundancesToDF(TestPluginBase):
@@ -252,8 +307,7 @@ class TestAbundancesToDF(TestPluginBase):
 class TestCombineReadsAndProcessSample(TestPluginBase):
     package = "q2_assembly.tests"
 
-    @patch("subprocess.run")
-    def test_combine_reads(self, mock_run):
+    def test_combine_reads(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             sample_id = "sampleX"
             # Create fake files to combine
@@ -269,13 +323,14 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
             out_file = os.path.join(tmpdir, f"{sample_id}_00_L001_R1_001.fastq.gz")
             self.assertTrue(os.path.exists(out_file))
 
+            # Output file content should be the concatenation of the two input files
+            with open(out_file, "rb") as fh:
+                content = fh.read()
+            self.assertEqual(content, b"testdata\ntestdata\n")
+
             # Input files should be removed
             self.assertFalse(os.path.exists(f1))
             self.assertFalse(os.path.exists(f2))
-
-            # subprocess.run should have been called with the expected command
-            expected_cmd = ["cat", f1, f2]
-            mock_run.assert_called_with(expected_cmd, check=True, stdout=ANY)
 
     @patch("q2_assembly.mason.run_command")
     @patch("q2_assembly.mason._combine_reads")

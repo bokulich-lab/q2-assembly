@@ -22,6 +22,7 @@ requirements:
   - megahit ==1.2.9
   - pysam {{ pysam }}
   - qiime2 >={{ qiime2 }}
+  - q2-fondue >={{ q2_fondue }}
   - q2-types >={{ q2_types }}
   - q2templates >={{ q2templates }}
   - q2-demux >={{ q2_demux }}

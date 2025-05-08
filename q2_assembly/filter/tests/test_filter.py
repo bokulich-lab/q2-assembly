@@ -72,7 +72,7 @@ class TestFilterContigs(TestPluginBase):
 
         exp_counts = (6, 1, 0)
         for (_id, fp), count in zip(obs.sample_dict().items(), exp_counts):
-            with (open(fp) as f):
+            with open(fp) as f:
                 self.assertEqual(len(list(skbio.io.read(f, format="fasta"))), count)
 
     def test_filter_remove_empty(self):
@@ -93,7 +93,7 @@ class TestFilterContigs(TestPluginBase):
 
         self.assertEqual(len(obs.sample_dict()), 1)
 
-        with (open(os.path.join(obs.path, "sample1_contigs.fa")) as f):
+        with open(os.path.join(obs.path, "sample1_contigs.fa")) as f:
             self.assertEqual(len(list(skbio.io.read(f, format="fasta"))), 2)
 
     def test_filter_everything(self):
