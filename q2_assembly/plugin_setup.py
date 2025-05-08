@@ -22,7 +22,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
-from qiime2.plugin import Citations, Collection, Float, Int, List, Plugin, Range
+from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range
 
 import q2_assembly
 from q2_assembly import __version__

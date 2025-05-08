@@ -9,8 +9,6 @@ import glob
 import os
 import shutil
 import subprocess
-import tempfile
-from typing import List
 
 import numpy as np
 import pandas as pd

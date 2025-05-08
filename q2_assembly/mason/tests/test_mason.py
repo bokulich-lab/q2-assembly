@@ -9,7 +9,7 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import call, patch, ANY, MagicMock
+from unittest.mock import call, patch, MagicMock
 
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFmt
