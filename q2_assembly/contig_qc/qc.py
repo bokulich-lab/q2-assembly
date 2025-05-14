@@ -10,20 +10,23 @@ import os
 import glob
 import re
 import shutil
+from typing import List
 
+import jinja2
 import numpy as np
 import pandas as pd
+import panel as pn
+from qiime2 import Metadata
 import pkg_resources
 import q2templates
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from skbio import DNA, read
-import altair as alt
 
 
 TEMPLATES = pkg_resources.resource_filename("q2_assembly", "assets")
 
 
-def generate_plotting_data(contigs_dir):
+def generate_plotting_data(contigs_dir, metadata=None):
     # Process each FASTA file and build sample-level info.
     samples_data = {}
     for file in glob.glob(os.path.join(str(contigs_dir), "*.fa")):
@@ -78,119 +81,114 @@ def generate_plotting_data(contigs_dir):
                 nx_rows.append({"sample": sample, "percent": p, "nx": nx_val})
     nx_df = pd.DataFrame(nx_rows)
 
+    if metadata is not None:
+        metadata = metadata.reset_index().rename(columns={metadata.index.name or 'index': 'sample'})
+        seq_df = seq_df.merge(metadata, on='sample', how='left')
+        cumulative_df = cumulative_df.merge(metadata, on='sample', how='left')
+        nx_df = nx_df.merge(metadata, on='sample', how='left')
+
     return {
         "seq_df": seq_df,
         "cumulative_df": cumulative_df,
-        "nx_df": nx_df
+        "nx_df": nx_df,
+        "metadata_columns": list(metadata.columns.drop('sample')) if metadata is not None else []
     }
 
+def custom_legend(sample_names, color_map):
+    return pn.Row(*[
+        pn.pane.HTML(f"""
+        <span style='display:inline-block;width:18px;height:18px;background:{color_map[sample]};margin-right:8px;border-radius:3px;vertical-align:middle'></span>
+        <span style='margin-right:18px;vertical-align:middle'>{sample}</span>
+        """) for sample in sample_names
+    ], margin=(0,0,10,0))
 
-def generate_visualization(data):
-    # Define a multi-select for filtering via the legend.
-    sample_sel = alt.selection_multi(fields=["sample"], bind="legend")
-    # Define a click selection: single-click to highlight a sample.
-    click_sel = alt.selection_single(fields=["sample"], on="click", empty="all", clear="dblclick")
-    combined_sel = click_sel  # used for opacity highlighting
 
-    # Define a dropdown selection parameter for sample filtering.
-    sample_options = ["All"] + sorted(data["seq_df"]["sample"].unique().tolist())
-    dropdown_sel = alt.param(
-        name="dropdown",
-        value="All",
-        bind=alt.binding_select(options=sample_options, name="Select Sample:")
+def compute_sample_metrics(seq_df: pd.DataFrame, categories: List[str]):
+    metrics = []
+    for sample, group in seq_df.groupby("sample"):
+        contig_lengths = group['contig_length'].tolist()
+        contig_lengths.sort(reverse=True)
+        total_length = sum(contig_lengths)
+        count = len(contig_lengths)
+        n50 = n90 = 0
+        acc = 0
+        for l in contig_lengths:
+            acc += l
+            if not n50 and acc >= total_length * 0.5:
+                n50 = l
+            if not n90 and acc >= total_length * 0.9:
+                n90 = l
+        metrics.append({
+            'sample': sample,
+            'count': count,
+            'n50': n50,
+            'n90': n90,
+            'total_length': total_length,
+            **{category: group[category].iloc[0] for category in categories}
+        })
+    return metrics
+
+
+def _cleanup_bootstrap(output_dir):
+    # Remove unwanted files
+    # until Bootstrap 3 is replaced with v5, remove the v3 scripts as
+    # the HTML files are adjusted to work with v5
+    os.remove(
+        os.path.join(
+            output_dir, "q2templateassets", "css", "bootstrap.min.css"
+        )
     )
-    dropdown_filter = "dropdown === 'All' || datum.sample === dropdown"
-
-    # 1. Contig Length Distribution as a Line Histogram.
-    contig_hist_data = alt.Chart(data["seq_df"]).transform_bin(
-        "binned", "contig_length", bin=alt.Bin(maxbins=30)
-    ).transform_aggregate(
-        count='count()', groupby=["binned", "sample"]
-    )
-    contig_hist = contig_hist_data.mark_line().encode(
-        alt.X("binned:Q", axis=alt.Axis(format="~s", title="Contig Length")),
-        alt.Y("count:Q", axis=alt.Axis(format="~s", title="Count")),
-        alt.Color("sample:N", legend=alt.Legend()),
-        alt.Tooltip("sample:N", title="Sample"),
-        opacity=alt.condition(combined_sel, alt.value(1), alt.value(0.2))
-    ).transform_filter(sample_sel
-                       ).transform_filter(dropdown_filter
-                                          ).add_params(dropdown_sel
-                                                       ).add_selection(click_sel
-                                                                       ).interactive().properties(
-        width=500, height=300, title="Contig Length Distribution"
-    )
-
-    # 2. Nx Curve Plot.
-    nx_curve = alt.Chart(data["nx_df"]).mark_line(interpolate="step-after").encode(
-        alt.X("nx:Q", axis=alt.Axis(format="~s", title="Contig Length (Nx)")),
-        alt.Y("percent:Q", title="Percent of Assembly"),
-        alt.Color("sample:N", legend=alt.Legend()),
-        alt.Tooltip(["sample:N", "nx:Q", "percent:Q"]),
-        opacity=alt.condition(combined_sel, alt.value(1), alt.value(0.2))
-    ).transform_filter(sample_sel
-                       ).transform_filter(dropdown_filter
-                                          ).add_params(dropdown_sel
-                                                       ).add_selection(click_sel
-                                                                       ).interactive().properties(
-        width=500, height=300, title="Nx Curve per Sample"
+    os.remove(
+        os.path.join(
+            output_dir, "q2templateassets", "js", "bootstrap.min.js"
+        )
     )
 
-    # 3. GC Content Distribution as Density Lines.
-    gc_violin = alt.Chart(data["seq_df"]).transform_density(
-        "gc",
-        as_=["gc", "density"],
-        groupby=["sample"],
-        extent=[0, 100]
-    ).mark_line(strokeWidth=3).encode(
-        alt.X("gc:Q", title="GC Content (%)"),
-        alt.Y("density:Q", title="Density"),
-        alt.Color("sample:N", legend=alt.Legend()),
-        alt.Tooltip("sample:N", title="Sample"),
-        opacity=alt.condition(combined_sel, alt.value(1), alt.value(0.2))
-    ).transform_filter(sample_sel
-                       ).transform_filter(dropdown_filter
-                                          ).add_params(dropdown_sel
-                                                       ).add_selection(click_sel
-                                                                       ).interactive().properties(
-        width=500, height=300, title="GC Content Distribution per Sample"
-    )
+def evaluate_contigs_new(
+        output_dir: str,
+        contigs: ContigSequencesDirFmt,
+        metadata: Metadata = None
+):
+    metadata_df = metadata.to_dataframe()
+    data = generate_plotting_data(contigs, metadata.to_dataframe())
 
-    # 4. Cumulative Contig Length Curves.
-    cumulative_chart = alt.Chart(data["cumulative_df"]).mark_line().encode(
-        alt.X("rank:Q", title="No. of contigs"),
-        alt.Y("cumulative_length:Q", axis=alt.Axis(format="~s", title="Cumulative Length")),
-        alt.Color("sample:N", legend=alt.Legend()),
-        alt.Tooltip("sample:N", title="Sample"),
-        opacity=alt.condition(combined_sel, alt.value(1), alt.value(0.2))
-    ).transform_filter(sample_sel
-                       ).transform_filter(dropdown_filter
-                                          ).add_params(dropdown_sel
-                                                       ).add_selection(click_sel
-                                                                       ).interactive().properties(
-        width=500, height=300, title="Cumulative Contig Length Curves"
-    )
-
-    dashboard = alt.vconcat(
-        alt.hconcat(contig_hist, nx_curve),
-        alt.hconcat(gc_violin, cumulative_chart)
-    ).configure_title(fontSize=16).add_selection(sample_sel)
-
-    return dashboard
-
-
-def evaluate_contigs_new(output_dir: str, contigs: ContigSequencesDirFmt):
-    data = generate_plotting_data(contigs)
-    dashboard = generate_visualization(data)
-
-    shutil.copy(os.path.join(TEMPLATES, "contig_qc", "index.html"), output_dir)
-    context = {
-        'vega_json': json.dumps(dashboard.to_dict())
+    categories = metadata_df.columns.tolist()
+    values = {
+        x: metadata_df[x].dropna().unique().tolist() for x in metadata_df.columns
     }
+
+    sample_metrics = compute_sample_metrics(data['seq_df'], categories)
+
+    # Render the Vega-Lite spec as a JSON string
+    spec_template_fp = os.path.join(TEMPLATES, "contig_qc", "vega_spec.json.j2")
+    with open(spec_template_fp) as f:
+        spec_template = jinja2.Template(f.read())
+    vega_spec_json = spec_template.render(
+        seq_df=json.dumps(data['seq_df'].to_dict(orient='records')),
+        nx_df=json.dumps(data['nx_df'].to_dict(orient='records')),
+        cumulative_df=json.dumps(data['cumulative_df'].to_dict(orient='records'))
+    )
 
     templates = [
         os.path.join(TEMPLATES, "contig_qc", "index.html"),
+        os.path.join(TEMPLATES, "contig_qc", "grouped.html")
     ]
+    context = {
+        "tabs": [
+            {"title": "Sample metrics", "url": "index.html"},
+            {"title": "Group metrics", "url": "grouped.html"}
+        ],
+        "vega_spec_json": vega_spec_json,
+        "sample_metrics": json.dumps(sample_metrics),
+        "categories": json.dumps(categories),
+        "values": json.dumps(values),
+    }
+
+    shutil.copytree(
+        os.path.join(TEMPLATES, "contig_qc", "js"),
+        os.path.join(output_dir, "js")
+    )
 
     q2templates.render(templates, output_dir, context=context)
 
+    _cleanup_bootstrap(output_dir)
