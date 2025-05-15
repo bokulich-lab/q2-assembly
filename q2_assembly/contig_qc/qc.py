@@ -106,6 +106,8 @@ def compute_sample_metrics(seq_gc_df: pd.DataFrame, categories: List[str]):
         contig_lengths.sort(reverse=True)
         total_length = sum(contig_lengths)
         count = len(contig_lengths)
+        mean = np.round(np.mean(contig_lengths), 0)
+        longest = contig_lengths[0]
         n50 = n90 = 0
         acc = 0
         for l in contig_lengths:
@@ -117,6 +119,8 @@ def compute_sample_metrics(seq_gc_df: pd.DataFrame, categories: List[str]):
         metrics.append({
             'sample': sample,
             'count': count,
+            'mean': mean,
+            'longest': longest,
             'n50': n50,
             'n90': n90,
             'total_length': total_length,
@@ -140,6 +144,13 @@ def _cleanup_bootstrap(output_dir):
         )
     )
 
+def render_spec(template_name, **kwargs):
+    # Render the four separate Vega-Lite specs for the dashboard
+    spec_template_fp = os.path.join(TEMPLATES, "contig_qc", template_name)
+    with open(spec_template_fp) as f:
+        spec_template = jinja2.Template(f.read())
+    return spec_template.render(**kwargs)
+
 def evaluate_contigs(
         output_dir: str,
         contigs: ContigSequencesDirFmt,
@@ -154,13 +165,6 @@ def evaluate_contigs(
     }
 
     sample_metrics = compute_sample_metrics(data['seq_len_df'], categories)
-
-    # Render the four separate Vega-Lite specs for the dashboard
-    def render_spec(template_name, **kwargs):
-        spec_template_fp = os.path.join(TEMPLATES, "contig_qc", template_name)
-        with open(spec_template_fp) as f:
-            spec_template = jinja2.Template(f.read())
-        return spec_template.render(**kwargs)
 
     vega_contig_length_spec = render_spec(
         "vega_contig_length_spec.json.j2",
@@ -181,12 +185,14 @@ def evaluate_contigs(
 
     templates = [
         os.path.join(TEMPLATES, "contig_qc", "index.html"),
-        os.path.join(TEMPLATES, "contig_qc", "grouped.html")
+        os.path.join(TEMPLATES, "contig_qc", "grouped.html"),
+        os.path.join(TEMPLATES, "contig_qc", "table.html")
     ]
     context = {
         "tabs": [
             {"title": "Sample metrics", "url": "index.html"},
-            {"title": "Group metrics", "url": "grouped.html"}
+            {"title": "Group metrics", "url": "grouped.html"},
+            {"title": "Table view", "url": "table.html"},
         ],
         "vega_contig_length_spec": vega_contig_length_spec,
         "vega_nx_curve_spec": vega_nx_curve_spec,
@@ -195,7 +201,10 @@ def evaluate_contigs(
         "sample_metrics": json.dumps(sample_metrics),
         "categories": json.dumps(categories),
         "values": json.dumps(values),
+        "page_size": 100
     }
+
+    pd.DataFrame(sample_metrics)[["sample", "count", "mean", "n50", "n90", "total_length"]].to_csv(os.path.join(output_dir, "sample_metrics.tsv"), sep="\t", index=False)
 
     for d in ("js", "css"):
         shutil.copytree(
