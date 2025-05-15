@@ -41,7 +41,12 @@
       </div>
       <div class="mx-10">
         <div class="row dashboard-row justify-content-center">
-          <div class="col-12" id="vega-dashboard"></div>
+          <div class="col-md-6 mb-4"><div id="vega-contig-length"></div></div>
+          <div class="col-md-6 mb-4"><div id="vega-nx-curve"></div></div>
+        </div>
+        <div class="row dashboard-row justify-content-center">
+          <div class="col-md-6 mb-4"><div id="vega-gc-content"></div></div>
+          <div class="col-md-6 mb-4"><div id="vega-cumulative-length"></div></div>
         </div>
       </div>
     </div>
@@ -52,7 +57,10 @@
   // --- Data injected from Python ---
   const categories = {{ categories | safe }};
   const values = {{ values | safe }};
-  const vegaSpec = {{ vega_spec_json | safe }};
+  const vegaContigLengthSpec = {{ vega_contig_length_spec | safe }};
+  const vegaNxCurveSpec = {{ vega_nx_curve_spec | safe }};
+  const vegaGcContentSpec = {{ vega_gc_content_spec | safe }};
+  const vegaCumulativeLengthSpec = {{ vega_cumulative_length_spec | safe }};
 </script>
 <script type="text/javascript">
   $(document).ready(function () {
@@ -94,35 +102,51 @@
     updateValueDropdown(initialCategory, 'All');
     document.getElementById('categoryDropdown').value = initialCategory;
 
-    // Render the dashboard and keep a reference to the view
-    let vegaView = null;
-    vegaEmbed('#vega-dashboard', vegaSpec, {actions: true}).then(res => {
-      vegaView = res.view;
-      // Apply initial filters so the first "All" → X swap doesn't clear everything
-      vegaView.signal('category_param', initialCategory)
+    // Render each plot in its own container
+    let vegaViews = {};
+    vegaEmbed('#vega-contig-length', vegaContigLengthSpec, {actions: true}).then(res => { 
+      vegaViews.contigLength = res.view;
+      vegaViews.contigLength.signal('category_param', initialCategory)
+              .signal('value_param', 'All')
+              .runAsync(); 
+      });
+    vegaEmbed('#vega-nx-curve', vegaNxCurveSpec, {actions: true}).then(res => {
+      vegaViews.nxCurve = res.view;
+      vegaViews.nxCurve.signal('category_param', initialCategory)
               .signal('value_param', 'All')
               .runAsync();
-      // Listen for sample selection in the plots
-      vegaView.addSignalListener('sample_select', (name, value) => {
-        // No-op: sample selection in plot does not update dropdowns when 'sample' is not a filterable category
       });
-    });
+    vegaEmbed('#vega-gc-content', vegaGcContentSpec, {actions: true}).then(res => {
+      vegaViews.gcContent = res.view;
+      vegaViews.gcContent.signal('category_param', initialCategory)
+              .signal('value_param', 'All')
+              .runAsync();
+      });
+    vegaEmbed('#vega-cumulative-length', vegaCumulativeLengthSpec, {actions: true}).then(res => {
+      vegaViews.cumulativeLength = res.view;
+      vegaViews.cumulativeLength.signal('category_param', initialCategory)
+              .signal('value_param', 'All')
+              .runAsync();
+      });
 
     // Dropdown event listeners
     document.getElementById('categoryDropdown').addEventListener('change', function () {
       const category = this.value;
-      // Update value dropdown to show only relevant values
       updateValueDropdown(category, 'All');
-      // Update Vega params
-      if (vegaView) {
-        vegaView.signal('category_param', category).signal('value_param', 'All').runAsync();
-      }
+      // Update Vega params for all plots
+      Object.values(vegaViews).forEach(view => {
+        if (view) {
+          view.signal('category_param', category).signal('value_param', 'All').runAsync();
+        }
+      });
     });
     document.getElementById('valueDropdown').addEventListener('change', function () {
       const value = this.value;
-      if (vegaView) {
-        vegaView.signal('value_param', value).runAsync();
-      }
+      Object.values(vegaViews).forEach(view => {
+        if (view) {
+          view.signal('value_param', value).runAsync();
+        }
+      });
     });
   });
 </script>

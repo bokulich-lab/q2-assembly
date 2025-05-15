@@ -1,0 +1,80 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
+  "params": [
+    {"name": "category_param", "value": "group"},
+    {"name": "value_param", "value": "All"}
+  ],
+  "description": "Contig length distribution",
+  "data": {"values": {{ seq_df | safe }}},
+  "transform": [
+    {"filter": "value_param == 'All' || datum[category_param] == value_param"},
+    {"calculate": "log(datum.contig_length)/log(10)", "as": "log_x"},
+    {"bin": {"binned":  true, "maxbin":  10, "nice":  true}, "field": "log_x", "as": "bin_log_x"},
+    {"calculate": "pow(10, datum.bin_log_x)", "as": "x1"},
+    {"calculate": "pow(10, datum.bin_log_x_end)", "as": "x2"}
+  ],
+  "mark": "bar",
+  "width": "container", "height": 350,
+  "selection": {
+    "sample_select": {
+      "type": "multi",
+      "fields": ["sample"],
+      "bind": "legend"
+    },
+    "grid": {"type": "interval", "bind": "scales", "encodings": ["x"]}
+  },
+  "encoding": {
+    "x": {"field": "x1", "title": "Contig length", "axis": {"format": ".1s", "labelAngle": 0}},
+    "x2": {"field": "x2"},
+    "y": {"aggregate": "count", "title": "Count", "axis": {"format": "~s"}},
+    "color": {
+      "field": "sample",
+      "type": "nominal",
+      "scale": {"scheme": "viridis"}, "legend":  {"title":  "Sample"}},
+    "opacity": {
+      "condition": {"param": "sample_select", "value": 1},
+      "value": 0.2
+    }
+  },
+  "config": {
+    "background": "#fff",
+    "font": "Open Sans, Arial, sans-serif",
+    "axis": {
+      "grid": true,
+      "gridColor": "#eaeaea",
+      "gridWidth": 1,
+      "tickColor": "#888",
+      "labelFont": "Open Sans, Arial, sans-serif",
+      "labelFontSize": 14,
+      "titleFont": "Open Sans, Arial, sans-serif",
+      "titleFontSize": 16,
+      "titleFontWeight": "bold",
+      "domain": false
+    },
+    "legend": {
+      "orient": "top",
+      "columns":5,
+      "title": "Sample",
+      "offset": 50,
+      "labelFont": "Open Sans, Arial, sans-serif",
+      "labelFontSize": 14,
+      "titleFont": "Open Sans, Arial, sans-serif",
+      "titleFontSize": 15,
+      "symbolType": "circle",
+      "symbolSize": 120,
+      "symbolLimit": 100
+    },
+    "view": {
+      "stroke": "#eaeaea",
+      "strokeWidth": 1
+    },
+    "title": {
+      "font": "Open Sans, Arial, sans-serif",
+      "fontSize": 18,
+      "fontWeight": "bold",
+      "anchor": "middle",
+      "color": "#222"
+    }
+  },
+  "title": "Contig length distribution"
+} 

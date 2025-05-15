@@ -1,6 +1,12 @@
-  body { font-family: 'Open Sans', Arial, sans-serif; background: #fff; }
-  .dashboard-title { margin-top: 30px; margin-bottom: 30px; }
-  .dashboard-row { margin-bottom: 30px; }
-  .selector-row { margin-bottom: 20px; }
-  .custom-dropdown { min-width: 180px; }
-  .nav-tabs { padding-top: 10px;}
+body { font-family: 'Open Sans', Arial, sans-serif; background: #fff; }
+.dashboard-title { margin-top: 30px; margin-bottom: 30px; }
+.dashboard-row { margin-bottom: 30px; }
+.selector-row { margin-bottom: 20px; }
+.custom-dropdown { min-width: 180px; }
+.nav-tabs { padding-top: 10px;}
+
+#vega-contig-length, #vega-nx-curve, #vega-gc-content, #vega-cumulative-length {
+  min-width: 200px;
+  min-height: 200px;
+  width: 100%;
+}

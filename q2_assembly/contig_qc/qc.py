@@ -159,14 +159,28 @@ def evaluate_contigs(
 
     sample_metrics = compute_sample_metrics(data['seq_df'], categories)
 
-    # Render the Vega-Lite spec as a JSON string
-    spec_template_fp = os.path.join(TEMPLATES, "contig_qc", "vega_spec.json.j2")
-    with open(spec_template_fp) as f:
-        spec_template = jinja2.Template(f.read())
-    vega_spec_json = spec_template.render(
+    # Render the four separate Vega-Lite specs for the dashboard
+    def render_spec(template_name, **kwargs):
+        spec_template_fp = os.path.join(TEMPLATES, "contig_qc", template_name)
+        with open(spec_template_fp) as f:
+            spec_template = jinja2.Template(f.read())
+        return spec_template.render(**kwargs)
+
+    vega_contig_length_spec = render_spec(
+        "vega_contig_length_spec.json.j2",
         seq_df=json.dumps(data['seq_df'].to_dict(orient='records')),
+    )
+    vega_nx_curve_spec = render_spec(
+        "vega_nx_curve_spec.json.j2",
         nx_df=json.dumps(data['nx_df'].to_dict(orient='records')),
-        cumulative_df=json.dumps(data['cumulative_df'].to_dict(orient='records'))
+    )
+    vega_gc_content_spec = render_spec(
+        "vega_gc_content_spec.json.j2",
+        seq_df=json.dumps(data['seq_df'].to_dict(orient='records')),
+    )
+    vega_cumulative_length_spec = render_spec(
+        "vega_cumulative_length_spec.json.j2",
+        cumulative_df=json.dumps(data['cumulative_df'].to_dict(orient='records')),
     )
 
     templates = [
@@ -178,7 +192,10 @@ def evaluate_contigs(
             {"title": "Sample metrics", "url": "index.html"},
             {"title": "Group metrics", "url": "grouped.html"}
         ],
-        "vega_spec_json": vega_spec_json,
+        "vega_contig_length_spec": vega_contig_length_spec,
+        "vega_nx_curve_spec": vega_nx_curve_spec,
+        "vega_gc_content_spec": vega_gc_content_spec,
+        "vega_cumulative_length_spec": vega_cumulative_length_spec,
         "sample_metrics": json.dumps(sample_metrics),
         "categories": json.dumps(categories),
         "values": json.dumps(values),
