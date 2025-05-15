@@ -1,0 +1,185 @@
+{% extends 'tabbed.html' %}
+
+{% block head %}
+<title>Contig QC Dashboard (Vega-Lite)</title>
+<script src="js/bootstrapMagic.js" type="text/javascript"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-lite@6"></script>
+<script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+  body { font-family: 'Open Sans', Arial, sans-serif; background: #fafbfc; }
+  .dashboard-title { margin-top: 30px; margin-bottom: 30px; }
+  .dashboard-row { margin-bottom: 30px; }
+  .custom-dropdown { min-width: 180px; }
+  .nav-tabs { padding-top: 10px;}
+</style>
+<script type="text/javascript">
+    // temporary hack to make it look good with Bootstrap 5
+    removeBS3refs();
+</script>
+{% endblock %}
+
+{% block tabcontent %}
+<div class="container-fluid">
+  <div class="row justify-content-center">
+    <div class="col-lg-10 col-xl-8">
+      <div class="mx-4">
+        <!-- Boxplot Section -->
+        <div class="row mt-5 mb-4 justify-content-center">
+          <div class="col-auto">
+            <label for="boxCategoryDropdown" class="form-label fw-bold">Boxplot Category:</label>
+            <select id="boxCategoryDropdown" class="form-select custom-dropdown">
+              <!-- Options will be populated by JS -->
+            </select>
+          </div>
+          <div class="col-auto">
+            <label for="boxMetricDropdown" class="form-label fw-bold">Metric:</label>
+            <select id="boxMetricDropdown" class="form-select custom-dropdown">
+              <option value="count">Contig Count</option>
+              <option value="n50">N50</option>
+              <option value="n90">N90</option>
+              <option value="total_length">Total Assembly Length</option>
+            </select>
+          </div>
+        </div>
+        <div class="row dashboard-row justify-content-center">
+          <div class="col-12" id="boxplot-dashboard"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- Data injected from Python ---
+  const categories = {{ categories | safe }};
+  const values = {{ values | safe }};
+  const sampleMetricsArr = {{ sample_metrics | safe }};
+</script>
+<script type="text/javascript">
+  $(document).ready(function () {
+    // temporary hack to make it look good with Bootstrap 5
+    adjustTagsToBS3();
+
+    // Populate boxplot category dropdown
+    const boxCategoryDropdown = document.getElementById('boxCategoryDropdown');
+    categories.forEach(cat => {
+      const opt = document.createElement('option');
+      opt.value = cat;
+      opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+      boxCategoryDropdown.appendChild(opt);
+    });
+    // Set default boxplot category
+    const initialCategory = categories[0];
+    boxCategoryDropdown.value = initialCategory;
+
+
+
+    function renderBoxplot(category, metric) {
+      const metricTitles = {
+        count: 'Contig Count',
+        n50: 'N50',
+        n90: 'N90',
+        total_length: 'Total Assembly Length'
+      };
+      const boxSpec = {
+        $schema: 'https://vega.github.io/schema/vega-lite/v6.json',
+        description: 'Boxplot of per-sample metrics by category',
+        data: {values: sampleMetricsArr},
+        width: 'container',
+        height: 400,
+        mark: {type: 'boxplot', extent: 'min-max'},
+        encoding: {
+          x: {field: category, type: 'nominal', title: category.charAt(0).toUpperCase() + category.slice(1)},
+          y: {field: metric, type: 'quantitative', title: metricTitles[metric]},
+          color: {field: category, type: 'nominal', scale: {scheme: 'viridis'}, legend: {orient: 'right'}},
+          tooltip: [
+            {field: category, type: 'nominal'},
+            {field: metric, type: 'quantitative'}
+          ]
+        },
+        config: {
+          boxplot: {median: {color: '#222', size: 3}},
+          axis: {
+            grid: true,
+            gridColor: '#eaeaea',
+            gridWidth: 1,
+            tickColor: '#888',
+            labelFont: 'Open Sans, Arial, sans-serif',
+            labelFontSize: 14,
+            titleFont: 'Open Sans, Arial, sans-serif',
+            titleFontSize: 16,
+            titleFontWeight: 'bold',
+            domain: false
+          },
+          legend: {
+            orient: 'right',
+            labelFont: 'Open Sans, Arial, sans-serif',
+            labelFontSize: 14,
+            titleFont: 'Open Sans, Arial, sans-serif',
+            titleFontSize: 15,
+            symbolType: 'circle',
+            symbolSize: 120
+          },
+          view: {
+            stroke: '#eaeaea',
+            strokeWidth: 1
+          },
+          title: {
+            font: 'Open Sans, Arial, sans-serif',
+            fontSize: 18,
+            fontWeight: 'bold',
+            anchor: 'middle',
+            color: '#222'
+          }
+        },
+        title: metricTitles[metric] + ' per Sample by ' + category.charAt(0).toUpperCase() + category.slice(1)
+      };
+      vegaEmbed('#boxplot-dashboard', boxSpec, {actions: true});
+    }
+
+    // Initial boxplot render
+    renderBoxplot(initialCategory, 'count');
+    document.getElementById('boxCategoryDropdown').addEventListener('change', function () {
+      renderBoxplot(this.value, document.getElementById('boxMetricDropdown').value);
+    });
+    document.getElementById('boxMetricDropdown').addEventListener('change', function () {
+      renderBoxplot(document.getElementById('boxCategoryDropdown').value, this.value);
+    });
+
+
+
+    // Render the boxplot using the injected spec
+    // let vegaBoxplotView = null;
+    // vegaEmbed('#boxplot-dashboard', vegaSpecGrouped, {actions: true}).then(res => {
+    //   vegaBoxplotView = res.view;
+    //   // Set initial params
+    //   vegaBoxplotView.signal('box_category_param', boxCategoryDropdown.value)
+    //                  .signal('box_metric_param', initialMetric)
+    //                  .runAsync();
+    //   // Listen for sample selection in the plots
+    //   // vegaBoxplotView.addSignalListener('sample_select', (name, value) => {
+    //   //   // No-op: sample selection in plot does not update dropdowns when 'sample' is not a filterable category
+    //   // });
+    // });
+
+    // On dropdown change, update the Vega-Lite params
+    // boxCategoryDropdown.addEventListener('change', function () {
+    //   if (vegaBoxplotView) {
+    //     vegaBoxplotView.signal('box_category_param', this.value).runAsync();
+    //   }
+    // });
+    // boxMetricDropdown.addEventListener('change', function () {
+    //   if (vegaBoxplotView) {
+    //     vegaBoxplotView.signal('box_metric_param', this.value).runAsync();
+    //   }
+    // });
+  });
+</script>
+{% endblock %}
+
+{% block footer %}
+{% set loading_selector = '#loading' %}
+{% include 'js-error-handler.html' %}
+{% endblock %}
