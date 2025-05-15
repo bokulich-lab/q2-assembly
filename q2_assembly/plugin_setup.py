@@ -31,6 +31,8 @@ from q2_assembly._action_params import (
     bowtie2_indexing_params,
     bowtie2_mapping_param_descriptions,
     bowtie2_mapping_params,
+    filter_contigs_param_descriptions,
+    filter_contigs_params,
     iss_param_descriptions,
     iss_params,
     megahit_param_descriptions,
@@ -41,8 +43,6 @@ from q2_assembly._action_params import (
     quast_params,
     spades_param_descriptions,
     spades_params,
-    filter_contigs_params,
-    filter_contigs_param_descriptions,
 )
 from q2_assembly.quast.types import (
     QUASTResults,
@@ -327,6 +327,86 @@ plugin.methods.register_function(
     description="This method uses InSilicoSeq to generate reads simulated "
     "from given genomes for an indicated number of samples.",
     citations=[citations["Gourle2019"]],
+)
+
+_mason_common_params = {
+    "random_seed": Int % Range(0, None),
+    "threads": Int % Range(1, None),
+}
+
+_mason_helper_params = {
+    **_mason_common_params,
+    "sample_name": Str,
+    "num_reads": Int % Range(1, None),
+    "read_length": Int % Range(1, None),
+    "abundance_profile": Str % Choices(["uniform", "lognormal", "exponential"]),
+}
+
+mason_params = {
+    **_mason_common_params,
+    "sample_names": List[_mason_helper_params["sample_name"]],
+    "num_reads": List[_mason_helper_params["num_reads"]],
+    "read_length": List[_mason_helper_params["read_length"]],
+    "abundance_profiles": List[_mason_helper_params["abundance_profile"]],
+}
+
+_mason_common_param_descriptions = {
+    "num_reads": "Number of reads to simulate.",
+    "read_length": "Length of each simulated read.",
+    "random_seed": "Random seed for reproducibility.",
+    "threads": "Number of threads to use for read simulation.",
+}
+
+mason_helper_param_descriptions = {
+    "sample_name": "Sample name for the simulated reads.",
+    "abundance_profile": "Abundance profile for the simulated reads.",
+    **_mason_common_param_descriptions,
+}
+
+mason_param_descriptions = {
+    "sample_names": "List of sample names for the simulated reads.",
+    "abundance_profiles": "Abundance profiles for the simulated reads.",
+    **_mason_common_param_descriptions,
+}
+
+plugin.methods.register_function(
+    function=q2_assembly.mason._simulate_reads_mason,
+    inputs={"reference_genomes": GenomeData[DNASequence]},
+    parameters=_mason_helper_params,
+    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    input_descriptions={
+        "reference_genomes": "Input reference genomes for read simulation."
+    },
+    parameter_descriptions=mason_helper_param_descriptions,
+    output_descriptions={"reads": "Simulated paired-end reads."},
+    name="Simulate NGS reads using Mason.",
+    description=(
+        "This method uses Mason to generate paired-end reads simulated "
+        "from given reference genomes for one sample."
+    ),
+)
+
+plugin.pipelines.register_function(
+    function=q2_assembly.mason.simulate_reads_mason,
+    inputs={"reference_genomes": GenomeData[DNASequence]},
+    parameters={
+        **mason_params,
+        **partition_params,
+    },
+    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    input_descriptions={
+        "reference_genomes": "Input reference genomes for read simulation."
+    },
+    parameter_descriptions={
+        **mason_param_descriptions,
+        **partition_param_descriptions,
+    },
+    output_descriptions={"reads": "Simulated paired-end reads."},
+    name="Short read simulation with Mason.",
+    description=(
+        "This method uses Mason to generate reads simulated from given "
+        "reference genomes for multiple samples."
+    ),
 )
 
 I_index, O_alignment = TypeMap(

@@ -57,12 +57,12 @@ def initialize_optional_cols_map(contig_thresholds: list):
         "LA90": "la90",
     }
     for threshold in contig_thresholds:
-        optional_cols_map[
-            f"Total length (>= {threshold} bp)"
-        ] = f"total_length_{threshold}"
+        optional_cols_map[f"Total length (>= {threshold} bp)"] = (
+            f"total_length_{threshold}"
+        )
         if threshold != 0:  # this is included in mandatory cols
-            optional_cols_map[
-                f"# contigs (>= {threshold} bp)"
-            ] = f"no_contigs_{threshold}"
+            optional_cols_map[f"# contigs (>= {threshold} bp)"] = (
+                f"no_contigs_{threshold}"
+            )
 
     return optional_cols_map

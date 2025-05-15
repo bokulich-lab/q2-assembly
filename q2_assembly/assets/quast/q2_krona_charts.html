@@ -8,7 +8,7 @@
           <select class="form-control" id="sample-id" style="margin-right:7px" onchange="updateHTMLLink()"> </select>
       </div>
   </div>
-  
+
   <br>
   <div class="row">
     <div class="col-lg-12">
@@ -34,7 +34,7 @@
           } else {
               var filename = currentOption;
           }
-          
+
           // Change the attribute to the corresponding HTML file
           kronaHTML.setAttribute("src", `quast_data/krona_charts/${filename}_taxonomy_chart.html`)
       }
@@ -42,7 +42,7 @@
       var populateDropDownMenu = function() {
           // Get all sample-ids
           var sampleNames = JSON.parse(document.getElementById("sample-names").innerHTML)
-          
+
           // Get the dropdown menu
           var selectElement = document.getElementById("sample-id")
 
@@ -53,7 +53,7 @@
               option.value = sn
               selectElement.add(option)
           })
-          
+
           // Add the option of the summary krona
           var option = document.createElement("option")
           option.text = "summary"
