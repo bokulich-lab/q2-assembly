@@ -46,12 +46,14 @@ def generate_plotting_data(contigs_dir, metadata=None):
             'sorted_lengths': sorted(lengths, reverse=True)
         }
 
-    # Build a per-sequence DataFrame.
-    seq_data = []
+    # Build per-sequence DataFrames.
+    seq_data_gc, seq_data_len = [], []
     for sample, d in samples_data.items():
         for L, gc in zip(d['lengths'], d['gc']):
-            seq_data.append({"sample": sample, "contig_length": L, "gc": gc})
-    seq_df = pd.DataFrame(seq_data)
+            seq_data_gc.append({"sample": sample, "gc": gc})
+            seq_data_len.append({"sample": sample, "contig_length": L})
+    seq_gc_df = pd.DataFrame(seq_data_gc)
+    seq_len_df = pd.DataFrame(seq_data_len)
 
     # Compute cumulative contig lengths per sample.
     cum_list = []
@@ -83,29 +85,23 @@ def generate_plotting_data(contigs_dir, metadata=None):
 
     if metadata is not None:
         metadata = metadata.reset_index().rename(columns={metadata.index.name or 'index': 'sample'})
-        seq_df = seq_df.merge(metadata, on='sample', how='left')
+        seq_gc_df = seq_gc_df.merge(metadata, on='sample', how='left')
+        seq_len_df = seq_len_df.merge(metadata, on='sample', how='left')
         cumulative_df = cumulative_df.merge(metadata, on='sample', how='left')
         nx_df = nx_df.merge(metadata, on='sample', how='left')
 
     return {
-        "seq_df": seq_df,
+        "seq_gc_df": seq_gc_df,
+        "seq_len_df": seq_len_df,
         "cumulative_df": cumulative_df,
         "nx_df": nx_df,
         "metadata_columns": list(metadata.columns.drop('sample')) if metadata is not None else []
     }
 
-def custom_legend(sample_names, color_map):
-    return pn.Row(*[
-        pn.pane.HTML(f"""
-        <span style='display:inline-block;width:18px;height:18px;background:{color_map[sample]};margin-right:8px;border-radius:3px;vertical-align:middle'></span>
-        <span style='margin-right:18px;vertical-align:middle'>{sample}</span>
-        """) for sample in sample_names
-    ], margin=(0,0,10,0))
 
-
-def compute_sample_metrics(seq_df: pd.DataFrame, categories: List[str]):
+def compute_sample_metrics(seq_gc_df: pd.DataFrame, categories: List[str]):
     metrics = []
-    for sample, group in seq_df.groupby("sample"):
+    for sample, group in seq_gc_df.groupby("sample"):
         contig_lengths = group['contig_length'].tolist()
         contig_lengths.sort(reverse=True)
         total_length = sum(contig_lengths)
@@ -157,7 +153,7 @@ def evaluate_contigs(
         x: metadata_df[x].dropna().unique().tolist() for x in metadata_df.columns
     }
 
-    sample_metrics = compute_sample_metrics(data['seq_df'], categories)
+    sample_metrics = compute_sample_metrics(data['seq_len_df'], categories)
 
     # Render the four separate Vega-Lite specs for the dashboard
     def render_spec(template_name, **kwargs):
@@ -168,7 +164,7 @@ def evaluate_contigs(
 
     vega_contig_length_spec = render_spec(
         "vega_contig_length_spec.json.j2",
-        seq_df=json.dumps(data['seq_df'].to_dict(orient='records')),
+        seq_df=json.dumps(data['seq_len_df'].to_dict(orient='records')),
     )
     vega_nx_curve_spec = render_spec(
         "vega_nx_curve_spec.json.j2",
@@ -176,7 +172,7 @@ def evaluate_contigs(
     )
     vega_gc_content_spec = render_spec(
         "vega_gc_content_spec.json.j2",
-        seq_df=json.dumps(data['seq_df'].to_dict(orient='records')),
+        seq_df=json.dumps(data['seq_gc_df'].to_dict(orient='records')),
     )
     vega_cumulative_length_spec = render_spec(
         "vega_cumulative_length_spec.json.j2",
@@ -201,14 +197,11 @@ def evaluate_contigs(
         "values": json.dumps(values),
     }
 
-    shutil.copytree(
-        os.path.join(TEMPLATES, "contig_qc", "js"),
-        os.path.join(output_dir, "js")
-    )
-    shutil.copytree(
-        os.path.join(TEMPLATES, "contig_qc", "css"),
-        os.path.join(output_dir, "css")
-    )
+    for d in ("js", "css"):
+        shutil.copytree(
+            os.path.join(TEMPLATES, "contig_qc", d),
+            os.path.join(output_dir, d)
+        )
 
     q2templates.render(templates, output_dir, context=context)
 
