@@ -188,6 +188,10 @@ def evaluate_contigs(
         os.path.join(TEMPLATES, "contig_qc", "js"),
         os.path.join(output_dir, "js")
     )
+    shutil.copytree(
+        os.path.join(TEMPLATES, "contig_qc", "css"),
+        os.path.join(output_dir, "css")
+    )
 
     q2templates.render(templates, output_dir, context=context)
 

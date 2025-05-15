@@ -31,11 +31,14 @@
             "x": {"field": "x1", "title": "Contig length", "axis": {"format": ".1s", "labelAngle": 0}},
             "x2": {"field": "x2"},
             "y": {"aggregate": "count", "title": "Count", "axis": {"format": "~s"}},
-            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend":  {"title":  "Sample"}},
+            "color": {
+              "field": "sample",
+              "type": "nominal",
+              "scale": {"scheme": "viridis"}, "legend":  {"title":  "Sample"}},
             "opacity": {
               "condition": {"param": "sample_select", "value": 1},
               "value": 0.2
-            },
+            }
           }
         },
         {
@@ -140,6 +143,7 @@
     },
     "legend": {
       "orient": "top",
+      "columns":5,
       "title": "Sample",
       "offset": 50,
       "labelFont": "Open Sans, Arial, sans-serif",
@@ -148,6 +152,7 @@
       "titleFontSize": 15,
       "symbolType": "circle",
       "symbolSize": 120,
+      "symbolLimit": 100
     },
     "view": {
       "stroke": "#eaeaea",
