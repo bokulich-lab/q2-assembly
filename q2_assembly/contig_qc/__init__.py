@@ -6,6 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .qc import evaluate_contigs_new
+from .qc import evaluate_contigs
 
-__all__ = ["evaluate_contigs_new"]
+__all__ = ["evaluate_contigs"]

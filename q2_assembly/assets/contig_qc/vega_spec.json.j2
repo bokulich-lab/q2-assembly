@@ -8,12 +8,12 @@
     {
       "hconcat": [
         {
-          "title": "Contig Length Distribution",
+          "title": "Contig length distribution",
           "data": {"values": {{ seq_df | safe }}},
           "transform": [
             {"filter": "value_param == 'All' || datum[category_param] == value_param"},
             {"calculate": "log(datum.contig_length)/log(10)", "as": "log_x"},
-            {"bin": true, "field": "log_x", "as": "bin_log_x"},
+            {"bin": {"binned":  true, "maxbin":  10, "nice":  true}, "field": "log_x", "as": "bin_log_x"},
             {"calculate": "pow(10, datum.bin_log_x)", "as": "x1"},
             {"calculate": "pow(10, datum.bin_log_x_end)", "as": "x2"}
           ],
@@ -28,11 +28,10 @@
             "grid": {"type": "interval", "bind": "scales", "encodings": ["x"]}
           },
           "encoding": {
-{#            "x": {"field": "x1", "title": "Contig Length", "scale": {"type": "log", "base": 10, "domainMin": 1}},#}
-            "x": {"field": "x1", "title": "Contig Length", "axis": {"format": ".0f"}},
+            "x": {"field": "x1", "title": "Contig length", "axis": {"format": ".1s", "labelAngle": 0}},
             "x2": {"field": "x2"},
-            "y": {"aggregate": "count", "title": "Count"},
-            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend": {"orient": "right"}},
+            "y": {"aggregate": "count", "title": "Count", "axis": {"format": "~s"}},
+            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend":  {"title":  "Sample"}},
             "opacity": {
               "condition": {"param": "sample_select", "value": 1},
               "value": 0.2
@@ -40,7 +39,7 @@
           }
         },
         {
-          "title": "Nx Curve per Sample",
+          "title": "Nx curve",
           "data": {"values": {{ nx_df | safe }}},
           "transform": [{"filter": "value_param == 'All' || datum[category_param] == value_param"}],
           "mark": {"type": "line", "point": true},
@@ -54,9 +53,9 @@
             "grid": {"type": "interval", "bind": "scales"}
           },
           "encoding": {
-            "x": {"field": "percent", "type": "quantitative", "title": "Percent of Assembly (Nx)"},
-            "y": {"field": "nx", "type": "quantitative", "title": "Contig Size (bp)"},
-            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend": {"orient": "right"}},
+            "x": {"field": "percent", "type": "quantitative", "title": "Percent of assembly (Nx)"},
+            "y": {"field": "nx", "type": "quantitative", "title": "Contig size (bp)", "axis": {"format": "~s"}},
+            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend":  {"title":  "Sample"}},
             "opacity": {
               "condition": {"param": "sample_select", "value": 1},
               "value": 0.2
@@ -69,7 +68,7 @@
     {
       "hconcat": [
         {
-          "title": "GC Content Distribution (KDE)",
+          "title": "GC content distribution",
           "data": {"values": {{ seq_df | safe }}},
           "transform": [
             {"filter": "value_param == 'All' || datum[category_param] == value_param"},
@@ -86,9 +85,9 @@
             "grid": {"type": "interval", "bind": "scales"}
           },
           "encoding": {
-            "x": {"field": "gc", "type": "quantitative", "title": "GC Content (%)", "bin": false},
-            "y": {"field": "density", "type": "quantitative", "title": "Density"},
-            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend": {"orient": "right"}},
+            "x": {"field": "gc", "type": "quantitative", "title": "GC content (%)", "bin": false},
+            "y": {"field": "density", "type": "quantitative", "title": "Fraction of contigs"},
+            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend":  {"title":  "Sample"}},
             "opacity": {
               "condition": {"param": "sample_select", "value": 1},
               "value": 0.2
@@ -96,7 +95,7 @@
           }
         },
         {
-          "title": "Cumulative Contig Length Curves",
+          "title": "Cumulative contig length",
           "data": {"values": {{ cumulative_df | safe }}},
           "transform": [{"filter": "value_param == 'All' || datum[category_param] == value_param"}],
           "mark": {"type": "line", "point": true},
@@ -110,9 +109,9 @@
             "grid": {"type": "interval", "bind": "scales"}
           },
           "encoding": {
-            "x": {"field": "rank", "type": "quantitative", "title": "No. of Contigs"},
-            "y": {"field": "cumulative_length", "type": "quantitative", "title": "Cumulative Length"},
-            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend": {"orient": "right"}},
+            "x": {"field": "rank", "type": "quantitative", "title": "No. of contigs"},
+            "y": {"field": "cumulative_length", "type": "quantitative", "title": "Cumulative length (bp)", "axis":  {"format": "~s"}},
+            "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}, "legend":  {"title":  "Sample"}},
             "opacity": {
               "condition": {"param": "sample_select", "value": 1},
               "value": 0.2
@@ -141,12 +140,14 @@
     },
     "legend": {
       "orient": "top",
+      "title": "Sample",
+      "offset": 50,
       "labelFont": "Open Sans, Arial, sans-serif",
       "labelFontSize": 14,
       "titleFont": "Open Sans, Arial, sans-serif",
       "titleFontSize": 15,
       "symbolType": "circle",
-      "symbolSize": 120
+      "symbolSize": 120,
     },
     "view": {
       "stroke": "#eaeaea",

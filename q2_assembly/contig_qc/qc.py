@@ -144,7 +144,7 @@ def _cleanup_bootstrap(output_dir):
         )
     )
 
-def evaluate_contigs_new(
+def evaluate_contigs(
         output_dir: str,
         contigs: ContigSequencesDirFmt,
         metadata: Metadata = None

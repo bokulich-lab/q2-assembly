@@ -540,7 +540,7 @@ plugin.methods.register_function(
 )
 
 plugin.visualizers.register_function(
-    function=q2_assembly.qc.evaluate_contigs_new,
+    function=q2_assembly.qc.evaluate_contigs,
     inputs={
         "contigs": SampleData[Contigs],
     },
