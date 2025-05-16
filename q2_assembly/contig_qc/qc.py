@@ -84,7 +84,7 @@ def generate_plotting_data(contigs_dir, metadata=None):
     nx_df = pd.DataFrame(nx_rows)
 
     if metadata is not None:
-        metadata = metadata.reset_index().rename(columns={metadata.index.name or 'index': 'sample'})
+        metadata = metadata.reset_index().rename(columns={metadata.index.name or 'index': 'sample'}).fillna("NA")
         seq_gc_df = seq_gc_df.merge(metadata, on='sample', how='left')
         seq_len_df = seq_len_df.merge(metadata, on='sample', how='left')
         cumulative_df = cumulative_df.merge(metadata, on='sample', how='left')
@@ -151,6 +151,17 @@ def render_spec(template_name, **kwargs):
         spec_template = jinja2.Template(f.read())
     return spec_template.render(**kwargs)
 
+
+def estimate_column_count(samples: set[str]) -> int:
+    max_len = max([len(x) for x in samples])
+    if max_len >= 16:
+        return 2
+    elif max_len >= 9:
+        return 3
+    else:
+        return 4
+
+
 def evaluate_contigs(
         output_dir: str,
         contigs: ContigSequencesDirFmt,
@@ -165,22 +176,27 @@ def evaluate_contigs(
     }
 
     sample_metrics = compute_sample_metrics(data['seq_len_df'], categories)
+    n_cols = estimate_column_count(set(data['seq_len_df']['sample']))
 
     vega_contig_length_spec = render_spec(
         "vega_contig_length_spec.json.j2",
         seq_df=json.dumps(data['seq_len_df'].to_dict(orient='records')),
+        n_cols=n_cols
     )
     vega_nx_curve_spec = render_spec(
         "vega_nx_curve_spec.json.j2",
         nx_df=json.dumps(data['nx_df'].to_dict(orient='records')),
+        n_cols=n_cols
     )
     vega_gc_content_spec = render_spec(
         "vega_gc_content_spec.json.j2",
         seq_df=json.dumps(data['seq_gc_df'].to_dict(orient='records')),
+        n_cols=n_cols
     )
     vega_cumulative_length_spec = render_spec(
         "vega_cumulative_length_spec.json.j2",
         cumulative_df=json.dumps(data['cumulative_df'].to_dict(orient='records')),
+        n_cols=n_cols
     )
 
     templates = [
