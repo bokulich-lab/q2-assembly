@@ -146,7 +146,7 @@ def _cleanup_bootstrap(output_dir):
 
 def render_spec(template_name, **kwargs):
     # Render the four separate Vega-Lite specs for the dashboard
-    spec_template_fp = os.path.join(TEMPLATES, "contig_qc", template_name)
+    spec_template_fp = os.path.join(TEMPLATES, "contig_qc", "vega", template_name)
     with open(spec_template_fp) as f:
         spec_template = jinja2.Template(f.read())
     return spec_template.render(**kwargs)
@@ -179,22 +179,22 @@ def evaluate_contigs(
     n_cols = estimate_column_count(set(data['seq_len_df']['sample']))
 
     vega_contig_length_spec = render_spec(
-        "vega_contig_length_spec.json.j2",
+        "contig_length_spec.json.j2",
         seq_df=json.dumps(data['seq_len_df'].to_dict(orient='records')),
         n_cols=n_cols
     )
     vega_nx_curve_spec = render_spec(
-        "vega_nx_curve_spec.json.j2",
+        "nx_curve_spec.json.j2",
         nx_df=json.dumps(data['nx_df'].to_dict(orient='records')),
         n_cols=n_cols
     )
     vega_gc_content_spec = render_spec(
-        "vega_gc_content_spec.json.j2",
+        "gc_content_spec.json.j2",
         seq_df=json.dumps(data['seq_gc_df'].to_dict(orient='records')),
         n_cols=n_cols
     )
     vega_cumulative_length_spec = render_spec(
-        "vega_cumulative_length_spec.json.j2",
+        "cumulative_length_spec.json.j2",
         cumulative_df=json.dumps(data['cumulative_df'].to_dict(orient='records')),
         n_cols=n_cols
     )
