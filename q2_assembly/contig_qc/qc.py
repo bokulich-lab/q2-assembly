@@ -24,9 +24,25 @@ from qiime2 import Metadata
 from skbio import DNA, read
 
 TEMPLATES = pkg_resources.resource_filename("q2_assembly", "assets")
+MAX_CUMULATIVE_POINTS_DEFAULT = 500
 
 
 def _process_single_fasta(fasta_file_path: Path):
+    """
+    Processes a single FASTA file to extract contig statistics.
+
+    Args:
+        fasta_file_path (Path): Path to the input FASTA file.
+
+    Returns:
+        tuple: A tuple containing the sample ID (derived from the filename)
+               and a dictionary with raw contig data:
+               - "lengths": List of contig lengths.
+               - "total_length": Sum of all contig lengths.
+               - "num_contigs": Total number of contigs.
+               - "gc": List of GC content percentages for each contig.
+               - "sorted_lengths": List of contig lengths, sorted in descending order.
+    """
     sample_id = fasta_file_path.stem.replace("_contigs", "")
 
     sequences = list(read(str(fasta_file_path), format="fasta", constructor=DNA))
@@ -43,53 +59,103 @@ def _process_single_fasta(fasta_file_path: Path):
     return sample_id, sample_data
 
 
-def _calculate_all_derived_data_for_sample(sample_id: str, raw_data: dict):
-    """Calculates all derived metrics for a single sample from its raw data."""
-    seq_gc_rows = [
+def _get_gc_content(sample_id: str, raw_data: dict) -> list:
+    """
+    Prepares GC content data rows for a single sample.
+
+    Args:
+        sample_id (str): The identifier for the sample.
+        raw_data (dict): Raw data for the sample. Expected keys: "lengths", "gc".
+
+    Returns:
+        list: List of dicts, each with "sample" and "gc" keys.
+    """
+    return [
         {"sample": sample_id, "gc": gc}
         for _, gc in zip(raw_data["lengths"], raw_data["gc"])
     ]
-    seq_len_rows = [
+
+
+def _get_contig_lengths(sample_id: str, raw_data: dict) -> list:
+    """
+    Prepares contig length data rows for a single sample.
+
+    Args:
+        sample_id (str): The identifier for the sample.
+        raw_data (dict): Raw data for the sample. Expected keys: "lengths", "gc".
+
+    Returns:
+        list: List of dicts, each with "sample" and "contig_length" keys.
+    """
+    return [
         {"sample": sample_id, "contig_length": l}
         for l, _ in zip(raw_data["lengths"], raw_data["gc"])
     ]
 
-    cumulative_df_part = None
-    sorted_lengths = raw_data["sorted_lengths"]
-    # Max points for the cumulative length plot per sample.
-    # Chosen to provide good visual detail without overwhelming the browser.
-    MAX_CUMULATIVE_POINTS = 500
 
-    if sorted_lengths:
-        cum_sum_full = np.cumsum(sorted_lengths)
-        # Ranks are 1-based for plotting
-        ranks_full = np.arange(1, len(sorted_lengths) + 1)
-        num_contigs = len(sorted_lengths)
+def _calculate_cumulative_length(
+    sample_id: str,
+    sorted_lengths: list,
+    max_points: int = MAX_CUMULATIVE_POINTS_DEFAULT,
+) -> pd.DataFrame | None:
+    """
+    Calculates a (potentially pruned) cumulative length DataFrame for a sample.
 
-        if num_contigs <= MAX_CUMULATIVE_POINTS:
-            # If fewer or an equal number of contigs than max_points, use all data
-            selected_ranks = ranks_full
-            selected_cum_sum = cum_sum_full
-        else:
-            # Subsample the data to approximately MAX_CUMULATIVE_POINTS
-            # np.linspace will ensure the first (0) and last (num_contigs-1) indices are covered.
-            indices_float = np.linspace(
-                0, num_contigs - 1, num=MAX_CUMULATIVE_POINTS
-            )
-            # Convert to integer indices and take unique ones (handles cases where
-            # MAX_CUMULATIVE_POINTS is close to num_contigs, preventing duplicates
-            # and ensuring sorted order).
-            selected_indices = np.unique(indices_float.astype(int))
+    If the number of contigs exceeds `max_points`, the data points are
+    subsampled to `max_points` for performance.
 
-            selected_ranks = ranks_full[selected_indices]
-            selected_cum_sum = cum_sum_full[selected_indices]
+    Args:
+        sample_id (str): The identifier for the sample.
+        sorted_lengths (list): List of contig lengths, sorted in descending order.
+        max_points (int): The maximum number of data points to include in the
+                          output DataFrame. Defaults to MAX_CUMULATIVE_POINTS_DEFAULT.
 
-        cumulative_df_part = pd.DataFrame(
-            {"sample": sample_id, "rank": selected_ranks, "cumulative_length": selected_cum_sum}
-        )
+    Returns:
+        pd.DataFrame | None: A DataFrame with "sample", "rank", and
+                              "cumulative_length" columns, or None if no sorted_lengths.
+    """
+    if not sorted_lengths:
+        return None
 
+    cum_sum_full = np.cumsum(sorted_lengths)
+    ranks_full = np.arange(1, len(sorted_lengths) + 1)  # Ranks are 1-based
+    num_contigs = len(sorted_lengths)
+
+    if num_contigs <= max_points:
+        selected_ranks = ranks_full
+        selected_cum_sum = cum_sum_full
+    else:
+        indices_float = np.linspace(0, num_contigs - 1, num=max_points)
+        selected_indices = np.unique(indices_float.astype(int))
+        selected_ranks = ranks_full[selected_indices]
+        selected_cum_sum = cum_sum_full[selected_indices]
+
+    return pd.DataFrame(
+        {
+            "sample": sample_id,
+            "rank": selected_ranks,
+            "cumulative_length": selected_cum_sum,
+        }
+    )
+
+
+def _calculate_nx_metrics(
+    sample_id: str, sorted_lengths: list, total_length: int
+) -> list:
+    """
+    Calculates N(x) values (e.g., N50, N90) for a single sample.
+
+    Args:
+        sample_id (str): The identifier for the sample.
+        sorted_lengths (list): List of contig lengths, sorted in descending order.
+        total_length (int): The total summed length of all contigs for the sample.
+
+    Returns:
+        list: A list of dictionaries, each representing an N(x) value with
+              "sample", "percent", and "nx" keys. Returns an empty list if
+              total_length is 0 or no sorted_lengths.
+    """
     nx_rows = []
-    total_length = raw_data["total_length"]
     if total_length > 0 and sorted_lengths:
         cum_sum_nx = np.cumsum(sorted_lengths)
         percents = np.arange(1, 101)
@@ -101,6 +167,40 @@ def _calculate_all_derived_data_for_sample(sample_id: str, raw_data: dict):
             {"sample": sample_id, "percent": int(p), "nx": int(sorted_lengths[i])}
             for p, i in zip(percents, idxs)
         ]
+    return nx_rows
+
+
+def _calculate_all_metrics(sample_id: str, raw_data: dict):
+    """
+    Calculates all derived metrics for a single sample from its raw contig data.
+
+    This includes data for GC content plots, contig length plots,
+    cumulative length plots (with pruning), and N(x) curves.
+
+    Args:
+        sample_id (str): The identifier for the sample.
+        raw_data (dict): A dictionary containing raw data for the sample,
+                         as generated by `_process_single_fasta`.
+                         Expected keys: "lengths", "gc", "sorted_lengths", "total_length".
+
+    Returns:
+        dict: A dictionary containing various data structures for plotting:
+              - "seq_gc_rows": List of dicts for GC content per contig.
+              - "seq_len_rows": List of dicts for contig lengths.
+              - "cumulative_df_part": DataFrame for cumulative length plot
+                                      (points may be pruned).
+              - "nx_rows": List of dicts for N(x) values.
+    """
+    seq_gc_rows = _get_gc_content(sample_id, raw_data)
+    seq_len_rows = _get_contig_lengths(sample_id, raw_data)
+
+    sorted_lengths = raw_data["sorted_lengths"]
+    total_length = raw_data["total_length"]
+
+    cumulative_df_part = _calculate_cumulative_length(sample_id, sorted_lengths)
+    # The MAX_CUMULATIVE_POINTS constant is now a default in the helper function
+
+    nx_rows = _calculate_nx_metrics(sample_id, sorted_lengths, total_length)
 
     return {
         "seq_gc_rows": seq_gc_rows,
@@ -113,6 +213,29 @@ def _calculate_all_derived_data_for_sample(sample_id: str, raw_data: dict):
 def generate_plotting_data(
     contigs_dir: str, metadata_df: pd.DataFrame = None, n_cpus: int = 1
 ):
+    """
+    Generates all data required for plotting the QC results.
+
+    This function processes all FASTA files in the `contigs_dir`,
+    calculates raw and derived metrics in parallel, and merges
+    with metadata if provided.
+
+    Args:
+        contigs_dir (str): Path to the directory containing contig FASTA files
+                           (e.g., ContigSequencesDirFmt).
+        metadata_df (pd.DataFrame, optional): DataFrame containing sample metadata.
+                                             Defaults to None.
+        n_cpus (int, optional): Number of CPUs to use for parallel processing.
+                                Defaults to 1.
+
+    Returns:
+        dict: A dictionary containing DataFrames and lists for visualization:
+              - "seq_gc_df": DataFrame with GC content per contig, merged with metadata.
+              - "seq_len_df": DataFrame with contig lengths, merged with metadata.
+              - "cumulative_df": DataFrame for cumulative length plots, merged with metadata.
+              - "nx_df": DataFrame for N(x) plots, merged with metadata.
+              - "metadata_columns": List of metadata column names that were merged.
+    """
     fasta_files = list(Path(str(contigs_dir)).glob("*.fa"))
 
     all_seq_gc_rows = []
@@ -133,7 +256,7 @@ def generate_plotting_data(
 
         # Step 2: Calculate all derived metrics per sample in parallel
         derived_metrics_results = pool.starmap(
-            _calculate_all_derived_data_for_sample, args_for_derived_metrics
+            _calculate_all_metrics, args_for_derived_metrics
         )
 
         # Step 3: Aggregate results from the second parallel step (serial, but fast)
@@ -195,6 +318,25 @@ def generate_plotting_data(
 
 
 def compute_sample_metrics(contigs_data_df: pd.DataFrame, categories: List[str]):
+    """
+    Computes summary metrics for each sample based on contig length data.
+
+    Metrics include count, mean length, longest contig, N50, N90, and total length.
+    Metadata categories are included in the output if provided.
+
+    Args:
+        contigs_data_df (pd.DataFrame): DataFrame containing contig lengths
+                                        (typically 'seq_len_df' from
+                                        `generate_plotting_data`), potentially
+                                        merged with metadata. Must contain 'sample'
+                                        and 'contig_length' columns.
+        categories (List[str]): A list of metadata category names to include
+                                in the output metrics for each sample.
+
+    Returns:
+        list: A list of dictionaries, where each dictionary represents a sample
+              and its computed metrics, including any specified metadata categories.
+    """
     metrics = []
     for sample, group in contigs_data_df.groupby("sample"):
         contig_lengths = group["contig_length"].tolist()
@@ -227,6 +369,15 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame, categories: List[str])
 
 
 def _cleanup_bootstrap(output_dir):
+    """
+    Removes default Bootstrap 3 CSS and JS files from the q2template assets.
+
+    This is a workaround to allow using Bootstrap 5 styles which are
+    manually adjusted in the HTML templates.
+
+    Args:
+        output_dir (str): The root directory of the QIIME 2 visualization.
+    """
     # Remove unwanted files
     # until Bootstrap 3 is replaced with v5, remove the v3 scripts as
     # the HTML files are adjusted to work with v5
@@ -245,6 +396,17 @@ def _cleanup_bootstrap(output_dir):
 
 
 def render_spec(template_name, **kwargs):
+    """
+    Renders a Vega-Lite JSON specification from a Jinja2 template.
+
+    Args:
+        template_name (str): The filename of the Jinja2 template for the Vega-Lite spec
+                             (e.g., "contig_length_spec.json.j2").
+        **kwargs: Arbitrary keyword arguments to pass to the Jinja2 template rendering.
+
+    Returns:
+        str: A string containing the rendered Vega-Lite JSON specification.
+    """
     # Render the four separate Vega-Lite specs for the dashboard
     spec_template_fp = os.path.join(TEMPLATES, "contig_qc", "vega", template_name)
     with open(spec_template_fp) as f:
@@ -253,6 +415,18 @@ def render_spec(template_name, **kwargs):
 
 
 def estimate_column_count(samples: set[str]) -> int:
+    """
+    Estimates the optimal number of columns for multi-panel Vega plots
+    based on the maximum length of sample IDs.
+
+    Aims to prevent sample IDs from being truncated in plot titles.
+
+    Args:
+        samples (set[str]): A set of unique sample IDs.
+
+    Returns:
+        int: The estimated number of columns (2, 3, or 4).
+    """
     max_len = max([len(x) for x in samples])
     if max_len >= 16:
         return 2
@@ -268,6 +442,22 @@ def evaluate_contigs(
     metadata: Metadata = None,
     n_cpus: int = 1,
 ):
+    """
+    Generates a QIIME 2 visualization for contig quality control.
+
+    This function orchestrates the processing of contig data, calculation of
+    various metrics, generation of data for plots, and rendering of the
+    HTML visualization.
+
+    Args:
+        output_dir (str): The directory where the visualization output will be saved.
+        contigs (ContigSequencesDirFmt): QIIME 2 artifact containing per-sample
+                                         contig sequences.
+        metadata (Metadata, optional): Sample metadata to be incorporated into
+                                       the plots and tables. Defaults to None.
+        n_cpus (int, optional): Number of CPUs to use for parallel data processing.
+                                Defaults to 1.
+    """
     metadata_df = None
     # Categories and values for the visualization context (dropdowns, table headers)
     # These come directly from the input metadata, if provided.
