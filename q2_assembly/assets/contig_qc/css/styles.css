@@ -44,7 +44,16 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   font-size: 10px;
 }
 
-.spinner > div {
+.plot-spinner {
+  margin: 20px auto;
+  width: 50px;
+  height: 40px;
+  text-align: center;
+  font-size: 10px;
+}
+
+.spinner > div,
+.plot-spinner > div {
   background-color: #333;
   height: 100%;
   width: 6px;

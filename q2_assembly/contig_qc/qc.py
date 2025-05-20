@@ -12,6 +12,7 @@ import re
 import shutil
 from typing import List
 from pathlib import Path
+import pyarrow as pa, pyarrow.ipc as ipc
 
 import jinja2
 import numpy as np
@@ -153,14 +154,12 @@ def generate_plotting_data(
             metadata_df, left_on="sample", right_index=True, how="left"
         )
         seq_len_df = seq_len_df.merge(
-            metadata_df, left_on="sample", right_index=True,  how="left"
+            metadata_df, left_on="sample", right_index=True, how="left"
         )
         cumulative_df = cumulative_df.merge(
             metadata_df, left_on="sample", right_index=True, how="left"
         )
-        nx_df = nx_df.merge(
-            metadata_df, left_on="sample", right_index=True, how="left"
-        )
+        nx_df = nx_df.merge(metadata_df, left_on="sample", right_index=True, how="left")
         metadata_columns_list = list(
             metadata_df.columns.drop("sample", errors="ignore")
         )
@@ -262,9 +261,7 @@ def evaluate_contigs(
             for x in metadata_df.columns
         }
 
-    data = generate_plotting_data(
-        contigs, metadata_df=metadata_df, n_cpus=n_cpus
-    )
+    data = generate_plotting_data(contigs, metadata_df=metadata_df, n_cpus=n_cpus)
 
     # Categories for sample_metrics should be those actually merged into the dataframes
     # and available for grouping/display in the metrics table.
@@ -275,19 +272,21 @@ def evaluate_contigs(
     n_cols = estimate_column_count(set(data["seq_len_df"]["sample"]))
 
     os.makedirs(os.path.join(output_dir, "data"))
-    # Save seq_len_df to a JSON file for the contig length plot
-    contig_length_data_fp = os.path.join(output_dir, "data", "contig_length_data.json")
-    data["seq_len_df"].to_json(contig_length_data_fp, orient="records")
 
-    # Save data for other plots to JSON files
-    nx_curve_data_fp = os.path.join(output_dir, "data", "nx_curve_data.json")
-    data["nx_df"].to_json(nx_curve_data_fp, orient="records")
-
-    gc_content_data_fp = os.path.join(output_dir, "data", "gc_content_data.json")
-    data["seq_gc_df"].to_json(gc_content_data_fp, orient="records")
-
-    cumulative_length_data_fp = os.path.join(output_dir, "data", "cumulative_length_data.json")
-    data["cumulative_df"].to_json(cumulative_length_data_fp, orient="records")
+    data_for_export = zip(
+        [data["seq_len_df"], data["seq_gc_df"], data["cumulative_df"], data["nx_df"]],
+        [
+            "contig_length_data.arrow",
+            "gc_content_data.arrow",
+            "cumulative_length_data.arrow",
+            "nx_curve_data.arrow",
+        ],
+    )
+    for df, fn in data_for_export:
+        table = pa.Table.from_pandas(df)
+        fp = os.path.join(output_dir, "data", fn)
+        with ipc.RecordBatchFileWriter(fp, table.schema) as writer:
+            writer.write_table(table)
 
     # Prepare sample_ids_by_metadata for the custom legend
     sample_ids_by_metadata = {
@@ -297,33 +296,20 @@ def evaluate_contigs(
     if metadata_df is not None:  # Check if metadata was provided
         for category_name in data["metadata_columns"]:
             sample_ids_by_metadata[category_name] = {}
-            unique_values_for_category = data["seq_len_df"][
-                category_name
-            ].dropna().unique()
+            unique_values_for_category = (
+                data["seq_len_df"][category_name].dropna().unique()
+            )
             for cat_value in unique_values_for_category:
-                relevant_samples = data["seq_len_df"][
-                    data["seq_len_df"][category_name] == cat_value
-                ]["sample"].unique().tolist()
+                relevant_samples = (
+                    data["seq_len_df"][data["seq_len_df"][category_name] == cat_value][
+                        "sample"
+                    ]
+                    .unique()
+                    .tolist()
+                )
                 sample_ids_by_metadata[category_name][str(cat_value)] = sorted(
                     relevant_samples
                 )
-
-    vega_contig_length_spec = render_spec(
-        "contig_length_spec.json.j2",
-        n_cols=n_cols,
-    )
-    vega_nx_curve_spec = render_spec(
-        "nx_curve_spec.json.j2",
-        n_cols=n_cols,
-    )
-    vega_gc_content_spec = render_spec(
-        "gc_content_spec.json.j2",
-        n_cols=n_cols,
-    )
-    vega_cumulative_length_spec = render_spec(
-        "cumulative_length_spec.json.j2",
-        n_cols=n_cols,
-    )
 
     templates = [
         os.path.join(TEMPLATES, "contig_qc", "index.html"),
@@ -336,10 +322,22 @@ def evaluate_contigs(
             {"title": "Group metrics", "url": "grouped.html"},
             {"title": "Table view", "url": "table.html"},
         ],
-        "vega_contig_length_spec": vega_contig_length_spec,
-        "vega_nx_curve_spec": vega_nx_curve_spec,
-        "vega_gc_content_spec": vega_gc_content_spec,
-        "vega_cumulative_length_spec": vega_cumulative_length_spec,
+        "vega_contig_length_spec": render_spec(
+            "contig_length_spec.json.j2",
+            n_cols=n_cols,
+        ),
+        "vega_nx_curve_spec": render_spec(
+            "nx_curve_spec.json.j2",
+            n_cols=n_cols,
+        ),
+        "vega_gc_content_spec": render_spec(
+            "gc_content_spec.json.j2",
+            n_cols=n_cols,
+        ),
+        "vega_cumulative_length_spec": render_spec(
+            "cumulative_length_spec.json.j2",
+            n_cols=n_cols,
+        ),
         "sample_metrics": json.dumps(sample_metrics),
         "categories": json.dumps(metadata_context_categories),
         "values": json.dumps(metadata_context_values),

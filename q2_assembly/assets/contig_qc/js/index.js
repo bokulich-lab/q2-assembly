@@ -160,6 +160,7 @@ $(document).ready(function () {
     vegaEmbedPromises.push(
         vegaEmbed('#vega-contig-length', vegaContigLengthSpec, {actions: true}).then(res => {
             vegaViews.contigLength = res.view;
+            document.getElementById('spinner-contig-length')?.remove();
             if (initialCategory) {
                 vegaViews.contigLength.signal('category_param', initialCategory)
                     .signal('value_param', 'All')
@@ -172,6 +173,7 @@ $(document).ready(function () {
     vegaEmbedPromises.push(
         vegaEmbed('#vega-nx-curve', vegaNxCurveSpec, {actions: true}).then(res => {
             vegaViews.nxCurve = res.view;
+            document.getElementById('spinner-nx-curve')?.remove();
             if (initialCategory) {
                 vegaViews.nxCurve.signal('category_param', initialCategory)
                     .signal('value_param', 'All')
@@ -184,6 +186,7 @@ $(document).ready(function () {
     vegaEmbedPromises.push(
         vegaEmbed('#vega-gc-content', vegaGcContentSpec, {actions: true}).then(res => {
             vegaViews.gcContent = res.view;
+            document.getElementById('spinner-gc-content')?.remove();
             if (initialCategory) {
                 vegaViews.gcContent.signal('category_param', initialCategory)
                     .signal('value_param', 'All')
@@ -196,6 +199,7 @@ $(document).ready(function () {
     vegaEmbedPromises.push(
         vegaEmbed('#vega-cumulative-length', vegaCumulativeLengthSpec, {actions: true}).then(res => {
             vegaViews.cumulativeLength = res.view;
+            document.getElementById('spinner-cumulative-length')?.remove();
             if (initialCategory) {
                 vegaViews.cumulativeLength.signal('category_param', initialCategory)
                     .signal('value_param', 'All')
@@ -206,8 +210,8 @@ $(document).ready(function () {
         })
     );
 
-    // Remove the loading spinner
-    document.getElementById('loading').remove();
+    // Global spinner removal is no longer needed here
+    // document.getElementById('loading').remove(); 
 
     // Wait for all Vega plots to be embedded before the first highlight signal update
     Promise.all(vegaEmbedPromises).then(() => {
