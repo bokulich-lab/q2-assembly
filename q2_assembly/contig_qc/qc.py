@@ -147,20 +147,22 @@ def generate_plotting_data(
 
     metadata_columns_list = []
     if metadata_df is not None:
-        processed_metadata_df = metadata_df.copy()
-        processed_metadata_df = processed_metadata_df.reset_index().rename(
-            columns={processed_metadata_df.index.name or "index": "id"}
-        )
-        processed_metadata_df = processed_metadata_df.fillna("NA")
+        metadata_df = metadata_df.fillna("NA")
 
-        seq_gc_df = seq_gc_df.merge(processed_metadata_df, on="sample", how="left")
-        seq_len_df = seq_len_df.merge(processed_metadata_df, on="sample", how="left")
-        cumulative_df = cumulative_df.merge(
-            processed_metadata_df, on="sample", how="left"
+        seq_gc_df = seq_gc_df.merge(
+            metadata_df, left_on="sample", right_index=True, how="left"
         )
-        nx_df = nx_df.merge(processed_metadata_df, on="sample", how="left")
+        seq_len_df = seq_len_df.merge(
+            metadata_df, left_on="sample", right_index=True,  how="left"
+        )
+        cumulative_df = cumulative_df.merge(
+            metadata_df, left_on="sample", right_index=True, how="left"
+        )
+        nx_df = nx_df.merge(
+            metadata_df, left_on="sample", right_index=True, how="left"
+        )
         metadata_columns_list = list(
-            processed_metadata_df.columns.drop("sample", errors="ignore")
+            metadata_df.columns.drop("sample", errors="ignore")
         )
 
     return {
@@ -246,22 +248,22 @@ def evaluate_contigs(
     metadata: Metadata = None,
     n_cpus: int = 1,
 ):
-    processed_metadata_df = None
+    metadata_df = None
     # Categories and values for the visualization context (dropdowns, table headers)
     # These come directly from the input metadata, if provided.
     metadata_context_categories = []
     metadata_context_values = {}
 
     if metadata:
-        processed_metadata_df = metadata.to_dataframe()
-        metadata_context_categories = processed_metadata_df.columns.tolist()
+        metadata_df = metadata.to_dataframe()
+        metadata_context_categories = metadata_df.columns.tolist()
         metadata_context_values = {
-            x: processed_metadata_df[x].dropna().unique().tolist()
-            for x in processed_metadata_df.columns
+            x: [str(y) for y in metadata_df[x].dropna().unique().tolist()]
+            for x in metadata_df.columns
         }
 
     data = generate_plotting_data(
-        contigs, metadata_df=processed_metadata_df, n_cpus=n_cpus
+        contigs, metadata_df=metadata_df, n_cpus=n_cpus
     )
 
     # Categories for sample_metrics should be those actually merged into the dataframes
@@ -271,6 +273,24 @@ def evaluate_contigs(
     sample_metrics = compute_sample_metrics(data["seq_len_df"], categories_for_metrics)
 
     n_cols = estimate_column_count(set(data["seq_len_df"]["sample"]))
+
+    # Prepare sample_ids_by_metadata for the custom legend
+    sample_ids_by_metadata = {
+        "all_samples": sorted(list(data["seq_len_df"]["sample"].unique()))
+    }
+
+    if metadata_df is not None:  # Check if metadata was provided
+        # data["metadata_columns"] contains column names that were successfully merged
+        for category_name in data["metadata_columns"]:
+            sample_ids_by_metadata[category_name] = {}
+            # Get unique non-NA values for this category directly from the merged data
+            unique_values_for_category = data["seq_len_df"][category_name].dropna().unique()
+            for cat_value in unique_values_for_category:
+                relevant_samples = data["seq_len_df"][
+                    data["seq_len_df"][category_name] == cat_value
+                ]["sample"].unique().tolist()
+                # Ensure keys in the inner dict are strings for JSON/JS compatibility
+                sample_ids_by_metadata[category_name][str(cat_value)] = sorted(relevant_samples)
 
     vega_contig_length_spec = render_spec(
         "contig_length_spec.json.j2",
@@ -311,6 +331,7 @@ def evaluate_contigs(
         "sample_metrics": json.dumps(sample_metrics),
         "categories": json.dumps(metadata_context_categories),
         "values": json.dumps(metadata_context_values),
+        "sample_ids_by_metadata": json.dumps(sample_ids_by_metadata),
         "page_size": 100,
     }
 

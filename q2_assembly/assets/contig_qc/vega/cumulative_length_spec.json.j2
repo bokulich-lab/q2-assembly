@@ -1,30 +1,90 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "params": [
-    {"name": "category_param", "value": "group"},
-    {"name": "value_param", "value": "All"}
+    {
+      "name": "category_param",
+      "value": "group"
+    },
+    {
+      "name": "value_param",
+      "value": "All"
+    },
+    {
+      "name": "highlight_samples_param",
+      "value": []
+    }
   ],
   "description": "Cumulative contig length curves",
-  "data": {"values": {{ cumulative_df | safe }}},
-  "transform": [{"filter": "value_param == 'All' || datum[category_param] == value_param"}],
-  "mark": {"type": "line", "point": true},
-  "width": "container", "height": 350,
-  "selection": {
-    "sample_select": {
-      "type": "multi",
-      "fields": ["sample"],
-      "bind": "legend"
+  "data": {
+    "values": {{ cumulative_df | safe }}
+  },
+  "transform": [
+    {
+      "filter": "value_param == 'All' || datum[category_param] == value_param"
     },
-    "grid": {"type": "interval", "bind": "scales"}
+    {
+      "calculate": "datum[category_param]",
+      "as": "metadata_category_value"
+    },
+    {
+      "calculate": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1 ? 1 : 0",
+      "as": "selection_order"
+    }
+  ],
+  "mark": {
+    "type": "line",
+    "point": false,
+    "strokeWidth": 3
+  },
+  "width": "container",
+  "height": 350,
+  "selection": {
+    "grid": {
+      "type": "interval",
+      "bind": "scales"
+    }
   },
   "encoding": {
-    "x": {"field": "rank", "type": "quantitative", "title": "No. of contigs"},
-    "y": {"field": "cumulative_length", "type": "quantitative", "title": "Cumulative length (bp)", "axis":  {"format": "~s"}},
-    "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}},
+    "x": {
+      "field": "rank",
+      "type": "quantitative",
+      "title": "No. of contigs"
+    },
+    "y": {
+      "field": "cumulative_length",
+      "type": "quantitative",
+      "title": "Cumulative length (bp)",
+      "axis": {
+        "format": "~s"
+      }
+    },
+    "order": {
+      "field": "selection_order",
+      "type": "quantitative",
+      "sort": "descending"
+    },
+    "color": {
+      "field": "sample",
+      "type": "nominal",
+      "scale": {
+        "scheme": "viridis"
+      },
+      "sort": "ascending",
+      "legend": null
+    },
     "opacity": {
-      "condition": {"param": "sample_select", "value": 1},
-      "value": 0.2
-    }
+      "condition": {
+        "test": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1",
+        "value": 0.8
+      },
+      "value": 0.1
+    },
+    "tooltip": [
+      {"field": "sample", "type": "nominal", "title": "Sample"},
+      {"field": "metadata_category_value", "type": "nominal", "title": {"expr": "category_param"}},
+      {"field": "rank", "type": "quantitative", "title": "No. of Contigs"},
+      {"field": "cumulative_length", "type": "quantitative", "title": "Cumulative Length (bp)", "format": ",d"}
+    ]
   },
   "config": {
     "background": "#fff",

@@ -88,3 +88,28 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
     -webkit-transform: scaleY(1.0);
   }
 }
+
+/* Custom Legend Styles */
+.custom-legend-item {
+  cursor: pointer;
+  padding: 2px 5px;
+  border: 1px solid transparent; /* Border for spacing, becomes visible on selection */
+  border-radius: 4px;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.custom-legend-item:not(.selected) {
+  opacity: 0.6; /* Dim unselected items */
+}
+
+.custom-legend-item.selected {
+  border: 1px solid #007bff; /* Highlight selected items with a border */
+  opacity: 1;
+  font-weight: bold;
+}
+
+/* Ensure the color swatch and text are vertically aligned */
+.custom-legend-item > span {
+  vertical-align: middle;
+}

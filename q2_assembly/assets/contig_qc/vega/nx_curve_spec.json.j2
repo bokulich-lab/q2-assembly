@@ -1,30 +1,89 @@
 {
   "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "params": [
-    {"name": "category_param", "value": "group"},
-    {"name": "value_param", "value": "All"}
+    {
+      "name": "category_param",
+      "value": "group"
+    },
+    {
+      "name": "value_param",
+      "value": "All"
+    },
+    {
+      "name": "highlight_samples_param",
+      "value": []
+    }
   ],
   "description": "Nx curve per sample",
-  "data": {"values": {{ nx_df | safe }}},
-  "transform": [{"filter": "value_param == 'All' || datum[category_param] == value_param"}],
-  "mark": {"type": "line", "point": true},
-  "width": "container", "height": 350,
-  "selection": {
-    "sample_select": {
-      "type": "multi",
-      "fields": ["sample"],
-      "bind": "legend"
+  "data": {
+    "values": {{ nx_df | safe }}
+  },
+  "transform": [
+    {
+      "filter": "value_param == 'All' || datum[category_param] == value_param"
     },
-    "grid": {"type": "interval", "bind": "scales"}
+    {
+      "calculate": "datum[category_param]",
+      "as": "metadata_category_value"
+    },
+    {
+      "calculate": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1 ? 1 : 0",
+      "as": "selection_order"
+    }
+  ],
+  "mark": {
+    "type": "line",
+    "point": true
+  },
+  "width": "container",
+  "height": 350,
+  "selection": {
+    "grid": {
+      "type": "interval",
+      "bind": "scales"
+    }
   },
   "encoding": {
-    "x": {"field": "percent", "type": "quantitative", "title": "Percent of assembly (Nx)"},
-    "y": {"field": "nx", "type": "quantitative", "title": "Contig size (bp)", "axis": {"format": "~s"}},
-    "color": {"field": "sample", "type": "nominal", "scale": {"scheme": "viridis"}},
+    "x": {
+      "field": "percent",
+      "type": "quantitative",
+      "title": "Percent of assembly (Nx)"
+    },
+    "y": {
+      "field": "nx",
+      "type": "quantitative",
+      "title": "Contig size (bp)",
+      "axis": {
+        "format": "~s"
+      }
+    },
+    "order": {
+      "field": "selection_order",
+      "type": "quantitative",
+      "sort": "descending"
+    },
+    "color": {
+      "field": "sample",
+      "type": "nominal",
+      "scale": {
+        "scheme": "viridis"
+      },
+      "sort": "ascending",
+      "legend": null
+    },
     "opacity": {
-      "condition": {"param": "sample_select", "value": 1},
-      "value": 0.2
-    }
+      "condition": {
+        "test": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1",
+        "value": 0.8
+      },
+      "value": 0.1
+    },
+    "tooltip": [
+      {"field": "sample", "type": "nominal", "title": "Sample"},
+      {"field": "metadata_category_value", "type": "nominal", "title": {"expr": "category_param"}},
+      {"field": "percent", "type": "quantitative", "title": "Nx (%)"},
+      {"field": "nx", "type": "quantitative", "title": "Contig Length (bp)", "format": ",d"}
+    ]
   },
   "config": {
     "background": "#fff",
