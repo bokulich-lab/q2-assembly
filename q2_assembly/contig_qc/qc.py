@@ -274,42 +274,54 @@ def evaluate_contigs(
 
     n_cols = estimate_column_count(set(data["seq_len_df"]["sample"]))
 
+    os.makedirs(os.path.join(output_dir, "data"))
+    # Save seq_len_df to a JSON file for the contig length plot
+    contig_length_data_fp = os.path.join(output_dir, "data", "contig_length_data.json")
+    data["seq_len_df"].to_json(contig_length_data_fp, orient="records")
+
+    # Save data for other plots to JSON files
+    nx_curve_data_fp = os.path.join(output_dir, "data", "nx_curve_data.json")
+    data["nx_df"].to_json(nx_curve_data_fp, orient="records")
+
+    gc_content_data_fp = os.path.join(output_dir, "data", "gc_content_data.json")
+    data["seq_gc_df"].to_json(gc_content_data_fp, orient="records")
+
+    cumulative_length_data_fp = os.path.join(output_dir, "data", "cumulative_length_data.json")
+    data["cumulative_df"].to_json(cumulative_length_data_fp, orient="records")
+
     # Prepare sample_ids_by_metadata for the custom legend
     sample_ids_by_metadata = {
         "all_samples": sorted(list(data["seq_len_df"]["sample"].unique()))
     }
 
     if metadata_df is not None:  # Check if metadata was provided
-        # data["metadata_columns"] contains column names that were successfully merged
         for category_name in data["metadata_columns"]:
             sample_ids_by_metadata[category_name] = {}
-            # Get unique non-NA values for this category directly from the merged data
-            unique_values_for_category = data["seq_len_df"][category_name].dropna().unique()
+            unique_values_for_category = data["seq_len_df"][
+                category_name
+            ].dropna().unique()
             for cat_value in unique_values_for_category:
                 relevant_samples = data["seq_len_df"][
                     data["seq_len_df"][category_name] == cat_value
                 ]["sample"].unique().tolist()
-                # Ensure keys in the inner dict are strings for JSON/JS compatibility
-                sample_ids_by_metadata[category_name][str(cat_value)] = sorted(relevant_samples)
+                sample_ids_by_metadata[category_name][str(cat_value)] = sorted(
+                    relevant_samples
+                )
 
     vega_contig_length_spec = render_spec(
         "contig_length_spec.json.j2",
-        seq_df=json.dumps(data["seq_len_df"].to_dict(orient="records")),
         n_cols=n_cols,
     )
     vega_nx_curve_spec = render_spec(
         "nx_curve_spec.json.j2",
-        nx_df=json.dumps(data["nx_df"].to_dict(orient="records")),
         n_cols=n_cols,
     )
     vega_gc_content_spec = render_spec(
         "gc_content_spec.json.j2",
-        seq_df=json.dumps(data["seq_gc_df"].to_dict(orient="records")),
         n_cols=n_cols,
     )
     vega_cumulative_length_spec = render_spec(
         "cumulative_length_spec.json.j2",
-        cumulative_df=json.dumps(data["cumulative_df"].to_dict(orient="records")),
         n_cols=n_cols,
     )
 
