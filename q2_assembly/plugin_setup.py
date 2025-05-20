@@ -545,13 +545,15 @@ plugin.visualizers.register_function(
         "contigs": SampleData[Contigs],
     },
     parameters={
-        "metadata": Metadata
+        "metadata": Metadata,
+        "n_cpus": Int % Range(1, None),
     },
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
     },
     parameter_descriptions={
-        "metadata": "Sample metadata."
+        "metadata": "Sample metadata.",
+        "n_cpus": "Number of CPUs to use for the analysis.",
     },
     name="",
     description="",
