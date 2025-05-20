@@ -5,27 +5,60 @@ $(document).ready(function () {
     // sampleIdsByMetadata, categories, values, vega specs are injected from Python by the Jinja template
     let vegaViews = {}; // Initialize vegaViews here
 
-    function updateVegaHighlightSignal() {
+    // Cache frequently used DOM nodes
+    const customLegendDiv = document.getElementById('custom-legend');
+    const categoryDropdown = document.getElementById('categoryDropdown');
+    const valueDropdown = document.getElementById('valueDropdown');
+    const selectAllBtn = document.getElementById('selectAllLegendBtn');
+    const unselectAllBtn = document.getElementById('unselectAllLegendBtn');
+
+    // Debounce function
+    function debounce(func, delay) {
+        let timeout;
+        return function(...args) {
+            const context = this;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(context, args), delay);
+        };
+    }
+
+    // Central function to update all Vega views via signals
+    function refreshVegaViews() {
+        const currentCategory = categoryDropdown.value;
+        const currentValue = valueDropdown.value;
+
         const selectedLegendItems = document.querySelectorAll('#custom-legend .custom-legend-item.selected');
         const selectedSamples = Array.from(selectedLegendItems).map(item => {
             return { sample: item.dataset.value }; // Format for Vega multi-selection
         });
 
+        // Optional: Log current signal values for debugging
+        // console.log('Refreshing Vega Views. Signals:', {
+        //     category: currentCategory,
+        //     value: currentValue,
+        //     highlighted: selectedSamples.map(s => s.sample)
+        // });
+
         Object.values(vegaViews).forEach(view => {
             if (view) {
-                view.signal('highlight_samples_param', selectedSamples).runAsync();
+                view.signal('category_param', currentCategory)
+                    .signal('value_param', currentValue)
+                    .signal('highlight_samples_param', selectedSamples)
+                    .runAsync();
             }
         });
     }
 
+    const debouncedRefreshVegaViews = debounce(refreshVegaViews, 150);
+
     function updateCustomLegend(selectedCategory, selectedValue) {
-        const customLegendDiv = document.getElementById('custom-legend');
         if (!customLegendDiv || typeof sampleIdsByMetadata === 'undefined') {
             if (customLegendDiv) customLegendDiv.innerHTML = 'Error: sampleIdsByMetadata not loaded.';
             return;
         }
 
-        customLegendDiv.innerHTML = ''; // Clear previous legend items
+        customLegendDiv.textContent = ''; // Clear previous legend items
+        const fragment = document.createDocumentFragment();
         let legendKeys = [];
 
         if (selectedValue === 'All') {
@@ -44,9 +77,6 @@ $(document).ready(function () {
                 }
                 legendKeys = Array.from(samplesForCategorySet).sort();
             }
-            // If no specific category led to keys, or if category itself was not found/null,
-            // or if legendKeys is still empty after processing a category (e.g. category has no samples)
-            // default to all samples if available.
             if (legendKeys.length === 0 && sampleIdsByMetadata.all_samples && sampleIdsByMetadata.all_samples.length > 0) {
                 legendKeys = sampleIdsByMetadata.all_samples; // Already sorted from Python
             }
@@ -63,12 +93,6 @@ $(document).ready(function () {
             return;
         }
 
-        // Define the color scale based on the final legendKeys
-        // Use d3.quantize with d3.interpolateViridis to get a dynamic range
-        // of colors spread across the Viridis spectrum, based on the number of legend keys.
-        // const colorRange = legendKeys.length > 0 ? d3.quantize(d3.interpolateViridis, legendKeys.length) : [];
-        // const viridisColorScale = d3.scaleOrdinal().domain(legendKeys).range(colorRange);
-
         const n = legendKeys.length;
         // quantize at n+2 points, then drop the first and last
         const colorRange = n > 0
@@ -79,37 +103,26 @@ $(document).ready(function () {
           .domain(legendKeys)
           .range(colorRange);
 
-        console.log(viridisColorScale(legendKeys[0]));
-        console.log(viridisColorScale(legendKeys[legendKeys.length - 1]))
         legendKeys.forEach((key) => { // key is now a sample ID
             const legendItem = document.createElement('span');
             legendItem.classList.add('legend-item', 'custom-legend-item', 'selected'); // Initially selected
-            legendItem.style.marginRight = '15px';
-            legendItem.style.marginBottom = '5px';
-            legendItem.style.display = 'flex';
-            legendItem.style.alignItems = 'center';
             legendItem.dataset.value = key; // Store the sample ID
 
             const colorSwatch = document.createElement('span');
-            colorSwatch.style.display = 'inline-block';
-            colorSwatch.style.width = '12px';
-            colorSwatch.style.height = '12px';
-            // Use the D3 scale function to get the color
+            colorSwatch.classList.add('legend-color-swatch');
             colorSwatch.style.backgroundColor = viridisColorScale(key);
-            colorSwatch.style.borderRadius = '2px';
-            colorSwatch.style.marginRight = '5px';
 
             const textSpan = document.createElement('span');
             textSpan.textContent = key; // Display sample ID
 
             legendItem.appendChild(colorSwatch);
             legendItem.appendChild(textSpan);
-            customLegendDiv.appendChild(legendItem);
+            fragment.appendChild(legendItem);
         });
+        customLegendDiv.appendChild(fragment);
     }
 
     // Populate category dropdown
-    const categoryDropdown = document.getElementById('categoryDropdown');
     categories.forEach(cat => {
         const opt = document.createElement('option');
         opt.value = cat;
@@ -119,8 +132,7 @@ $(document).ready(function () {
 
     // Helper to update value dropdown
     function updateValueDropdown(category, selectedValue) {
-        const valueDropdown = document.getElementById('valueDropdown');
-        valueDropdown.innerHTML = '';
+        valueDropdown.textContent = '';
         // Add 'All' option
         const allOpt = document.createElement('option');
         allOpt.value = 'All';
@@ -148,145 +160,95 @@ $(document).ready(function () {
         updateValueDropdown(initialCategory, 'All');
         document.getElementById('categoryDropdown').value = initialCategory;
         updateCustomLegend(initialCategory, 'All'); // Generate initial legend
-        // updateVegaHighlightSignal(); // Defer this call
+        // refreshVegaViews(); // Called after all plots are embedded
     } else {
         // No categories from metadata. Value dropdown will be empty except for "All".
         updateValueDropdown(null, 'All');
         updateCustomLegend(null, 'All'); // Should fall back to sampleIdsByMetadata.all_samples
-        // updateVegaHighlightSignal(); // Defer this call
+        // refreshVegaViews(); // Called after all plots are embedded
     }
 
     // Render each plot in its own container
     vegaEmbedPromises.push(
-        vegaEmbed('#vega-contig-length', vegaContigLengthSpec, {actions: true}).then(res => {
+        vegaEmbed('#vega-contig-length', vegaContigLengthSpec, {actions: true, renderer: 'canvas'}).then(res => {
             vegaViews.contigLength = res.view;
             document.getElementById('spinner-contig-length')?.remove();
-            if (initialCategory) {
-                vegaViews.contigLength.signal('category_param', initialCategory)
-                    .signal('value_param', 'All')
-                    .runAsync();
-            } else {
-                 vegaViews.contigLength.signal('value_param', 'All').runAsync();
-            }
+            // Initial signal setting will be handled by refreshVegaViews after all embeds
         })
     );
     vegaEmbedPromises.push(
-        vegaEmbed('#vega-nx-curve', vegaNxCurveSpec, {actions: true}).then(res => {
+        vegaEmbed('#vega-nx-curve', vegaNxCurveSpec, {actions: true, renderer: 'canvas'}).then(res => {
             vegaViews.nxCurve = res.view;
             document.getElementById('spinner-nx-curve')?.remove();
-            if (initialCategory) {
-                vegaViews.nxCurve.signal('category_param', initialCategory)
-                    .signal('value_param', 'All')
-                    .runAsync();
-            } else {
-                vegaViews.nxCurve.signal('value_param', 'All').runAsync();
-            }
         })
     );
     vegaEmbedPromises.push(
-        vegaEmbed('#vega-gc-content', vegaGcContentSpec, {actions: true}).then(res => {
+        vegaEmbed('#vega-gc-content', vegaGcContentSpec, {actions: true, renderer: 'canvas'}).then(res => {
             vegaViews.gcContent = res.view;
             document.getElementById('spinner-gc-content')?.remove();
-            if (initialCategory) {
-                vegaViews.gcContent.signal('category_param', initialCategory)
-                    .signal('value_param', 'All')
-                    .runAsync();
-            } else {
-                vegaViews.gcContent.signal('value_param', 'All').runAsync();
-            }
         })
     );
     vegaEmbedPromises.push(
-        vegaEmbed('#vega-cumulative-length', vegaCumulativeLengthSpec, {actions: true}).then(res => {
+        vegaEmbed('#vega-cumulative-length', vegaCumulativeLengthSpec, {actions: true, renderer: 'canvas'}).then(res => {
             vegaViews.cumulativeLength = res.view;
             document.getElementById('spinner-cumulative-length')?.remove();
-            if (initialCategory) {
-                vegaViews.cumulativeLength.signal('category_param', initialCategory)
-                    .signal('value_param', 'All')
-                    .runAsync();
-            } else {
-                vegaViews.cumulativeLength.signal('value_param', 'All').runAsync();
-            }
         })
     );
 
     // Global spinner removal is no longer needed here
-    // document.getElementById('loading').remove(); 
+    // document.getElementById('loading').remove();
 
-    // Wait for all Vega plots to be embedded before the first highlight signal update
+    // Wait for all Vega plots to be embedded before the first signal update
     Promise.all(vegaEmbedPromises).then(() => {
-        updateVegaHighlightSignal(); // Set initial highlight state now
+        refreshVegaViews(); // Set initial signal state for all charts
     }).catch(error => {
         console.error("Error embedding Vega views:", error);
-        // Optionally, still call updateVegaHighlightSignal or handle error state
-        updateVegaHighlightSignal(); // Attempt to update with whatever views are available
+        // Optionally, still attempt to set signals or handle error state
+        refreshVegaViews(); // Attempt to update with whatever views are available
     });
 
     // Event listeners for Select/Unselect All buttons for the custom legend
-    const selectAllBtn = document.getElementById('selectAllLegendBtn');
-    const unselectAllBtn = document.getElementById('unselectAllLegendBtn');
-
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', function() {
-            const legendItems = document.querySelectorAll('#custom-legend .custom-legend-item');
+            const legendItems = customLegendDiv.querySelectorAll('.custom-legend-item');
             legendItems.forEach(item => {
                 item.classList.add('selected');
             });
-            updateVegaHighlightSignal();
+            debouncedRefreshVegaViews();
         });
     }
 
     if (unselectAllBtn) {
         unselectAllBtn.addEventListener('click', function() {
-            const legendItems = document.querySelectorAll('#custom-legend .custom-legend-item');
+            const legendItems = customLegendDiv.querySelectorAll('.custom-legend-item');
             legendItems.forEach(item => {
                 item.classList.remove('selected');
             });
-            updateVegaHighlightSignal();
+            debouncedRefreshVegaViews();
         });
     }
 
     // Dropdown event listeners
     document.getElementById('categoryDropdown').addEventListener('change', function () {
         const category = this.value;
-        updateValueDropdown(category, 'All');
-        updateCustomLegend(category, 'All'); 
-        updateVegaHighlightSignal(); // Ensure plots reflect new legend's all-selected state
-        // Update Vega params for all plots
-        Object.values(vegaViews).forEach(view => {
-            if (view) {
-                view.signal('category_param', category).signal('value_param', 'All').runAsync();
-            }
-        });
+        updateValueDropdown(category, 'All'); // This will set valueDropdown to 'All'
+        updateCustomLegend(category, 'All'); // Rebuilds legend, all new items are selected by default
+        debouncedRefreshVegaViews();
     });
     document.getElementById('valueDropdown').addEventListener('change', function () {
         const value = this.value;
         const currentCategory = document.getElementById('categoryDropdown').value;
-        updateCustomLegend(currentCategory, value);
-        updateVegaHighlightSignal(); // Ensure plots reflect new legend's all-selected state
-        Object.values(vegaViews).forEach(view => {
-            if (view) {
-                view.signal('value_param', value).runAsync();
-            }
-        });
+        updateCustomLegend(currentCategory, value); // Rebuilds legend, all new items are selected by default
+        debouncedRefreshVegaViews();
     });
 
-    // Custom Legend Interactivity
-    const customLegend = document.getElementById('custom-legend');
-    if (customLegend) {
-        const legendItems = customLegend.querySelectorAll('.custom-legend-item');
-
-        // Initially, mark all legend items as selected
-        legendItems.forEach(item => {
-            item.classList.add('selected');
-        });
-
-        customLegend.addEventListener('click', function(event) {
+    // Custom Legend Interactivity (event delegation)
+    if (customLegendDiv) {
+        customLegendDiv.addEventListener('click', function(event) {
             const targetItem = event.target.closest('.custom-legend-item');
-            if (targetItem) {
-                targetItem.classList.toggle('selected');
-                updateVegaHighlightSignal(); // Update Vega plots based on new selection
-            }
+            if (!targetItem) return;
+            targetItem.classList.toggle('selected');
+            debouncedRefreshVegaViews();
         });
     }
 

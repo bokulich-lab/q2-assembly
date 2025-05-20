@@ -7,33 +7,27 @@
 # ----------------------------------------------------------------------------
 import json
 import os
-import glob
-import re
 import shutil
-from typing import List
+from multiprocessing import Pool
 from pathlib import Path
-import pyarrow as pa, pyarrow.ipc as ipc
+from typing import List
 
 import jinja2
 import numpy as np
 import pandas as pd
-import panel as pn
-from qiime2 import Metadata
 import pkg_resources
+import pyarrow as pa
+import pyarrow.ipc as ipc
 import q2templates
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
+from qiime2 import Metadata
 from skbio import DNA, read
-from multiprocessing import Pool
-
 
 TEMPLATES = pkg_resources.resource_filename("q2_assembly", "assets")
 
 
 def _process_single_fasta(fasta_file_path: Path):
-    basename = fasta_file_path.name
-    # Extract sample name from pattern: "<sample id>_contigs.fa"
-    m = re.match(r"(.*)_contigs\.fa$", basename)
-    sample_id = m.group(1) if m else basename.rsplit(".", 1)[0]
+    sample_id = fasta_file_path.stem.replace("_contigs", "")
 
     sequences = list(read(str(fasta_file_path), format="fasta", constructor=DNA))
     lengths = [len(seq) for seq in sequences]
@@ -51,37 +45,64 @@ def _process_single_fasta(fasta_file_path: Path):
 
 def _calculate_all_derived_data_for_sample(sample_id: str, raw_data: dict):
     """Calculates all derived metrics for a single sample from its raw data."""
-    seq_gc_rows = []
-    seq_len_rows = []
-    for l, gc_val in zip(raw_data["lengths"], raw_data["gc"]):
-        seq_gc_rows.append({"sample": sample_id, "gc": gc_val})
-        seq_len_rows.append({"sample": sample_id, "contig_length": l})
+    seq_gc_rows = [
+        {"sample": sample_id, "gc": gc}
+        for _, gc in zip(raw_data["lengths"], raw_data["gc"])
+    ]
+    seq_len_rows = [
+        {"sample": sample_id, "contig_length": l}
+        for l, _ in zip(raw_data["lengths"], raw_data["gc"])
+    ]
 
     cumulative_df_part = None
     sorted_lengths = raw_data["sorted_lengths"]
+    # Max points for the cumulative length plot per sample.
+    # Chosen to provide good visual detail without overwhelming the browser.
+    MAX_CUMULATIVE_POINTS = 500
+
     if sorted_lengths:
-        cum_sum = np.cumsum(sorted_lengths)
-        ranks = np.arange(1, len(cum_sum) + 1)
+        cum_sum_full = np.cumsum(sorted_lengths)
+        # Ranks are 1-based for plotting
+        ranks_full = np.arange(1, len(sorted_lengths) + 1)
+        num_contigs = len(sorted_lengths)
+
+        if num_contigs <= MAX_CUMULATIVE_POINTS:
+            # If fewer or an equal number of contigs than max_points, use all data
+            selected_ranks = ranks_full
+            selected_cum_sum = cum_sum_full
+        else:
+            # Subsample the data to approximately MAX_CUMULATIVE_POINTS
+            # np.linspace will ensure the first (0) and last (num_contigs-1) indices are covered.
+            indices_float = np.linspace(
+                0, num_contigs - 1, num=MAX_CUMULATIVE_POINTS
+            )
+            # Convert to integer indices and take unique ones (handles cases where
+            # MAX_CUMULATIVE_POINTS is close to num_contigs, preventing duplicates
+            # and ensuring sorted order).
+            selected_indices = np.unique(indices_float.astype(int))
+
+            selected_ranks = ranks_full[selected_indices]
+            selected_cum_sum = cum_sum_full[selected_indices]
+
         cumulative_df_part = pd.DataFrame(
-            {"sample": sample_id, "rank": ranks, "cumulative_length": cum_sum}
+            {"sample": sample_id, "rank": selected_ranks, "cumulative_length": selected_cum_sum}
         )
 
     nx_rows = []
     total_length = raw_data["total_length"]
     if total_length > 0 and sorted_lengths:
-        cum_sum_nx = np.cumsum(
-            sorted_lengths
-        )  # Use a different var name if outer scope has 'cum_sum'
-        for p in range(1, 101):
-            threshold = total_length * p / 100.0
-            idx = np.searchsorted(cum_sum_nx, threshold, side="left")
-            nx_val = (
-                sorted_lengths[idx] if idx < len(sorted_lengths) else sorted_lengths[-1]
-            )
-            nx_rows.append({"sample": sample_id, "percent": p, "nx": nx_val})
+        cum_sum_nx = np.cumsum(sorted_lengths)
+        percents = np.arange(1, 101)
+        thresholds = total_length * percents / 100.0
+        idxs = np.searchsorted(cum_sum_nx, thresholds, side="left").clip(
+            max=len(sorted_lengths) - 1
+        )
+        nx_rows = [
+            {"sample": sample_id, "percent": int(p), "nx": int(sorted_lengths[i])}
+            for p, i in zip(percents, idxs)
+        ]
 
     return {
-        "sample_id": sample_id,  # Retained for potential direct use, though starmap preserves order
         "seq_gc_rows": seq_gc_rows,
         "seq_len_rows": seq_len_rows,
         "cumulative_df_part": cumulative_df_part,

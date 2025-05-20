@@ -122,3 +122,36 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 .custom-legend-item > span {
   vertical-align: middle;
 }
+
+
+/* Custom legend container */
+#custom-legend {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Individual legend items */
+.custom-legend-item {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 15px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  opacity: 0.2;
+  transition: opacity 0.2s ease;
+}
+
+/* Highlight selected items */
+.custom-legend-item.selected {
+  opacity: 1;
+}
+
+/* Color swatch box */
+.legend-color-swatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  margin-right: 5px;
+}
