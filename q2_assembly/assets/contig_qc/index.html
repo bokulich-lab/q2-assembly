@@ -18,6 +18,7 @@
 <div class="container-fluid">
   <div class="row justify-content-center" style="margin-top: 20px;">
     <div class="col-lg-10 col-xl-8">
+      {% if has_metadata == 'true' %}
       <div class="card mb-4 border-muted">
         <div class="card-body p-3">
           <div class="card-text text-muted">
@@ -42,8 +43,9 @@
           </div>
         </div>
       </div>
+      {% endif %}
 
-      <!-- New Legend Card -->
+      <!-- Legend Card -->
       <div class="card mb-4 border-muted" id="custom-legend-card">
         <div class="card-body p-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
@@ -96,6 +98,7 @@
 
 <script>
   // --- Data injected from Python ---
+  let hasClientMetadata = {{ has_metadata | safe }};
   const categories = {{ categories | safe }};
   const values = {{ values | safe }};
   const vegaContigLengthSpec = {{ vega_contig_length_spec | safe }};

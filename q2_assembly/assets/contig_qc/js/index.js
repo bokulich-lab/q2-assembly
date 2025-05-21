@@ -2,17 +2,19 @@ $(document).ready(function () {
     removeBS3refs();
     adjustTagsToBS3();
 
-    // sampleIdsByMetadata, categories, values, vega specs are injected from Python by the Jinja template
-    let vegaViews = {}; // Initialize vegaViews here
+    hasClientMetadata = Boolean(hasClientMetadata)
 
-    // Cache frequently used DOM nodes
+    // hasClientMetadata, sampleIdsByMetadata, categories, values, vega specs are injected from Python by the Jinja template
+    let vegaViews = {};
+
     const customLegendDiv = document.getElementById('custom-legend');
-    const categoryDropdown = document.getElementById('categoryDropdown');
-    const valueDropdown = document.getElementById('valueDropdown');
     const selectAllBtn = document.getElementById('selectAllLegendBtn');
     const unselectAllBtn = document.getElementById('unselectAllLegendBtn');
 
-    // Debounce function
+    // These will be assigned if hasClientMetadata is true and elements are found
+    let categoryDropdown = null;
+    let valueDropdown = null;
+
     function debounce(func, delay) {
         let timeout;
         return function(...args) {
@@ -22,27 +24,24 @@ $(document).ready(function () {
         };
     }
 
-    // Central function to update all Vega views via signals
     function refreshVegaViews() {
-        const currentCategory = categoryDropdown.value;
-        const currentValue = valueDropdown.value;
+        let currentCategorySignal = "None"; // Default for Vega signal if no metadata/dropdowns
+        let currentValueSignal = "All";    // Default for Vega signal if no metadata/dropdowns
+
+        if (hasClientMetadata && categoryDropdown && valueDropdown) { // Check if dropdowns were initialized
+            currentCategorySignal = categoryDropdown.value;
+            currentValueSignal = valueDropdown.value;
+        }
 
         const selectedLegendItems = document.querySelectorAll('#custom-legend .custom-legend-item.selected');
         const selectedSamples = Array.from(selectedLegendItems).map(item => {
-            return { sample: item.dataset.value }; // Format for Vega multi-selection
+            return { sample: item.dataset.value };
         });
-
-        // Optional: Log current signal values for debugging
-        // console.log('Refreshing Vega Views. Signals:', {
-        //     category: currentCategory,
-        //     value: currentValue,
-        //     highlighted: selectedSamples.map(s => s.sample)
-        // });
 
         Object.values(vegaViews).forEach(view => {
             if (view) {
-                view.signal('category_param', currentCategory)
-                    .signal('value_param', currentValue)
+                view.signal('category_param', currentCategorySignal)
+                    .signal('value_param', currentValueSignal)
                     .signal('highlight_samples_param', selectedSamples)
                     .runAsync();
             }
@@ -57,17 +56,15 @@ $(document).ready(function () {
             return;
         }
 
-        customLegendDiv.textContent = ''; // Clear previous legend items
+        customLegendDiv.textContent = '';
         const fragment = document.createDocumentFragment();
         let legendKeys = [];
 
         if (selectedValue === 'All') {
             if (selectedCategory && sampleIdsByMetadata[selectedCategory]) {
-                // Collect all unique sample IDs under the specific category's values
                 let samplesForCategorySet = new Set();
                 for (const valueKey in sampleIdsByMetadata[selectedCategory]) {
                     if (Object.prototype.hasOwnProperty.call(sampleIdsByMetadata[selectedCategory], valueKey)) {
-                        // Ensure sampleIdsByMetadata[selectedCategory][valueKey] is an array
                         if (Array.isArray(sampleIdsByMetadata[selectedCategory][valueKey])) {
                             sampleIdsByMetadata[selectedCategory][valueKey].forEach(sampleId => {
                                 samplesForCategorySet.add(sampleId);
@@ -78,23 +75,20 @@ $(document).ready(function () {
                 legendKeys = Array.from(samplesForCategorySet).sort();
             }
             if (legendKeys.length === 0 && sampleIdsByMetadata.all_samples && sampleIdsByMetadata.all_samples.length > 0) {
-                legendKeys = sampleIdsByMetadata.all_samples; // Already sorted from Python
+                legendKeys = sampleIdsByMetadata.all_samples;
             }
         } else {
-            // Specific category and value selected
             if (selectedCategory && sampleIdsByMetadata[selectedCategory] &&
                 Object.prototype.hasOwnProperty.call(sampleIdsByMetadata[selectedCategory], selectedValue)) {
-                legendKeys = sampleIdsByMetadata[selectedCategory][selectedValue] || []; // Already sorted from Python
+                legendKeys = sampleIdsByMetadata[selectedCategory][selectedValue] || [];
             }
         }
 
         if (legendKeys.length === 0) {
-            // customLegendDiv.textContent = 'No legend items to display.';
             return;
         }
 
         const n = legendKeys.length;
-        // quantize at n+2 points, then drop the first and last
         const colorRange = n > 0
           ? d3.quantize(d3.interpolateViridis, n + 2).slice(1, -1)
           : [];
@@ -103,17 +97,17 @@ $(document).ready(function () {
           .domain(legendKeys)
           .range(colorRange);
 
-        legendKeys.forEach((key) => { // key is now a sample ID
+        legendKeys.forEach((key) => {
             const legendItem = document.createElement('span');
-            legendItem.classList.add('legend-item', 'custom-legend-item', 'selected'); // Initially selected
-            legendItem.dataset.value = key; // Store the sample ID
+            legendItem.classList.add('legend-item', 'custom-legend-item', 'selected');
+            legendItem.dataset.value = key;
 
             const colorSwatch = document.createElement('span');
             colorSwatch.classList.add('legend-color-swatch');
             colorSwatch.style.backgroundColor = viridisColorScale(key);
 
             const textSpan = document.createElement('span');
-            textSpan.textContent = key; // Display sample ID
+            textSpan.textContent = key;
 
             legendItem.appendChild(colorSwatch);
             legendItem.appendChild(textSpan);
@@ -122,24 +116,19 @@ $(document).ready(function () {
         customLegendDiv.appendChild(fragment);
     }
 
-    // Populate category dropdown
-    categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
-        categoryDropdown.appendChild(opt);
-    });
+    // This helper populates the value dropdown; only call if valueDropdown exists.
+    function populateValueDropdownWithOptions(category, selectedValue) {
+        if (!valueDropdown) return; // Should only be called if valueDropdown element is available
 
-    // Helper to update value dropdown
-    function updateValueDropdown(category, selectedValue) {
         valueDropdown.textContent = '';
-        // Add 'All' option
         const allOpt = document.createElement('option');
         allOpt.value = 'All';
         allOpt.textContent = 'All';
         if (selectedValue === 'All') allOpt.selected = true;
         valueDropdown.appendChild(allOpt);
-        if (values[category]) {
+
+        // 'values' is injected from Python
+        if (category && values[category]) {
             values[category].forEach(v => {
                 const opt = document.createElement('option');
                 opt.value = v;
@@ -150,30 +139,60 @@ $(document).ready(function () {
         }
     }
 
-    // Initial dropdown population
-    const initialCategory = categories.length > 0 ? categories[0] : null;
+    if (hasClientMetadata) {
+        categoryDropdown = document.getElementById('categoryDropdown');
+        valueDropdown = document.getElementById('valueDropdown');
 
-    // Store all vegaEmbed promises
-    const vegaEmbedPromises = [];
+        if (categoryDropdown && valueDropdown) { // Ensure dropdowns were actually found in DOM
+            // Populate category dropdown ('categories' is injected from Python)
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = cat.charAt(0).toUpperCase() + cat.slice(1);
+                categoryDropdown.appendChild(opt);
+            });
 
-    if (initialCategory) {
-        updateValueDropdown(initialCategory, 'All');
-        document.getElementById('categoryDropdown').value = initialCategory;
-        updateCustomLegend(initialCategory, 'All'); // Generate initial legend
-        // refreshVegaViews(); // Called after all plots are embedded
-    } else {
-        // No categories from metadata. Value dropdown will be empty except for "All".
-        updateValueDropdown(null, 'All');
-        updateCustomLegend(null, 'All'); // Should fall back to sampleIdsByMetadata.all_samples
-        // refreshVegaViews(); // Called after all plots are embedded
+            const initialCategory = categories.length > 0 ? categories[0] : null;
+            if (initialCategory) {
+                categoryDropdown.value = initialCategory;
+                populateValueDropdownWithOptions(initialCategory, 'All');
+            } else {
+                // hasClientMetadata is true, but no categories (e.g., metadata object exists but is empty)
+                populateValueDropdownWithOptions(null, 'All'); // Value dropdown will show only 'All'
+            }
+
+            // Event listeners for dropdowns
+            categoryDropdown.addEventListener('change', function () {
+                const category = this.value;
+                populateValueDropdownWithOptions(category, 'All');
+                updateCustomLegend(category, 'All');
+                debouncedRefreshVegaViews();
+            });
+
+            valueDropdown.addEventListener('change', function () {
+                const value = this.value;
+                const currentCategory = categoryDropdown.value; // categoryDropdown is checked to exist here
+                updateCustomLegend(currentCategory, value);
+                debouncedRefreshVegaViews();
+            });
+        } else {
+            // This case means index.html indicated metadata, but dropdowns weren't found.
+            // Could happen if HTML structure is changed without updating JS, or IDs are wrong.
+            console.warn("Metadata dropdowns (categoryDropdown/valueDropdown) not found in DOM even though hasClientMetadata is true.");
+        }
     }
 
-    // Render each plot in its own container
+    // Initial legend update:
+    // If metadata dropdowns were set up, use the current category from categoryDropdown.
+    // Otherwise (no metadata or dropdowns not found), selectedCategory will be null.
+    const initialLegendCategory = (hasClientMetadata && categoryDropdown) ? categoryDropdown.value : null;
+    updateCustomLegend(initialLegendCategory, 'All');
+
+    const vegaEmbedPromises = [];
     vegaEmbedPromises.push(
         vegaEmbed('#vega-contig-length', vegaContigLengthSpec, {actions: true, renderer: 'canvas'}).then(res => {
             vegaViews.contigLength = res.view;
             document.getElementById('spinner-contig-length')?.remove();
-            // Initial signal setting will be handled by refreshVegaViews after all embeds
         })
     );
     vegaEmbedPromises.push(
@@ -195,19 +214,13 @@ $(document).ready(function () {
         })
     );
 
-    // Global spinner removal is no longer needed here
-    // document.getElementById('loading').remove();
-
-    // Wait for all Vega plots to be embedded before the first signal update
     Promise.all(vegaEmbedPromises).then(() => {
-        refreshVegaViews(); // Set initial signal state for all charts
+        refreshVegaViews();
     }).catch(error => {
         console.error("Error embedding Vega views:", error);
-        // Optionally, still attempt to set signals or handle error state
-        refreshVegaViews(); // Attempt to update with whatever views are available
+        refreshVegaViews();
     });
 
-    // Event listeners for Select/Unselect All buttons for the custom legend
     if (selectAllBtn) {
         selectAllBtn.addEventListener('click', function() {
             const legendItems = customLegendDiv.querySelectorAll('.custom-legend-item');
@@ -228,21 +241,6 @@ $(document).ready(function () {
         });
     }
 
-    // Dropdown event listeners
-    document.getElementById('categoryDropdown').addEventListener('change', function () {
-        const category = this.value;
-        updateValueDropdown(category, 'All'); // This will set valueDropdown to 'All'
-        updateCustomLegend(category, 'All'); // Rebuilds legend, all new items are selected by default
-        debouncedRefreshVegaViews();
-    });
-    document.getElementById('valueDropdown').addEventListener('change', function () {
-        const value = this.value;
-        const currentCategory = document.getElementById('categoryDropdown').value;
-        updateCustomLegend(currentCategory, value); // Rebuilds legend, all new items are selected by default
-        debouncedRefreshVegaViews();
-    });
-
-    // Custom Legend Interactivity (event delegation)
     if (customLegendDiv) {
         customLegendDiv.addEventListener('click', function(event) {
             const targetItem = event.target.closest('.custom-legend-item');
@@ -251,5 +249,4 @@ $(document).ready(function () {
             debouncedRefreshVegaViews();
         });
     }
-
 });

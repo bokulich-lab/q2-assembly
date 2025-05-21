@@ -27,12 +27,12 @@ TEMPLATES = pkg_resources.resource_filename("q2_assembly", "assets")
 MAX_CUMULATIVE_POINTS_DEFAULT = 500
 
 
-def _process_single_fasta(fasta_file_path: Path):
+def _process_single_fasta(fp: Path):
     """
     Processes a single FASTA file to extract contig statistics.
 
     Args:
-        fasta_file_path (Path): Path to the input FASTA file.
+        fp (Path): Path to the input FASTA file.
 
     Returns:
         tuple: A tuple containing the sample ID (derived from the filename)
@@ -43,9 +43,9 @@ def _process_single_fasta(fasta_file_path: Path):
                - "gc": List of GC content percentages for each contig.
                - "sorted_lengths": List of contig lengths, sorted in descending order.
     """
-    sample_id = fasta_file_path.stem.replace("_contigs", "")
+    sample_id = fp.stem.replace("_contigs", "")
 
-    sequences = list(read(str(fasta_file_path), format="fasta", constructor=DNA))
+    sequences = list(read(str(fp), format="fasta", constructor=DNA))
     lengths = [len(seq) for seq in sequences]
     gc_vals = [100 * seq.gc_content() if len(seq) > 0 else 0.0 for seq in sequences]
 
@@ -524,15 +524,14 @@ def evaluate_contigs(
 
     templates = [
         os.path.join(TEMPLATES, "contig_qc", "index.html"),
-        os.path.join(TEMPLATES, "contig_qc", "grouped.html"),
         os.path.join(TEMPLATES, "contig_qc", "table.html"),
     ]
     context = {
         "tabs": [
             {"title": "Sample metrics", "url": "index.html"},
-            {"title": "Group metrics", "url": "grouped.html"},
             {"title": "Table view", "url": "table.html"},
         ],
+        "has_metadata": "true" if metadata else "false",
         "vega_contig_length_spec": render_spec(
             "contig_length_spec.json.j2",
             n_cols=n_cols,
@@ -556,9 +555,13 @@ def evaluate_contigs(
         "page_size": 100,
     }
 
+    if metadata_df is not None:
+        templates.insert(1, os.path.join(TEMPLATES, "contig_qc", "grouped.html"))
+        context["tabs"].insert(1, {"title": "Group metrics", "url": "grouped.html"})
+
     pd.DataFrame(sample_metrics)[
         ["sample", "count", "mean", "n50", "n90", "total_length"]
-    ].to_csv(os.path.join(output_dir, "sample_metrics.tsv"), sep="\t", index=False)
+    ].to_csv(os.path.join(output_dir, "data", "sample_metrics.tsv"), sep="\t", index=False)
 
     for d in ("js", "css"):
         shutil.copytree(
