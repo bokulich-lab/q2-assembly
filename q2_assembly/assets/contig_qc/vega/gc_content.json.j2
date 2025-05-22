@@ -14,14 +14,24 @@
       "value": []
     }
   ],
-  "description": "Cumulative contig length curves",
+  "description": "GC content distribution (KDE)",
   "data": {
-    "url": "data/cumulative_length_data.arrow",
+    "url": "data/gc_content_data.arrow",
     "format": {"type": "arrow"}
   },
   "transform": [
     {
       "filter": "value_param == 'All' || datum[category_param] == value_param"
+    },
+    {
+      "density": "gc",
+      "groupby": [
+        "sample"
+      ],
+      "as": [
+        "gc",
+        "density"
+      ]
     },
     {
       "calculate": "datum[category_param]",
@@ -34,7 +44,7 @@
   ],
   "mark": {
     "type": "line",
-    "point": false,
+    "interpolate": "monotone",
     "strokeWidth": 2.5
   },
   "width": "container",
@@ -47,17 +57,15 @@
   },
   "encoding": {
     "x": {
-      "field": "rank",
+      "field": "gc",
       "type": "quantitative",
-      "title": "No. of contigs"
+      "title": "GC content (%)",
+      "bin": false
     },
     "y": {
-      "field": "cumulative_length",
+      "field": "density",
       "type": "quantitative",
-      "title": "Cumulative length (bp)",
-      "axis": {
-        "format": "~s"
-      }
+      "title": "Fraction of contigs"
     },
     "order": {
       "field": "selection_order",
@@ -82,9 +90,8 @@
     },
     "tooltip": [
       {"field": "sample", "type": "nominal", "title": "Sample"},
-      {"field": "metadata_category_value", "type": "nominal", "title": {"expr": "category_param"}},
-      {"field": "rank", "type": "quantitative", "title": "No. of Contigs"},
-      {"field": "cumulative_length", "type": "quantitative", "title": "Cumulative Length (bp)", "format": ",d"}
+      {"field": "gc", "type": "quantitative", "title": "GC content (%)", "format": ".1f"},
+      {"field": "density", "type": "quantitative", "title": "Density", "format": ".3f"}
     ]
   },
   "config": {
@@ -127,5 +134,5 @@
       "color": "#222"
     }
   },
-  "title": "Cumulative contig length"
+  "title": "GC content distribution"
 } 

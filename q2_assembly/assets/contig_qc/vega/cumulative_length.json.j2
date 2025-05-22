@@ -14,9 +14,9 @@
       "value": []
     }
   ],
-  "description": "Nx curve per sample",
+  "description": "Cumulative contig length curves",
   "data": {
-    "url": "data/nx_curve_data.arrow",
+    "url": "data/cumulative_length_data.arrow",
     "format": {"type": "arrow"}
   },
   "transform": [
@@ -34,7 +34,8 @@
   ],
   "mark": {
     "type": "line",
-    "point": true
+    "point": false,
+    "strokeWidth": 2.5
   },
   "width": "container",
   "height": 350,
@@ -46,14 +47,14 @@
   },
   "encoding": {
     "x": {
-      "field": "percent",
+      "field": "rank",
       "type": "quantitative",
-      "title": "Percent of assembly (Nx)"
+      "title": "No. of contigs"
     },
     "y": {
-      "field": "nx",
+      "field": "cumulative_length",
       "type": "quantitative",
-      "title": "Contig size (bp)",
+      "title": "Cumulative length (bp)",
       "axis": {
         "format": "~s"
       }
@@ -81,9 +82,8 @@
     },
     "tooltip": [
       {"field": "sample", "type": "nominal", "title": "Sample"},
-      {"field": "metadata_category_value", "type": "nominal", "title": {"expr": "category_param"}},
-      {"field": "percent", "type": "quantitative", "title": "Nx (%)"},
-      {"field": "nx", "type": "quantitative", "title": "Contig Length (bp)", "format": ",d"}
+      {"field": "rank", "type": "quantitative", "title": "No. of Contigs"},
+      {"field": "cumulative_length", "type": "quantitative", "title": "Cumulative Length (bp)", "format": ",d"}
     ]
   },
   "config": {
@@ -126,5 +126,5 @@
       "color": "#222"
     }
   },
-  "title": "Nx curve"
+  "title": "Cumulative contig length"
 } 

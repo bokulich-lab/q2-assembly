@@ -14,9 +14,9 @@
       "value": []
     }
   ],
-  "description": "GC content distribution (KDE)",
+  "description": "Contig length distribution",
   "data": {
-    "url": "data/gc_content_data.arrow",
+    "url": "data/contig_length_data.arrow",
     "format": {"type": "arrow"}
   },
   "transform": [
@@ -24,14 +24,25 @@
       "filter": "value_param == 'All' || datum[category_param] == value_param"
     },
     {
-      "density": "gc",
-      "groupby": [
-        "sample"
-      ],
-      "as": [
-        "gc",
-        "density"
-      ]
+      "calculate": "log(datum.contig_length)/log(10)",
+      "as": "log_x"
+    },
+    {
+      "bin": {
+        "binned": true,
+        "maxbin": 10,
+        "nice": true
+      },
+      "field": "log_x",
+      "as": "bin_log_x"
+    },
+    {
+      "calculate": "pow(10, datum.bin_log_x)",
+      "as": "x1"
+    },
+    {
+      "calculate": "pow(10, datum.bin_log_x_end)",
+      "as": "x2"
     },
     {
       "calculate": "datum[category_param]",
@@ -42,30 +53,27 @@
       "as": "selection_order"
     }
   ],
-  "mark": {
-    "type": "line",
-    "interpolate": "monotone",
-    "strokeWidth": 2.5
-  },
+  "mark": "bar",
   "width": "container",
   "height": 350,
-  "selection": {
-    "grid": {
-      "type": "interval",
-      "bind": "scales"
-    }
-  },
   "encoding": {
     "x": {
-      "field": "gc",
-      "type": "quantitative",
-      "title": "GC content (%)",
-      "bin": false
+      "field": "x1",
+      "title": "Contig length",
+      "axis": {
+        "format": ".1s",
+        "labelAngle": 0
+      }
+    },
+    "x2": {
+      "field": "x2"
     },
     "y": {
-      "field": "density",
-      "type": "quantitative",
-      "title": "Fraction of contigs"
+      "aggregate": "count",
+      "title": "Count",
+      "axis": {
+        "format": "~s"
+      }
     },
     "order": {
       "field": "selection_order",
@@ -84,15 +92,15 @@
     "opacity": {
       "condition": {
         "test": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1",
-        "value": 0.8
+        "value": 1
       },
       "value": 0.1
     },
     "tooltip": [
       {"field": "sample", "type": "nominal", "title": "Sample"},
-      {"field": "metadata_category_value", "type": "nominal", "title": {"expr": "category_param"}},
-      {"field": "gc", "type": "quantitative", "title": "GC content (%)", "format": ".1f"},
-      {"field": "density", "type": "quantitative", "title": "Density", "format": ".3f"}
+      {"field": "x1", "type": "quantitative", "title": "Min Contig Length (bin)", "format": ".1s"},
+      {"field": "x2", "type": "quantitative", "title": "Max Contig Length (bin)", "format": ".1s"},
+      {"aggregate": "count", "type": "quantitative", "title": "Count in bin"}
     ]
   },
   "config": {
@@ -135,5 +143,5 @@
       "color": "#222"
     }
   },
-  "title": "GC content distribution"
+  "title": "Contig length distribution"
 } 

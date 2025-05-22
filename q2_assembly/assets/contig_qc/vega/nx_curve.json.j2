@@ -14,35 +14,14 @@
       "value": []
     }
   ],
-  "description": "Contig length distribution",
+  "description": "Nx curve per sample",
   "data": {
-    "url": "data/contig_length_data.arrow",
+    "url": "data/nx_curve_data.arrow",
     "format": {"type": "arrow"}
   },
   "transform": [
     {
       "filter": "value_param == 'All' || datum[category_param] == value_param"
-    },
-    {
-      "calculate": "log(datum.contig_length)/log(10)",
-      "as": "log_x"
-    },
-    {
-      "bin": {
-        "binned": true,
-        "maxbin": 10,
-        "nice": true
-      },
-      "field": "log_x",
-      "as": "bin_log_x"
-    },
-    {
-      "calculate": "pow(10, datum.bin_log_x)",
-      "as": "x1"
-    },
-    {
-      "calculate": "pow(10, datum.bin_log_x_end)",
-      "as": "x2"
     },
     {
       "calculate": "datum[category_param]",
@@ -53,33 +32,28 @@
       "as": "selection_order"
     }
   ],
-  "mark": "bar",
+  "mark": {
+    "type": "line",
+    "point": true
+  },
   "width": "container",
   "height": 350,
   "selection": {
     "grid": {
       "type": "interval",
-      "bind": "scales",
-      "encodings": [
-        "x"
-      ]
+      "bind": "scales"
     }
   },
   "encoding": {
     "x": {
-      "field": "x1",
-      "title": "Contig length",
-      "axis": {
-        "format": ".1s",
-        "labelAngle": 0
-      }
-    },
-    "x2": {
-      "field": "x2"
+      "field": "percent",
+      "type": "quantitative",
+      "title": "Percent of assembly (Nx)"
     },
     "y": {
-      "aggregate": "count",
-      "title": "Count",
+      "field": "nx",
+      "type": "quantitative",
+      "title": "Contig size (bp)",
       "axis": {
         "format": "~s"
       }
@@ -101,16 +75,14 @@
     "opacity": {
       "condition": {
         "test": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1",
-        "value": 1
+        "value": 0.8
       },
       "value": 0.1
     },
     "tooltip": [
       {"field": "sample", "type": "nominal", "title": "Sample"},
-      {"field": "metadata_category_value", "type": "nominal", "title": {"expr": "category_param"}},
-      {"field": "x1", "type": "quantitative", "title": "Min Contig Length (bin)", "format": ".1s"},
-      {"field": "x2", "type": "quantitative", "title": "Max Contig Length (bin)", "format": ".1s"},
-      {"aggregate": "count", "type": "quantitative", "title": "Count in bin"}
+      {"field": "percent", "type": "quantitative", "title": "Nx (%)"},
+      {"field": "nx", "type": "quantitative", "title": "Contig Length (bp)", "format": ",d"}
     ]
   },
   "config": {
@@ -153,5 +125,5 @@
       "color": "#222"
     }
   },
-  "title": "Contig length distribution"
+  "title": "Nx curve"
 } 

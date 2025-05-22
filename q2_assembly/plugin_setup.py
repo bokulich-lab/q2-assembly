@@ -8,7 +8,7 @@
 
 import importlib
 
-from q2_types.feature_data import FeatureData, Sequence, SequenceCharacteristics
+from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.genome_data import DNASequence, GenomeData
@@ -555,8 +555,10 @@ plugin.visualizers.register_function(
         "metadata": "Sample metadata.",
         "n_cpus": "Number of CPUs to use for the analysis.",
     },
-    name="",
-    description="",
+    name="Visualize contig quality metrics",
+    description="Generates an interactive visualization to assess and visualize "
+                "quality metrics (e.g., length, GC content, N(x) values, cumulative "
+                "length) of assembled contigs.",
     citations=[],
 )
 
