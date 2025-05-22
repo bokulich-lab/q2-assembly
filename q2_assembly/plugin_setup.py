@@ -12,6 +12,7 @@ from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.genome_data import DNASequence, GenomeData
+from q2_types.metadata import ImmutableMetadata
 from q2_types.per_sample_sequences import (
     AlignmentMap,
     Contigs,
@@ -539,7 +540,69 @@ plugin.methods.register_function(
     description="Filter contigs based on metadata.",
 )
 
+plugin.methods.register_function(
+    function=q2_assembly.qc._evaluate_contigs,
+    inputs={
+        "contigs": SampleData[Contigs],
+    },
+    parameters={
+        "n_cpus": Int % Range(1, None),
+    },
+    outputs={
+        "per_sample_results": ImmutableMetadata,
+        "nx": ImmutableMetadata,
+        "gc": ImmutableMetadata,
+        "lengths": ImmutableMetadata,
+        "cumulative": ImmutableMetadata,
+    },
+    input_descriptions={
+        "contigs": "Assembled contigs to be analyzed.",
+    },
+    parameter_descriptions={
+        "n_cpus": "Number of CPUs to use for the analysis.",
+    },
+    output_descriptions={
+        "per_sample_results": "Per-sample contig quality control results.",
+        "nx": "N(x) values for each contig.",
+        "gc": "GC content for each contig.",
+        "lengths": "Length for each contig.",
+        "cumulative": "Cumulative contig lengths for each sample.",
+    },
+    name="Calculate contig quality metrics",
+    description="Calculates quality metrics (e.g., length, GC content, "
+                "N(x) values, cumulative length) of assembled contigs.",
+    citations=[],
+)
+
 plugin.visualizers.register_function(
+    function=q2_assembly.qc._visualize_contig_qc,
+    inputs={
+        "per_sample_metrics": ImmutableMetadata,
+        "nx": ImmutableMetadata,
+        "gc": ImmutableMetadata,
+        "lengths": ImmutableMetadata,
+        "cumulative": ImmutableMetadata,
+    },
+    parameters={
+        "metadata": Metadata,
+    },
+    input_descriptions={
+        "per_sample_metrics": "Per-sample contig quality control results.",
+        "nx": "N(x) values for each contig.",
+        "gc": "GC content for each contig.",
+        "lengths": "Length for each contig.",
+        "cumulative": "Cumulative contig lengths for each sample.",
+    },
+    parameter_descriptions={
+        "metadata": "Sample metadata.",
+    },
+    name="Calculate contig quality metrics",
+    description="Calculates quality metrics (e.g., length, GC content, "
+                "N(x) values, cumulative length) of assembled contigs.",
+    citations=[],
+)
+
+plugin.pipelines.register_function(
     function=q2_assembly.qc.evaluate_contigs,
     inputs={
         "contigs": SampleData[Contigs],
@@ -547,6 +610,11 @@ plugin.visualizers.register_function(
     parameters={
         "metadata": Metadata,
         "n_cpus": Int % Range(1, None),
+        "num_partitions": Int % Range(1, None),
+    },
+    outputs={
+        "results": ImmutableMetadata,
+        "visualization": Visualization,
     },
     input_descriptions={
         "contigs": "Assembled contigs to be analyzed.",
@@ -554,6 +622,11 @@ plugin.visualizers.register_function(
     parameter_descriptions={
         "metadata": "Sample metadata.",
         "n_cpus": "Number of CPUs to use for the analysis.",
+        "num_partitions": "Number of partitions to use for parallelization.",
+    },
+    output_descriptions={
+        "results": "Contig quality control results.",
+        "visualization": "Interactive visualization of contig quality metrics.",
     },
     name="Visualize contig quality metrics",
     description="Generates an interactive visualization to assess and visualize "

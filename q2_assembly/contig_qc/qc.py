@@ -19,6 +19,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.ipc as ipc
 import q2templates
+import qiime2
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2 import Metadata
 from skbio import DNA, read
@@ -45,9 +46,11 @@ def _process_single_fasta(fp: Path):
     """
     sample_id = fp.stem.replace("_contigs", "")
 
-    sequences = list(read(str(fp), format="fasta", constructor=DNA))
-    lengths = [len(seq) for seq in sequences]
-    gc_vals = [100 * seq.gc_content() if len(seq) > 0 else 0.0 for seq in sequences]
+    gc_vals, lengths = [], []
+
+    for seq in read(str(fp), format="fasta", constructor=DNA):
+        lengths.append(len(seq))
+        gc_vals.append(100 * seq.gc_content() if len(seq) > 0 else 0.0)
 
     sample_data = {
         "lengths": lengths,
@@ -167,7 +170,7 @@ def _calculate_nx_metrics(
                 "sample": sample_id,
                 "percent": int(p),
                 "nx": int(sorted_lengths[i]),
-                "lx": i + 1
+                "lx": i + 1,
             }
             for p, i in zip(percents, idxs)
         ]
@@ -203,8 +206,6 @@ def _calculate_all_metrics(sample_id: str, raw_data: dict):
     total_length = raw_data["total_length"]
 
     cumulative_df_part = _calculate_cumulative_length(sample_id, sorted_lengths)
-    # The MAX_CUMULATIVE_POINTS constant is now a default in the helper function
-
     nx_rows = _calculate_nx_metrics(sample_id, sorted_lengths, total_length)
 
     return {
@@ -215,9 +216,39 @@ def _calculate_all_metrics(sample_id: str, raw_data: dict):
     }
 
 
+def _df_to_arrow(df: pd.DataFrame, filename: str, output_dir: str):
+    table = pa.Table.from_pandas(df)
+    fp = os.path.join(output_dir, "data", filename)
+    with ipc.RecordBatchFileWriter(fp, table.schema) as writer:
+        writer.write_table(table)
+
+
+def _reset_index(df: List[pd.DataFrame]) -> pd.DataFrame:
+    _df = pd.concat([x.view(qiime2.Metadata).to_dataframe() for x in df])
+    _df.reset_index(inplace=True, drop=True)
+    _df.index = _df.index.map(str)
+    _df.index.name = "id"
+    return _df
+
+
+
+def dump_all_to_arrow(data: dict, output_dir: str):
+    os.makedirs(os.path.join(output_dir, "data"))
+    data_for_export = zip(
+        [data["seq_len_df"], data["seq_gc_df"], data["cumulative_df"], data["nx_df"]],
+        [
+            "contig_length_data.arrow",
+            "gc_content_data.arrow",
+            "cumulative_length_data.arrow",
+            "nx_curve_data.arrow",
+        ],
+    )
+    for df, fn in data_for_export:
+        _df_to_arrow(df, fn, output_dir)
+
+
 def generate_plotting_data(
     contigs_dir: ContigSequencesDirFmt,
-    metadata_df: pd.DataFrame = None,
     n_cpus: int = 1,
 ):
     """
@@ -295,34 +326,19 @@ def generate_plotting_data(
         else pd.DataFrame(columns=["sample", "percent", "nx", "lx"])
     )
 
-    metadata_columns_list = []
-    if metadata_df is not None:
-        metadata_df = metadata_df.fillna("NA")
-
-        seq_gc_df = seq_gc_df.merge(
-            metadata_df, left_on="sample", right_index=True, how="left"
-        )
-        seq_len_df = seq_len_df.merge(
-            metadata_df, left_on="sample", right_index=True, how="left"
-        )
-        cumulative_df = cumulative_df.merge(
-            metadata_df, left_on="sample", right_index=True, how="left"
-        )
-        nx_df = nx_df.merge(metadata_df, left_on="sample", right_index=True, how="left")
-        metadata_columns_list = list(
-            metadata_df.columns.drop("sample", errors="ignore")
-        )
+    for df in (seq_gc_df, seq_len_df, cumulative_df, nx_df):
+        df.index = df.index.map(str)
+        df.index.name = "id"
 
     return {
         "seq_gc_df": seq_gc_df,
         "seq_len_df": seq_len_df,
         "cumulative_df": cumulative_df,
         "nx_df": nx_df,
-        "metadata_columns": metadata_columns_list,
     }
 
 
-def compute_sample_metrics(contigs_data_df: pd.DataFrame, categories: List[str]):
+def compute_sample_metrics(contigs_data_df: pd.DataFrame) -> pd.DataFrame:
     """
     Computes summary metrics for each sample based on contig length data.
 
@@ -335,12 +351,10 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame, categories: List[str])
                                         `generate_plotting_data`), potentially
                                         merged with metadata. Must contain 'sample'
                                         and 'contig_length' columns.
-        categories (List[str]): A list of metadata category names to include
-                                in the output metrics for each sample.
 
     Returns:
-        list: A list of dictionaries, where each dictionary represents a sample
-              and its computed metrics, including any specified metadata categories.
+        pd.DataFrame: DataFrame with each row representing a sample and its computed
+                      metrics.
     """
     metrics = []
     for sample, group in contigs_data_df.groupby("sample"):
@@ -373,10 +387,11 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame, categories: List[str])
                 "l50": l50,
                 "l90": l90,
                 "total_length": total_length,
-                **{category: group[category].iloc[0] for category in categories},
             }
         )
-    return metrics
+    result = pd.DataFrame(metrics).set_index("sample", drop=False)
+    result.index.name = "id"
+    return result
 
 
 def render_spec(template_name, **kwargs):
@@ -391,14 +406,13 @@ def render_spec(template_name, **kwargs):
     Returns:
         str: A string containing the rendered Vega-Lite JSON specification.
     """
-    # Render the four separate Vega-Lite specs for the dashboard
-    spec_template_fp = os.path.join(TEMPLATES, "contig_qc", "vega", template_name)
-    with open(spec_template_fp) as f:
+    spec_template_fp = TEMPLATES / "contig_qc" / "vega" / template_name
+    with spec_template_fp.open() as f:
         spec_template = jinja2.Template(f.read())
     return spec_template.render(**kwargs)
 
 
-def estimate_column_count(samples: set[str]) -> int:
+def estimate_column_count(samples: List[str]) -> int:
     """
     Estimates the optimal number of columns for multi-panel Vega plots
     based on the maximum length of sample IDs.
@@ -420,11 +434,41 @@ def estimate_column_count(samples: set[str]) -> int:
         return 4
 
 
-def evaluate_contigs(
-    output_dir: str,
+def process_metadata(
+    data: dict,
+    metadata: qiime2.Metadata,
+    sample_ids_by_metadata: dict,
+):
+    metadata = metadata.filter_columns(column_type="categorical").to_dataframe()
+    metadata.fillna("NA")
+    metadata_context_categories = metadata.columns.tolist()
+    metadata_context_values = {
+        x: [str(y) for y in metadata[x].dropna().unique().tolist()]
+        for x in metadata.columns
+    }
+    for key, df in data.items():
+        data[key] = df.merge(metadata, left_on="sample", right_index=True, how="left")
+    for cat, values in metadata_context_values.items():
+        sample_ids_by_metadata[cat] = {}
+        for cat_value in values:
+            cat_samples = (
+                data["seq_len_df"][data["seq_len_df"][cat] == cat_value]["sample"]
+                .unique()
+                .tolist()
+            )
+            sample_ids_by_metadata[cat][cat_value] = sorted(cat_samples)
+    return metadata_context_categories, metadata_context_values
+
+
+def _evaluate_contigs(
     contigs: ContigSequencesDirFmt,
-    metadata: Metadata = None,
     n_cpus: int = 1,
+) -> (
+    qiime2.Metadata,
+    qiime2.Metadata,
+    qiime2.Metadata,
+    qiime2.Metadata,
+    qiime2.Metadata,
 ):
     """
     Generates a QIIME 2 visualization for contig quality control.
@@ -442,71 +486,54 @@ def evaluate_contigs(
         n_cpus (int, optional): Number of CPUs to use for parallel data processing.
                                 Defaults to 1.
     """
-    # Categories and values for the visualization context (dropdowns, table headers)
-    # These come directly from the input metadata, if provided.
-    metadata_context_categories = []
-    metadata_context_values = {}
-
-    if metadata:
-        metadata = metadata.to_dataframe()
-        metadata_context_categories = metadata.columns.tolist()
-        metadata_context_values = {
-            x: [str(y) for y in metadata[x].dropna().unique().tolist()]
-            for x in metadata.columns
-        }
-
-    data = generate_plotting_data(contigs, metadata_df=metadata, n_cpus=n_cpus)
-
-    # Categories for sample_metrics should be those actually merged into the dataframes
-    # and available for grouping/display in the metrics table.
-    # These are returned by generate_plotting_data as 'metadata_columns'.
-    categories_for_metrics = data["metadata_columns"]
-    sample_metrics = compute_sample_metrics(data["seq_len_df"], categories_for_metrics)
-    n_cols = estimate_column_count(set(data["seq_len_df"]["sample"]))
-
-    # Dump all the data for Vega into arrow tables for more efficient in-browser access
-    os.makedirs(os.path.join(output_dir, "data"))
-    data_for_export = zip(
-        [data["seq_len_df"], data["seq_gc_df"], data["cumulative_df"], data["nx_df"]],
-        [
-            "contig_length_data.arrow",
-            "gc_content_data.arrow",
-            "cumulative_length_data.arrow",
-            "nx_curve_data.arrow",
-        ],
+    data = generate_plotting_data(contigs, n_cpus=n_cpus)
+    sample_metrics = compute_sample_metrics(data["seq_len_df"])
+    return (
+        qiime2.Metadata(sample_metrics),
+        qiime2.Metadata(data["nx_df"]),
+        qiime2.Metadata(data["seq_gc_df"]),
+        qiime2.Metadata(data["seq_len_df"]),
+        qiime2.Metadata(data["cumulative_df"]),
     )
-    for df, fn in data_for_export:
-        table = pa.Table.from_pandas(df)
-        fp = os.path.join(output_dir, "data", fn)
-        with ipc.RecordBatchFileWriter(fp, table.schema) as writer:
-            writer.write_table(table)
 
-    # Prepare sample_ids_by_metadata for the custom legend
+
+def _visualize_contig_qc(
+    output_dir: str,
+    per_sample_metrics: qiime2.Metadata,
+    nx: qiime2.Metadata,
+    gc: qiime2.Metadata,
+    lengths: qiime2.Metadata,
+    cumulative: qiime2.Metadata,
+    metadata: Metadata = None,
+):
+    data = {
+        "seq_gc_df": gc.to_dataframe(),
+        "seq_len_df": lengths.to_dataframe(),
+        "cumulative_df": cumulative.to_dataframe(),
+        "nx_df": nx.to_dataframe(),
+        "per_sample": per_sample_metrics.to_dataframe(),
+    }
     sample_ids_by_metadata = {
         "all_samples": sorted(list(data["seq_len_df"]["sample"].unique()))
     }
-    if metadata is not None:
-        for category_name in data["metadata_columns"]:
-            sample_ids_by_metadata[category_name] = {}
-            unique_values_for_category = (
-                data["seq_len_df"][category_name].dropna().unique()
-            )
-            for cat_value in unique_values_for_category:
-                relevant_samples = (
-                    data["seq_len_df"][data["seq_len_df"][category_name] == cat_value][
-                        "sample"
-                    ]
-                    .unique()
-                    .tolist()
-                )
-                sample_ids_by_metadata[category_name][str(cat_value)] = sorted(
-                    relevant_samples
-                )
+    n_cols = estimate_column_count(data["per_sample"].index.tolist())
+
+    # Prepare metadata categories/values for the html pages
+    if metadata:
+        metadata_context_categories, metadata_context_values = process_metadata(
+            data, metadata, sample_ids_by_metadata
+        )
+    else:
+        metadata_context_categories = []
+        metadata_context_values = {}
+
+    # Dump all the data for Vega into arrow tables for more efficient in-browser access
+    dump_all_to_arrow(data, output_dir)
 
     # Prepare templates and the context
     templates = [
-        os.path.join(TEMPLATES, "contig_qc", "index.html"),
-        os.path.join(TEMPLATES, "contig_qc", "table.html"),
+        TEMPLATES / "contig_qc" / "index.html",
+        TEMPLATES / "contig_qc" / "table.html",
     ]
     context = {
         "tabs": [
@@ -514,7 +541,7 @@ def evaluate_contigs(
             {"title": "Table view", "url": "table.html"},
         ],
         "has_metadata": "true" if metadata is not None else "false",
-        "sample_metrics": json.dumps(sample_metrics),
+        "sample_metrics": json.dumps(data["per_sample"].to_dict("records")),
         "categories": json.dumps(metadata_context_categories),
         "values": json.dumps(metadata_context_values),
         "sample_ids_by_metadata": json.dumps(sample_ids_by_metadata),
@@ -527,20 +554,85 @@ def evaluate_contigs(
         }
     )
     if metadata is not None:
-        templates.insert(1, os.path.join(TEMPLATES, "contig_qc", "grouped.html"))
+        templates.insert(1, TEMPLATES / "contig_qc" / "grouped.html")
         context["tabs"].insert(1, {"title": "Group metrics", "url": "grouped.html"})
 
     # Dump per-sample metrics into a tsv file
-    pd.DataFrame(sample_metrics)[
-        ["sample", "count", "mean", "longest", "n50", "n90", "l50", "l90", "total_length"]
-    ].to_csv(
-        os.path.join(output_dir, "data", "sample_metrics.tsv"), sep="\t", index=False
+    data["per_sample"].to_csv(
+        os.path.join(output_dir, "data", "sample_metrics.tsv"), sep="\t", index=True
     )
 
     # Copy JS/CSS files
     for d in ("js", "css"):
-        shutil.copytree(
-            os.path.join(TEMPLATES, "contig_qc", d), os.path.join(output_dir, d)
-        )
+        shutil.copytree(TEMPLATES / "contig_qc" / d, os.path.join(output_dir, d))
 
     q2templates.render(templates, output_dir, context=context)
+
+
+def evaluate_contigs(ctx, contigs, metadata=None, n_cpus=1, num_partitions=1):
+    _partition = ctx.get_action("assembly", "partition_contigs")
+    _evaluate = ctx.get_action("assembly", "_evaluate_contigs")
+    _visualize = ctx.get_action("assembly", "_visualize_contig_qc")
+
+    # Do not partition if only 1 partition was requested
+    if num_partitions == 1:
+        (
+            per_sample_results,
+            nx,
+            gc,
+            lengths,
+            cumulative,
+        ) = _evaluate(contigs, n_cpus)
+        (viz,) = _visualize(
+            per_sample_results,
+            nx,
+            gc,
+            lengths,
+            cumulative,
+            metadata,
+        )
+    else:
+        (partitioned_contigs,) = _partition(contigs, num_partitions)
+        results_all, nx_all, gc_all, lengths_all, cumulative_all = [], [], [], [], []
+        for _contigs in partitioned_contigs.values():
+            (
+                per_sample,
+                nx,
+                gc,
+                lengths,
+                cumulative,
+            ) = _evaluate(_contigs, n_cpus)
+
+            results_all.append(per_sample)
+            nx_all.append(nx)
+            gc_all.append(gc)
+            lengths_all.append(lengths)
+            cumulative_all.append(cumulative)
+
+        per_sample_results = ctx.make_artifact(
+            "ImmutableMetadata",
+            qiime2.Metadata(
+                pd.concat([x.view(qiime2.Metadata).to_dataframe() for x in results_all])
+            ),
+        )
+
+        artifacts = {
+            "nx": nx_all,
+            "gc": gc_all,
+            "lengths": lengths_all,
+            "cumulative": cumulative_all,
+        }
+        for key, df in artifacts.items():
+            _df = _reset_index(df)
+            artifacts[key] = ctx.make_artifact("ImmutableMetadata", qiime2.Metadata(_df))
+
+        (viz,) = _visualize(
+            per_sample_results,
+            artifacts["nx"],
+            artifacts["gc"],
+            artifacts["lengths"],
+            artifacts["cumulative"],
+            metadata,
+        )
+
+    return per_sample_results, viz
