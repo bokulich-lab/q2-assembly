@@ -45,9 +45,12 @@
     const nameMapping = {
       sample: "Sample",
       count: "Contig count",
-      mean: "Average contig length [bp]",
+      mean: "Average contig [bp]",
+      longest: "Longest contig [bp]",
       n50: "N50",
       n90: "N90",
+      l50: "L50",
+      l90: "L90",
       total_length: "Total assembly length [bp]",
     };
 
@@ -57,8 +60,11 @@
         { data: 'sample', title: nameMapping.sample },
         { data: 'count', title: nameMapping.count },
         { data: 'mean', title: nameMapping.mean },
+        { data: 'longest', title: nameMapping.longest },
         { data: 'n50', title: nameMapping.n50 },
         { data: 'n90', title: nameMapping.n90 },
+        { data: 'l50', title: nameMapping.l50 },
+        { data: 'l90', title: nameMapping.l90 },
         { data: 'total_length', title: nameMapping.total_length }
     ],
       fixedHeader: true,

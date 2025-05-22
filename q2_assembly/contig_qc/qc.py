@@ -155,13 +155,20 @@ def _calculate_nx_metrics(
     nx_rows = []
     if total_length > 0 and sorted_lengths:
         cum_sum_nx = np.cumsum(sorted_lengths)
-        percents = np.arange(1, 101, 5)
+        percents = np.arange(1, 101)
         thresholds = total_length * percents / 100.0
+        # Find the indices of the contigs where cumulative sum meets the threshold
+        # idxs[i] is the 0-based index into sorted_lengths for percents[i]
         idxs = np.searchsorted(cum_sum_nx, thresholds, side="left").clip(
             max=len(sorted_lengths) - 1
         )
         nx_rows = [
-            {"sample": sample_id, "percent": int(p), "nx": int(sorted_lengths[i])}
+            {
+                "sample": sample_id,
+                "percent": int(p),
+                "nx": int(sorted_lengths[i]),
+                "lx": i + 1
+            }
             for p, i in zip(percents, idxs)
         ]
     return nx_rows
@@ -285,7 +292,7 @@ def generate_plotting_data(
     nx_df = (
         pd.DataFrame(all_nx_rows)
         if all_nx_rows
-        else pd.DataFrame(columns=["sample", "percent", "nx"])
+        else pd.DataFrame(columns=["sample", "percent", "nx", "lx"])
     )
 
     metadata_columns_list = []
@@ -344,13 +351,17 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame, categories: List[str])
         mean = np.round(np.mean(contig_lengths), 0)
         longest = contig_lengths[0]
         n50 = n90 = 0
-        acc = 0
+        l50 = l90 = 0
+        nx = lx = 0
         for contig_len in contig_lengths:
-            acc += contig_len
-            if not n50 and acc >= total_length * 0.5:
+            nx += contig_len
+            lx += 1
+            if not n50 and nx >= total_length * 0.5:
                 n50 = contig_len
-            if not n90 and acc >= total_length * 0.9:
+                l50 = lx
+            if not n90 and nx >= total_length * 0.9:
                 n90 = contig_len
+                l90 = lx
         metrics.append(
             {
                 "sample": sample,
@@ -359,6 +370,8 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame, categories: List[str])
                 "longest": longest,
                 "n50": n50,
                 "n90": n90,
+                "l50": l50,
+                "l90": l90,
                 "total_length": total_length,
                 **{category: group[category].iloc[0] for category in categories},
             }
@@ -519,7 +532,7 @@ def evaluate_contigs(
 
     # Dump per-sample metrics into a tsv file
     pd.DataFrame(sample_metrics)[
-        ["sample", "count", "mean", "n50", "n90", "total_length"]
+        ["sample", "count", "mean", "longest", "n50", "n90", "l50", "l90", "total_length"]
     ].to_csv(
         os.path.join(output_dir, "data", "sample_metrics.tsv"), sep="\t", index=False
     )

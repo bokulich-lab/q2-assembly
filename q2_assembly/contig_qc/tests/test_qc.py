@@ -142,9 +142,9 @@ class TestCoreCalculations(TestPluginBase):
         total_length = 300
         nx_rows = _calculate_nx_metrics("s1", sorted_lengths, total_length)
         self.assertEqual(len(nx_rows), 100)
-        self.assertIn({"sample": "s1", "percent": 50, "nx": 80}, nx_rows)
-        self.assertIn({"sample": "s1", "percent": 90, "nx": 40}, nx_rows)
-        self.assertIn({"sample": "s1", "percent": 100, "nx": 20}, nx_rows)
+        self.assertIn({"sample": "s1", "percent": 50, "nx": 80, "lx": 2}, nx_rows)
+        self.assertIn({"sample": "s1", "percent": 90, "nx": 40, "lx": 4}, nx_rows)
+        self.assertIn({"sample": "s1", "percent": 100, "nx": 20, "lx": 5}, nx_rows)
 
     def test_calculate_nx_metrics_empty_lengths(self):
         nx_rows = _calculate_nx_metrics("s2", [], 0)
@@ -221,6 +221,8 @@ class TestSummariesAndHelpers(TestPluginBase):
                 "longest": 100,
                 "n50": 100,
                 "n90": 25,
+                "l50": 1,
+                "l90": 3,
                 "total_length": 175,
             },
             {
@@ -230,6 +232,8 @@ class TestSummariesAndHelpers(TestPluginBase):
                 "longest": 200,
                 "n50": 200,
                 "n90": 100,
+                "l50": 1,
+                "l90": 2,
                 "total_length": 300,
             },
         ]
@@ -250,6 +254,8 @@ class TestSummariesAndHelpers(TestPluginBase):
                 "longest": 100,
                 "n50": 100,
                 "n90": 25,
+                "l50": 1,
+                "l90": 3,
                 "total_length": 175,
                 "meta_A": "x",
                 "meta_B": 1,
@@ -261,6 +267,8 @@ class TestSummariesAndHelpers(TestPluginBase):
                 "longest": 200,
                 "n50": 200,
                 "n90": 100,
+                "l50": 1,
+                "l90": 2,
                 "total_length": 300,
                 "meta_A": "y",
                 "meta_B": 2,
@@ -289,6 +297,8 @@ class TestSummariesAndHelpers(TestPluginBase):
             "longest": 500,
             "n50": 500,
             "n90": 500,
+            "l50": 1,
+            "l90": 1,
             "total_length": 500,
             "meta_C": "z",
         }
@@ -465,6 +475,8 @@ class TestIntegration(TestPluginBase):
                     "longest": 50,
                     "n50": 50,
                     "n90": 30,
+                    "l50": 1,
+                    "l90": 2,
                     "total_length": 80.0,
                     "colA": "group1",
                     "colB": 100,
@@ -476,6 +488,8 @@ class TestIntegration(TestPluginBase):
                     "longest": 100,
                     "n50": 100,
                     "n90": 100,
+                    "l50": 1,
+                    "l90": 1,
                     "total_length": 100.0,
                     "colA": "group2",
                     "colB": 200,
