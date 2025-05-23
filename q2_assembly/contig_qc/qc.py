@@ -13,7 +13,6 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import List
 
-import jinja2
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -108,7 +107,7 @@ def _calculate_cumulative_length(
         sample_id (str): The identifier for the sample.
         sorted_lengths (list): List of contig lengths, sorted in descending order.
         max_points (int): The maximum number of data points to include in the
-                          output DataFrame. Defaults to MAX_CUMULATIVE_POINTS_DEFAULT.
+                          output DataFrame. Defaults to MAX_CUMULATIVE_POINTS.
 
     Returns:
         pd.DataFrame | None: A DataFrame with "sample", "rank", and
@@ -143,7 +142,7 @@ def _calculate_nx_metrics(
     sample_id: str, sorted_lengths: list, total_length: int
 ) -> list:
     """
-    Calculates N(x) values (e.g., N50, N90) for a single sample.
+    Calculates N(x) and L(x) values (e.g., N50, L50) for a single sample.
 
     Args:
         sample_id (str): The identifier for the sample.
@@ -151,8 +150,8 @@ def _calculate_nx_metrics(
         total_length (int): The total summed length of all contigs for the sample.
 
     Returns:
-        list: A list of dictionaries, each representing an N(x) value with
-              "sample", "percent", and "nx" keys. Returns an empty list if
+        list: A list of dictionaries, each representing an N(x)/L(x) value with
+              "sample", "percent", "nx", and "lx" keys. Returns an empty list if
               total_length is 0 or no sorted_lengths.
     """
     nx_rows = []
@@ -217,14 +216,36 @@ def _calculate_all_metrics(sample_id: str, raw_data: dict):
 
 
 def _df_to_arrow(df: pd.DataFrame, filename: str, output_dir: str):
+    """
+    Writes a pandas DataFrame to an Arrow IPC file.
+
+    Args:
+        df (pd.DataFrame): The DataFrame to write.
+        filename (str): The name of the Arrow file to create.
+        output_dir (str): The directory where the 'data' subdirectory
+                          will be located or created, and the Arrow file
+                          will be saved.
+    """
     table = pa.Table.from_pandas(df)
     fp = os.path.join(output_dir, "data", filename)
     with ipc.RecordBatchFileWriter(fp, table.schema) as writer:
         writer.write_table(table)
 
 
-def _reset_indices(df: List[Artifact]) -> Artifact:
-    _df = pd.concat([x.view(qiime2.Metadata).to_dataframe() for x in df])
+def _reset_indices(artifacts: List[Artifact]) -> Artifact:
+    """
+    Concatenates a list of QIIME 2 Metadata Artifacts, resets their indices,
+    and returns a new Artifact.
+
+    Args:
+        artifacts (List[Artifact]): A list of QIIME 2 Artifacts, each viewable as
+                             qiime2.Metadata containing a pandas DataFrame.
+
+    Returns:
+        Artifact: A new QIIME 2 Artifact of type 'ImmutableMetadata' containing
+                  the concatenated and re-indexed DataFrame.
+    """
+    _df = pd.concat([x.view(qiime2.Metadata).to_dataframe() for x in artifacts])
     _df.reset_index(inplace=True, drop=True)
     _df.index = _df.index.map(str)
     _df.index.name = "id"
@@ -232,6 +253,18 @@ def _reset_indices(df: List[Artifact]) -> Artifact:
 
 
 def dump_all_to_arrow(data: dict, output_dir: str):
+    """
+    Dumps multiple DataFrames from a dictionary to Arrow IPC files.
+
+    Creates a 'data' subdirectory in `output_dir` if it doesn't exist.
+    The DataFrames are expected under keys 'seq_len_df', 'seq_gc_df',
+    'cumulative_df', and 'nx_df' in the `data` dictionary.
+
+    Args:
+        data (dict): A dictionary containing pandas DataFrames.
+        output_dir (str): The base directory where the 'data' subdirectory
+                          will be created and Arrow files stored.
+    """
     os.makedirs(os.path.join(output_dir, "data"))
     data_for_export = zip(
         [data["seq_len_df"], data["seq_gc_df"], data["cumulative_df"], data["nx_df"]],
@@ -254,24 +287,19 @@ def generate_plotting_data(
     Generates all data required for plotting the QC results.
 
     This function processes all FASTA files in the `contigs_dir`,
-    calculates raw and derived metrics in parallel, and merges
-    with metadata if provided.
+    calculates raw and derived metrics in parallel.
 
     Args:
         contigs_dir (ContigSequencesDirFmt):Directory containing contig FASTA files.
-        metadata_df (pd.DataFrame, optional): DataFrame containing sample metadata.
-                                             Defaults to None.
         n_cpus (int, optional): Number of CPUs to use for parallel processing.
                                 Defaults to 1.
 
     Returns:
-        dict: A dictionary containing DataFrames and lists for visualization:
-              - "seq_gc_df": DataFrame with GC content per contig, merged with metadata.
-              - "seq_len_df": DataFrame with contig lengths, merged with metadata.
-              - "cumulative_df": DataFrame for cumulative length plots,
-                                 merged with metadata.
-              - "nx_df": DataFrame for N(x) plots, merged with metadata.
-              - "metadata_columns": List of metadata column names that were merged.
+        dict: A dictionary containing DataFrames for visualization:
+              - "seq_gc_df": DataFrame with GC content per contig.
+              - "seq_len_df": DataFrame with contig lengths per contig.
+              - "cumulative_df": DataFrame for cumulative length plots.
+              - "nx_df": DataFrame for N(x) plots.
     """
     fasta_files = list(Path(str(contigs_dir)).glob("*.fa"))
 
@@ -341,19 +369,18 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame) -> pd.DataFrame:
     """
     Computes summary metrics for each sample based on contig length data.
 
-    Metrics include count, mean length, longest contig, N50, N90, and total length.
-    Metadata categories are included in the output if provided.
+    Metrics include count, mean length, longest contig, N50, N90, L50, L90,
+    and total length.
 
     Args:
         contigs_data_df (pd.DataFrame): DataFrame containing contig lengths
                                         (typically 'seq_len_df' from
-                                        `generate_plotting_data`), potentially
-                                        merged with metadata. Must contain 'sample'
+                                        `generate_plotting_data`). Must contain 'sample'
                                         and 'contig_length' columns.
 
     Returns:
         pd.DataFrame: DataFrame with each row representing a sample and its computed
-                      metrics.
+                      metrics. Index is 'id', columns include 'sample' and metrics.
     """
     metrics = []
     for sample, group in contigs_data_df.groupby("sample"):
@@ -413,6 +440,30 @@ def process_metadata(
     metadata: qiime2.Metadata,
     samples_by_metadata: dict,
 ) -> (dict, dict):
+    """
+    Processes categorical metadata for use in the visualization.
+
+    Filters for categorical columns, fills NA values with the string "NA",
+    and structures the data for dropdown menus and sample filtering in
+    the HTML visualization.
+
+    Args:
+        metadata (qiime2.Metadata): The QIIME 2 metadata object.
+        samples_by_metadata (dict): A dictionary to be populated with sample IDs
+                                    grouped by metadata category and value.
+                                    It's typically initialized with an
+                                    `all_samples` key.
+
+    Returns:
+        tuple:
+            - dict: A dictionary where keys are metadata categories (column names)
+                    and values are lists of unique stringified values for that
+                    category (e.g., `{\"category1\": [\"valueA\", \"valueB\"]}`).
+            - dict: The `samples_by_metadata` dictionary, updated to include
+                    mappings from each category and its values to the list of
+                    associated sample IDs (e.g., `{\"category1\": {\"valueA\":
+                    [\"sample1\", \"sample2\"], ...}}`).
+    """
     metadata = metadata.filter_columns(column_type="categorical").to_dataframe()
     metadata.fillna("NA")
     metadata_values = {x: metadata[x].unique().tolist() for x in metadata.columns}
@@ -434,22 +485,6 @@ def _evaluate_contigs(
     qiime2.Metadata,
     qiime2.Metadata,
 ):
-    """
-    Generates a QIIME 2 visualization for contig quality control.
-
-    This function orchestrates the processing of contig data, calculation of
-    various metrics, generation of data for plots, and rendering of the
-    HTML visualization.
-
-    Args:
-        output_dir (str): The directory where the visualization output will be saved.
-        contigs (ContigSequencesDirFmt): QIIME 2 artifact containing per-sample
-                                         contig sequences.
-        metadata (Metadata, optional): Sample metadata to be incorporated into
-                                       the plots and tables. Defaults to None.
-        n_cpus (int, optional): Number of CPUs to use for parallel data processing.
-                                Defaults to 1.
-    """
     data = generate_plotting_data(contigs, n_cpus=n_cpus)
     sample_metrics = compute_sample_metrics(data["seq_len_df"])
     return (

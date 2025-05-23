@@ -1,11 +1,9 @@
-import json
 import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import qiime2 as q2
-from parameterized import parameterized
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 from qiime2.plugins import assembly
@@ -18,7 +16,6 @@ from q2_assembly.contig_qc.qc import (
     _calculate_nx_metrics,
     _calculate_all_metrics,
     compute_sample_metrics,
-    TEMPLATES,
     dump_all_to_arrow,
     _reset_indices,
     process_metadata,
