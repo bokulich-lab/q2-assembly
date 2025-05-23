@@ -522,11 +522,17 @@ def _visualize_contig_qc(
     }
     n_cols = estimate_column_count(data["per_sample"].index.tolist())
 
-    # Prepare metadata categories/values for the html pages
+    # Prepare metadata categories/values for the dropdowns
+    # Merge metadata into all DataFrames for the Vega visualizations
     if metadata:
         metadata_context_values, samples_by_metadata = process_metadata(
             metadata, samples_by_metadata
         )
+        metadata_df = metadata.filter_columns(column_type="categorical").to_dataframe()
+        for key, df in data.items():
+            data[key] = df.merge(
+                metadata_df, how="left", left_on="sample", right_index=True
+            )
     else:
         metadata_context_values = {}
 

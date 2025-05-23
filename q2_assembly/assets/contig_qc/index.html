@@ -101,11 +101,11 @@
   let hasClientMetadata = {{ has_metadata | safe }};
   const categories = {{ categories | safe }};
   const values = {{ values | safe }};
+  const sampleIdsByMetadata = {{ sample_ids_by_metadata | safe }};
   const vegaContigLengthSpec = {{ vega_contig_length_spec | safe }};
   const vegaNxCurveSpec = {{ vega_nx_curve_spec | safe }};
   const vegaGcContentSpec = {{ vega_gc_content_spec | safe }};
   const vegaCumulativeLengthSpec = {{ vega_cumulative_length_spec | safe }};
-  const sampleIdsByMetadata = {{ sample_ids_by_metadata | safe }};
 </script>
 {% endblock %}
 

@@ -1,6 +1,4 @@
 body { font-family: 'Open Sans', Arial, sans-serif; background: #fff; }
-.dashboard-title { margin-top: 30px; margin-bottom: 30px; }
-.dashboard-row { margin-bottom: 30px; }
 .selector-row { margin-bottom: 20px; }
 .custom-dropdown { min-width: 180px; }
 .nav-tabs { padding-top: 10px;}
@@ -98,14 +96,30 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
   }
 }
 
-/* Custom Legend Styles */
+/* Custom legend container */
+#custom-legend {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Individual legend items */
 .custom-legend-item {
-  cursor: pointer;
-  padding: 2px 5px;
-  border: 1px solid transparent; /* Border for spacing, becomes visible on selection */
+  display: inline-flex;
+  border: 1px solid transparent;
   border-radius: 4px;
-  opacity: 1;
+  padding: 2px 5px;
+  align-items: center;
+  margin-right: 15px;
+  margin-bottom: 5px;
+  cursor: pointer;
+  opacity: 0.2;
   transition: opacity 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+/* Highlight selected items */
+.custom-legend-item.selected {
+  opacity: 1;
 }
 
 .custom-legend-item:not(.selected) {
@@ -121,30 +135,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 /* Ensure the color swatch and text are vertically aligned */
 .custom-legend-item > span {
   vertical-align: middle;
-}
-
-
-/* Custom legend container */
-#custom-legend {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-/* Individual legend items */
-.custom-legend-item {
-  display: inline-flex;
-  align-items: center;
-  margin-right: 15px;
-  margin-bottom: 5px;
-  cursor: pointer;
-  opacity: 0.2;
-  transition: opacity 0.2s ease;
-}
-
-/* Highlight selected items */
-.custom-legend-item.selected {
-  opacity: 1;
 }
 
 /* Color swatch box */
