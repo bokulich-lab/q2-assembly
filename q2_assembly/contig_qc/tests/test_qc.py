@@ -433,7 +433,11 @@ class TestIntegration(TestPluginBase):
                 sep="\t",
                 index_col=0,
             ),
-            exp_results,
+            exp_results.merge(
+                self.metadata.filter_columns(column_type="categorical").to_dataframe(),
+                left_on="sample",
+                right_index=True,
+            ),
         )
 
     def test_evaluate_contigs_pipeline_two_partitions(self):
