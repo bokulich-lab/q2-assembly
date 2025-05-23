@@ -1,0 +1,3 @@
+id,sample,count,mean,longest,n50,n90,l50,l90,total_length
+s1_eval,s1_eval,2.0,40.0,50.0,50.0,30.0,1.0,2.0,80.0
+s2_eval,s2_eval,1.0,100.0,100.0,100.0,100.0,1.0,1.0,100.0

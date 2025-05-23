@@ -1,15 +1,14 @@
 import json
 import os
-import tempfile
 from pathlib import Path
-from unittest import mock
 
 import numpy as np
 import pandas as pd
+import qiime2 as q2
 from parameterized import parameterized
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
-from qiime2 import Metadata
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.plugins import assembly
 
 from q2_assembly.contig_qc.qc import (
     _process_single_fasta,
@@ -18,12 +17,14 @@ from q2_assembly.contig_qc.qc import (
     _calculate_cumulative_length,
     _calculate_nx_metrics,
     _calculate_all_metrics,
-    generate_plotting_data,
     compute_sample_metrics,
     render_spec,
     estimate_column_count,
-    evaluate_contigs,
     TEMPLATES,
+    dump_all_to_arrow,
+    _reset_indices,
+    process_metadata,
+    _evaluate_contigs,
 )
 
 
@@ -211,98 +212,80 @@ class TestSummariesAndHelpers(TestPluginBase):
             self.get_data_path("sample_contigs_df.csv")
         )
 
-    def test_compute_sample_metrics_no_categories(self):
-        observed_metrics = compute_sample_metrics(self.sample_contigs_df, [])
-        expected_metrics = [
-            {
-                "sample": "s1",
-                "count": 3,
-                "mean": np.round((100 + 50 + 25) / 3),
-                "longest": 100,
-                "n50": 100,
-                "n90": 25,
-                "l50": 1,
-                "l90": 3,
-                "total_length": 175,
-            },
-            {
-                "sample": "s2",
-                "count": 2,
-                "mean": 150.0,
-                "longest": 200,
-                "n50": 200,
-                "n90": 100,
-                "l50": 1,
-                "l90": 2,
-                "total_length": 300,
-            },
-        ]
-        for obs, exp in zip(
-            sorted(observed_metrics, key=lambda x: x["sample"]), expected_metrics
-        ):
-            self.assertDictEqual(obs, exp)
-
-    def test_compute_sample_metrics_with_categories(self):
-        observed_metrics = compute_sample_metrics(
-            self.sample_contigs_df, ["meta_A", "meta_B"]
-        )
-        expected_metrics = [
-            {
-                "sample": "s1",
-                "count": 3,
-                "mean": np.round((100 + 50 + 25) / 3),
-                "longest": 100,
-                "n50": 100,
-                "n90": 25,
-                "l50": 1,
-                "l90": 3,
-                "total_length": 175,
-                "meta_A": "x",
-                "meta_B": 1,
-            },
-            {
-                "sample": "s2",
-                "count": 2,
-                "mean": 150.0,
-                "longest": 200,
-                "n50": 200,
-                "n90": 100,
-                "l50": 1,
-                "l90": 2,
-                "total_length": 300,
-                "meta_A": "y",
-                "meta_B": 2,
-            },
-        ]
-        for obs, exp in zip(
-            sorted(observed_metrics, key=lambda x: x["sample"]), expected_metrics
-        ):
-            self.assertDictEqual(obs, exp)
+    def test_compute_sample_metrics(self):
+        observed_metrics = compute_sample_metrics(self.sample_contigs_df)
+        expected_metrics = pd.DataFrame.from_records(
+            [
+                {
+                    "sample": "s1",
+                    "count": 3,
+                    "mean": np.round((100 + 50 + 25) / 3),
+                    "longest": 100,
+                    "n50": 100,
+                    "n90": 25,
+                    "l50": 1,
+                    "l90": 3,
+                    "total_length": 175,
+                },
+                {
+                    "sample": "s2",
+                    "count": 2,
+                    "mean": 150.0,
+                    "longest": 200,
+                    "n50": 200,
+                    "n90": 100,
+                    "l50": 1,
+                    "l90": 2,
+                    "total_length": 300,
+                },
+            ]
+        ).set_index("sample", drop=False)
+        expected_metrics.index.name = "id"
+        pd.testing.assert_frame_equal(observed_metrics, expected_metrics)
 
     def test_compute_sample_metrics_empty_df(self):
         empty_df = pd.DataFrame(columns=["sample", "contig_length", "meta_A"])
-        metrics = compute_sample_metrics(empty_df, ["meta_A"])
-        self.assertEqual(metrics, [])
+        observed_metrics = compute_sample_metrics(empty_df)
+        pd.testing.assert_frame_equal(
+            observed_metrics,
+            pd.DataFrame(
+                columns=[
+                    "sample",
+                    "count",
+                    "mean",
+                    "longest",
+                    "n50",
+                    "n90",
+                    "l50",
+                    "l90",
+                    "total_length",
+                ],
+                index=pd.Index([], name="id"),
+            ),
+        )
 
     def test_compute_sample_metrics_single_contig(self):
         single_contig_df = pd.DataFrame(
             {"sample": ["s3"], "contig_length": [500], "meta_C": ["z"]}
         )
-        metrics = compute_sample_metrics(single_contig_df, ["meta_C"])
-        self.assertEqual(len(metrics), 1)
-        s3_metrics_exp = {
-            "sample": "s3",
-            "count": 1,
-            "mean": 500.0,
-            "longest": 500,
-            "n50": 500,
-            "n90": 500,
-            "l50": 1,
-            "l90": 1,
-            "total_length": 500,
-            "meta_C": "z",
-        }
-        self.assertDictEqual(metrics[0], s3_metrics_exp)
+        observed_metrics = compute_sample_metrics(single_contig_df)
+        expected_metrics = pd.DataFrame.from_records(
+            [
+                {
+                    "sample": "s3",
+                    "count": 1,
+                    "mean": 500.0,
+                    "longest": 500,
+                    "n50": 500,
+                    "n90": 500,
+                    "l50": 1,
+                    "l90": 1,
+                    "total_length": 500,
+                }
+            ]
+        ).set_index("sample", drop=False)
+        expected_metrics.index.name = "id"
+        pd.testing.assert_frame_equal(observed_metrics, expected_metrics)
 
     @parameterized.expand(
         [
@@ -318,20 +301,69 @@ class TestSummariesAndHelpers(TestPluginBase):
             estimate_column_count(sample_ids if sample_ids else {""}), expected_cols
         )
 
-    @mock.patch("builtins.open", new_callable=mock.mock_open)
-    @mock.patch("q2_assembly.contig_qc.qc.jinja2.Template")
-    def test_render_spec(self, mock_template_cls, mock_open_file):
-        mock_template_instance = mock.Mock()
-        mock_template_instance.render.return_value = "rendered_spec_content"
-        mock_template_cls.return_value = mock_template_instance
-        expected_path = os.path.join(
-            TEMPLATES, "contig_qc", "vega", "my_template.json.j2"
+    def test_render_spec(self):
+        template = TEMPLATES / "contig_qc" / "vega" / "contig_length.json.j2"
+        observed_spec = render_spec(template, n_cols=10)
+        observed_spec_json: dict = json.loads(observed_spec)
+        self.assertEqual(observed_spec_json["config"]["legend"]["columns"], 10)
+
+    def test_dump_all_to_arrow(self):
+        data = {
+            "seq_len_df": pd.DataFrame(),
+            "seq_gc_df": pd.DataFrame(),
+            "cumulative_df": pd.DataFrame(),
+            "nx_df": pd.DataFrame(),
+        }
+        dump_all_to_arrow(data, self.temp_dir.name)
+        for fn in [
+            "contig_length_data.arrow",
+            "gc_content_data.arrow",
+            "cumulative_length_data.arrow",
+            "nx_curve_data.arrow",
+        ]:
+            self.assertTrue(Path(os.path.join(self.temp_dir.name, "data", fn)).exists())
+
+    def test_reset_indices(self):
+        df1 = q2.Artifact.import_data(
+            "ImmutableMetadata",
+            q2.Metadata(
+                pd.DataFrame(
+                    {"col1": ["a", "b"]}, index=pd.Index(["s1", "s2"], name="sample-id")
+                )
+            ),
         )
-        spec_content = render_spec("my_template.json.j2", key="value")
-        mock_open_file.assert_called_once_with(expected_path)
-        mock_template_cls.assert_called_once_with(mock_open_file().read())
-        mock_template_instance.render.assert_called_once_with(key="value")
-        self.assertEqual(spec_content, "rendered_spec_content")
+        df2 = q2.Artifact.import_data(
+            "ImmutableMetadata",
+            q2.Metadata(
+                pd.DataFrame(
+                    {"col1": ["c", "d"]}, index=pd.Index(["s1", "s2"], name="sample-id")
+                )
+            ),
+        )
+        observed_df = _reset_indices([df1, df2]).view(q2.Metadata).to_dataframe()
+        expected_df = pd.DataFrame(
+            {"col1": ["a", "b", "c", "d"]},
+            index=pd.Index(["0", "1", "2", "3"], name="id"),
+        )
+        pd.testing.assert_frame_equal(observed_df, expected_df)
+
+    def test_process_metadata(self):
+        meta = q2.Metadata(
+            pd.read_csv(self.get_data_path("metadata.tsv"), sep="\t", index_col=0)
+        )
+        samples_by_metadata = {"all_samples": ["s1", "s2", "s3"]}
+
+        obs_values, obs_sample_dict = process_metadata(meta, samples_by_metadata)
+
+        self.assertDictEqual(obs_values, {"cat1": ["a", "b"], "cat2": ["abc", "def"]})
+        self.assertDictEqual(
+            obs_sample_dict,
+            {
+                "all_samples": ["s1", "s2", "s3"],
+                "cat1": {"a": ["s1", "s3"], "b": ["s2"]},
+                "cat2": {"abc": ["s1", "s2"], "def": ["s3"]},
+            },
+        )
 
 
 class TestIntegration(TestPluginBase):
@@ -339,199 +371,109 @@ class TestIntegration(TestPluginBase):
 
     def setUp(self):
         super().setUp()
-        self.raw_data_sampleD = {
-            "lengths": [10, 20],
-            "total_length": 30,
-            "num_contigs": 2,
-            "gc": [50.0, 50.0],
-            "sorted_lengths": [20, 10],
-        }
-
-    @mock.patch("q2_assembly.contig_qc.qc.Pool")
-    def test_generate_plotting_data_no_metadata(self, mock_pool):
-        mock_process_output = [
-            ("s1", self.raw_data_sampleD),
-            ("s2", self.raw_data_sampleD),
-        ]
-        mock_calc_output_s1 = _calculate_all_metrics("s1", self.raw_data_sampleD)
-        mock_calc_output_s2 = _calculate_all_metrics("s2", self.raw_data_sampleD)
-        mock_map = mock.Mock(return_value=mock_process_output)
-        mock_starmap = mock.Mock(
-            return_value=[mock_calc_output_s1, mock_calc_output_s2]
+        self.contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+        self.contigs_artifact = q2.Artifact.import_data(
+            "SampleData[Contigs]",
+            self.contigs,
         )
-        mock_pool.return_value.__enter__.return_value.map = mock_map
-        mock_pool.return_value.__enter__.return_value.starmap = mock_starmap
-
-        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        results = generate_plotting_data(contigs, metadata_df=None, n_cpus=1)
-        self.assertIn("seq_gc_df", results)
-        self.assertEqual(
-            len(results["seq_gc_df"]), len(mock_calc_output_s1["seq_gc_rows"]) * 2
-        )
-        self.assertIn("seq_len_df", results)
-        self.assertEqual(
-            len(results["seq_len_df"]), len(mock_calc_output_s1["seq_len_rows"]) * 2
-        )
-        self.assertIn("cumulative_df", results)
-        self.assertEqual(
-            len(results["cumulative_df"]),
-            len(mock_calc_output_s1["cumulative_df_part"]) * 2,
-        )
-        self.assertIn("nx_df", results)
-        self.assertEqual(len(results["nx_df"]), len(mock_calc_output_s1["nx_rows"]) * 2)
-        self.assertEqual(results["metadata_columns"], [])
-        mock_map.assert_called_once()
-        mock_starmap.assert_called_once()
-
-    @mock.patch("q2_assembly.contig_qc.qc.Pool")
-    def test_generate_plotting_data_with_metadata(self, mock_pool):
-        mock_process_output = [("s1", self.raw_data_sampleD)]
-        mock_calc_output_s1 = _calculate_all_metrics("s1", self.raw_data_sampleD)
-        mock_map = mock.Mock(return_value=mock_process_output)
-        mock_starmap = mock.Mock(return_value=[mock_calc_output_s1])
-        mock_pool.return_value.__enter__.return_value.map = mock_map
-        mock_pool.return_value.__enter__.return_value.starmap = mock_starmap
-
-        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        metadata_df = pd.DataFrame(
-            {"meta1": ["val1"], "meta2": ["valA"]},
-            index=pd.Index(["s1"], name="sample"),
-        )
-        results = generate_plotting_data(contigs, metadata_df=metadata_df, n_cpus=1)
-        self.assertIn("meta1", results["seq_len_df"].columns)
-        self.assertIn("meta2", results["seq_len_df"].columns)
-        self.assertEqual(results["metadata_columns"], ["meta1", "meta2"])
-        self.assertEqual(
-            results["seq_len_df"]
-            .loc[results["seq_len_df"]["sample"] == "s1", "meta1"]
-            .iloc[0],
-            "val1",
+        self.metadata = q2.Metadata(
+            pd.read_csv(self.get_data_path("metadata_small.tsv"), sep="\t", index_col=0)
         )
 
-    def test_generate_plotting_data_empty_input_dir(self):
-        contigs = ContigSequencesDirFmt()
-        results = generate_plotting_data(contigs, metadata_df=None, n_cpus=1)
-        self.assertTrue(results["seq_gc_df"].empty)
-        self.assertTrue(results["seq_len_df"].empty)
-        self.assertTrue(results["cumulative_df"].empty)
-        self.assertTrue(results["nx_df"].empty)
-        self.assertEqual(results["metadata_columns"], [])
+    def test_evaluate_contigs_helper(self):
+        obs_results = _evaluate_contigs(self.contigs, n_cpus=1)
+        exp_results = (
+            pd.read_csv(self.get_data_path("sample_metrics.csv"), index_col=0),
+            pd.read_csv(self.get_data_path("nx.csv"), index_col=0),
+            pd.read_csv(self.get_data_path("gc.csv"), index_col=0),
+            pd.read_csv(self.get_data_path("length.csv"), index_col=0),
+            pd.read_csv(self.get_data_path("cumulative.csv"), index_col=0),
+        )
 
-    @mock.patch(
-        "q2_assembly.contig_qc.qc.render_spec", return_value="mocked_spec_json_meta"
-    )
-    @mock.patch("q2_assembly.contig_qc.qc.q2templates.render")
-    def test_evaluate_contigs_with_metadata(
-        self,
-        mock_q2render,
-        mock_render_spec_func,
-    ):
-        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_dir = Path(f"{tmpdir}/output_viz_meta")
-            os.makedirs(output_dir, exist_ok=True)
-            # os.makedirs(f"{output_dir}/data", exist_ok=True)
+        for obs, exp in zip(obs_results, exp_results):
+            exp.index = exp.index.astype(str)
+            pd.testing.assert_frame_equal(obs.to_dataframe(), exp, check_dtype=False)
 
-            # Metadata
-            metadata_df = pd.DataFrame(
-                {"colA": ["group1", "group2"], "colB": [100, 200]},
-                index=pd.Index(["s1_eval", "s2_eval"], name="id"),
-            )
-            qiime2_metadata = Metadata(metadata_df)
+    def test_evaluate_contigs_pipeline_single_partition(self):
+        obs_results, obs_viz = assembly.pipelines.evaluate_contigs(
+            contigs=self.contigs_artifact,
+            metadata=self.metadata,
+            num_partitions=1,
+        )
 
-            evaluate_contigs(
-                str(output_dir), contigs, metadata=qiime2_metadata, n_cpus=1
-            )
+        # assert the results table
+        self.assertIsInstance(obs_results, q2.Artifact)
+        exp_results = pd.read_csv(self.get_data_path("results_table.csv"), index_col=0)
+        pd.testing.assert_frame_equal(
+            obs_results.view(q2.Metadata).to_dataframe(), exp_results
+        )
 
-            # Assertions
-            mock_q2render.assert_called_once()
-
-            context = mock_q2render.call_args[1]["context"]
-
-            # Check Vega specs (assert they are non-empty strings)
+        # assert the visualization
+        self.assertIsInstance(obs_viz, q2.Visualization)
+        obs_viz.export_data(self.temp_dir.name)
+        for page in ("index.html", "table.html", "grouped.html"):
+            self.assertTrue(Path(os.path.join(self.temp_dir.name, page)).exists())
+        with open(
+            os.path.join(self.temp_dir.name, "index.html"), "r", encoding="utf-8"
+        ) as f:
+            html_content = f.read()
+            self.assertIn('id="metadata-card"', html_content)
+        for arrow in (
+            "contig_length_data.arrow",
+            "gc_content_data.arrow",
+            "cumulative_length_data.arrow",
+            "nx_curve_data.arrow",
+        ):
             self.assertTrue(
-                isinstance(context["vega_contig_length_spec"], str)
-                and len(context["vega_contig_length_spec"]) > 0
+                Path(os.path.join(self.temp_dir.name, "data", arrow)).exists()
             )
-            self.assertTrue(
-                isinstance(context["vega_gc_content_spec"], str)
-                and len(context["vega_gc_content_spec"]) > 0
-            )
-            self.assertTrue(
-                isinstance(context["vega_cumulative_length_spec"], str)
-                and len(context["vega_cumulative_length_spec"]) > 0
-            )
-            self.assertTrue(
-                isinstance(context["vega_nx_curve_spec"], str)
-                and len(context["vega_nx_curve_spec"]) > 0
-            )
+        pd.testing.assert_frame_equal(
+            pd.read_csv(
+                os.path.join(self.temp_dir.name, "data", "sample_metrics.tsv"),
+                sep="\t",
+                index_col=0,
+            ),
+            exp_results,
+        )
 
-            # Check sample_metrics
-            expected_sample_metrics = [
-                {
-                    "sample": "s1_eval",
-                    "count": 2,
-                    "mean": 40.0,
-                    "longest": 50,
-                    "n50": 50,
-                    "n90": 30,
-                    "l50": 1,
-                    "l90": 2,
-                    "total_length": 80.0,
-                    "colA": "group1",
-                    "colB": 100,
-                },
-                {
-                    "sample": "s2_eval",
-                    "count": 1,
-                    "mean": 100.0,
-                    "longest": 100,
-                    "n50": 100,
-                    "n90": 100,
-                    "l50": 1,
-                    "l90": 1,
-                    "total_length": 100.0,
-                    "colA": "group2",
-                    "colB": 200,
-                },
-            ]
-            observed_sample_metrics = sorted(
-                json.loads(context["sample_metrics"]), key=lambda x: x["sample"]
-            )
-            self.assertEqual(observed_sample_metrics, expected_sample_metrics)
+    def test_evaluate_contigs_pipeline_two_partitions(self):
+        obs_results, obs_viz = assembly.pipelines.evaluate_contigs(
+            contigs=self.contigs_artifact,
+            metadata=self.metadata,
+            num_partitions=2,
+        )
 
-            # Check categories
-            self.assertEqual(json.loads(context["categories"]), ["colA", "colB"])
+        self.assertIsInstance(obs_results, q2.Artifact)
+        self.assertIsInstance(obs_viz, q2.Visualization)
 
-            # Check metadata values
-            expected_values_json = {
-                "colA": ["group1", "group2"],
-                "colB": ["100.0", "200.0"],
-            }
-            self.assertDictEqual(json.loads(context["values"]), expected_values_json)
+        exp_results = pd.read_csv(self.get_data_path("results_table.csv"), index_col=0)
+        pd.testing.assert_frame_equal(
+            obs_results.view(q2.Metadata).to_dataframe(), exp_results
+        )
 
-            # Check sample_ids_by_metadata
-            expected_sample_ids_json = {
-                "all_samples": sorted(["s1_eval", "s2_eval"]),
-                "colA": {"group1": ["s1_eval"], "group2": ["s2_eval"]},
-                "colB": {"100.0": ["s1_eval"], "200.0": ["s2_eval"]},
-            }
-            observed_sample_ids_by_metadata = json.loads(
-                context["sample_ids_by_metadata"]
-            )
-            # Sort the 'all_samples' list for consistent comparison
-            if "all_samples" in observed_sample_ids_by_metadata:
-                observed_sample_ids_by_metadata["all_samples"] = sorted(
-                    observed_sample_ids_by_metadata["all_samples"]
-                )
-            self.assertDictEqual(
-                observed_sample_ids_by_metadata, expected_sample_ids_json
-            )
+    def test_evaluate_contigs_pipeline_no_metadata(self):
+        obs_results, obs_viz = assembly.pipelines.evaluate_contigs(
+            contigs=self.contigs_artifact,
+            num_partitions=1,
+        )
 
-            # Check if data files were created (optional, but good for sanity)
-            data_path = output_dir / "data"
-            self.assertTrue((data_path / "sample_metrics.tsv").exists())
-            self.assertTrue((data_path / "gc_content_data.arrow").exists())
-            self.assertTrue((data_path / "contig_length_data.arrow").exists())
-            self.assertTrue((data_path / "cumulative_length_data.arrow").exists())
-            self.assertTrue((data_path / "nx_curve_data.arrow").exists())
+        # assert the results table
+        self.assertIsInstance(obs_results, q2.Artifact)
+        exp_results = pd.read_csv(self.get_data_path("results_table.csv"), index_col=0)
+        pd.testing.assert_frame_equal(
+            obs_results.view(q2.Metadata).to_dataframe(), exp_results
+        )
+
+        # assert the visualization
+        self.assertIsInstance(obs_viz, q2.Visualization)
+        obs_viz.export_data(self.temp_dir.name)
+        for page in ("index.html", "table.html"):
+            self.assertTrue(Path(os.path.join(self.temp_dir.name, page)).exists())
+        self.assertFalse(
+            Path(os.path.join(self.temp_dir.name, "grouped.html")).exists()
+        )
+        with open(
+            os.path.join(self.temp_dir.name, "index.html"), "r", encoding="utf-8"
+        ) as f:
+            html_content = f.read()
+            self.assertNotIn('id="metadata-card"', html_content)

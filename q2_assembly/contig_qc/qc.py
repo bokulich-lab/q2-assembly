@@ -21,7 +21,7 @@ import pyarrow.ipc as ipc
 import q2templates
 import qiime2
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
-from qiime2 import Metadata
+from qiime2 import Metadata, Artifact
 from skbio import DNA, read
 
 TEMPLATES = resources.files("q2_assembly") / "assets"
@@ -223,13 +223,12 @@ def _df_to_arrow(df: pd.DataFrame, filename: str, output_dir: str):
         writer.write_table(table)
 
 
-def _reset_index(df: List[pd.DataFrame]) -> pd.DataFrame:
+def _reset_indices(df: List[Artifact]) -> Artifact:
     _df = pd.concat([x.view(qiime2.Metadata).to_dataframe() for x in df])
     _df.reset_index(inplace=True, drop=True)
     _df.index = _df.index.map(str)
     _df.index.name = "id"
-    return _df
-
+    return qiime2.Artifact.import_data("ImmutableMetadata", qiime2.Metadata(_df))
 
 
 def dump_all_to_arrow(data: dict, output_dir: str):
@@ -389,7 +388,23 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame) -> pd.DataFrame:
                 "total_length": total_length,
             }
         )
-    result = pd.DataFrame(metrics).set_index("sample", drop=False)
+    result = pd.DataFrame(metrics)
+    if result.empty:
+        result = pd.DataFrame(
+            columns=[
+                "sample",
+                "count",
+                "mean",
+                "longest",
+                "n50",
+                "n90",
+                "l50",
+                "l90",
+                "total_length",
+            ]
+        ).set_index("sample", drop=False)
+    else:
+        result = result.set_index("sample", drop=False)
     result.index.name = "id"
     return result
 
@@ -435,29 +450,18 @@ def estimate_column_count(samples: List[str]) -> int:
 
 
 def process_metadata(
-    data: dict,
     metadata: qiime2.Metadata,
-    sample_ids_by_metadata: dict,
-):
+    samples_by_metadata: dict,
+) -> (dict, dict):
     metadata = metadata.filter_columns(column_type="categorical").to_dataframe()
     metadata.fillna("NA")
-    metadata_context_categories = metadata.columns.tolist()
-    metadata_context_values = {
-        x: [str(y) for y in metadata[x].dropna().unique().tolist()]
-        for x in metadata.columns
-    }
-    for key, df in data.items():
-        data[key] = df.merge(metadata, left_on="sample", right_index=True, how="left")
-    for cat, values in metadata_context_values.items():
-        sample_ids_by_metadata[cat] = {}
+    metadata_values = {x: metadata[x].unique().tolist() for x in metadata.columns}
+    for cat, values in metadata_values.items():
+        samples_by_metadata[cat] = {}
         for cat_value in values:
-            cat_samples = (
-                data["seq_len_df"][data["seq_len_df"][cat] == cat_value]["sample"]
-                .unique()
-                .tolist()
-            )
-            sample_ids_by_metadata[cat][cat_value] = sorted(cat_samples)
-    return metadata_context_categories, metadata_context_values
+            cat_samples = metadata[metadata[cat] == cat_value].index.unique().tolist()
+            samples_by_metadata[cat][cat_value] = sorted(cat_samples)
+    return metadata_values, samples_by_metadata
 
 
 def _evaluate_contigs(
@@ -513,18 +517,17 @@ def _visualize_contig_qc(
         "nx_df": nx.to_dataframe(),
         "per_sample": per_sample_metrics.to_dataframe(),
     }
-    sample_ids_by_metadata = {
+    samples_by_metadata = {
         "all_samples": sorted(list(data["seq_len_df"]["sample"].unique()))
     }
     n_cols = estimate_column_count(data["per_sample"].index.tolist())
 
     # Prepare metadata categories/values for the html pages
     if metadata:
-        metadata_context_categories, metadata_context_values = process_metadata(
-            data, metadata, sample_ids_by_metadata
+        metadata_context_values, samples_by_metadata = process_metadata(
+            metadata, samples_by_metadata
         )
     else:
-        metadata_context_categories = []
         metadata_context_values = {}
 
     # Dump all the data for Vega into arrow tables for more efficient in-browser access
@@ -542,9 +545,9 @@ def _visualize_contig_qc(
         ],
         "has_metadata": "true" if metadata is not None else "false",
         "sample_metrics": json.dumps(data["per_sample"].to_dict("records")),
-        "categories": json.dumps(metadata_context_categories),
+        "categories": json.dumps(list(metadata_context_values.keys())),
         "values": json.dumps(metadata_context_values),
-        "sample_ids_by_metadata": json.dumps(sample_ids_by_metadata),
+        "sample_ids_by_metadata": json.dumps(samples_by_metadata),
         "page_size": 100,
     }
     context.update(
@@ -622,9 +625,8 @@ def evaluate_contigs(ctx, contigs, metadata=None, n_cpus=1, num_partitions=1):
             "lengths": lengths_all,
             "cumulative": cumulative_all,
         }
-        for key, df in artifacts.items():
-            _df = _reset_index(df)
-            artifacts[key] = ctx.make_artifact("ImmutableMetadata", qiime2.Metadata(_df))
+        for key, _artifacts in artifacts.items():
+            artifacts[key] = _reset_indices(_artifacts)
 
         (viz,) = _visualize(
             per_sample_results,
