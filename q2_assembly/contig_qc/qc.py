@@ -409,46 +409,6 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame) -> pd.DataFrame:
     return result
 
 
-def render_spec(template_name, **kwargs):
-    """
-    Renders a Vega-Lite JSON specification from a Jinja2 template.
-
-    Args:
-        template_name (str): The filename of the Jinja2 template for the Vega-Lite spec
-                             (e.g., "contig_length_spec.json.j2").
-        **kwargs: Arbitrary keyword arguments to pass to the Jinja2 template rendering.
-
-    Returns:
-        str: A string containing the rendered Vega-Lite JSON specification.
-    """
-    spec_template_fp = TEMPLATES / "contig_qc" / "vega" / template_name
-    with spec_template_fp.open() as f:
-        spec_template = jinja2.Template(f.read())
-    return spec_template.render(**kwargs)
-
-
-def estimate_column_count(samples: List[str]) -> int:
-    """
-    Estimates the optimal number of columns for multi-panel Vega plots
-    based on the maximum length of sample IDs.
-
-    Aims to prevent sample IDs from being truncated in plot titles.
-
-    Args:
-        samples (set[str]): A set of unique sample IDs.
-
-    Returns:
-        int: The estimated number of columns (2, 3, or 4).
-    """
-    max_len = max([len(x) for x in samples])
-    if max_len >= 16:
-        return 2
-    elif max_len >= 9:
-        return 3
-    else:
-        return 4
-
-
 def process_metadata(
     metadata: qiime2.Metadata,
     samples_by_metadata: dict,
@@ -520,7 +480,6 @@ def _visualize_contig_qc(
     samples_by_metadata = {
         "all_samples": sorted(list(data["seq_len_df"]["sample"].unique()))
     }
-    n_cols = estimate_column_count(data["per_sample"].index.tolist())
 
     # Prepare metadata categories/values for the dropdowns
     # Merge metadata into all DataFrames for the Vega visualizations
@@ -528,7 +487,11 @@ def _visualize_contig_qc(
         metadata_context_values, samples_by_metadata = process_metadata(
             metadata, samples_by_metadata
         )
-        metadata_df = metadata.filter_columns(column_type="categorical").to_dataframe()
+        metadata_df = (
+            metadata.filter_columns(column_type="categorical")
+            .to_dataframe()
+            .fillna("NA")
+        )
         for key, df in data.items():
             data[key] = df.merge(
                 metadata_df, how="left", left_on="sample", right_index=True
@@ -558,7 +521,9 @@ def _visualize_contig_qc(
     }
     context.update(
         {
-            f"vega_{x}_spec": render_spec(f"{x}.json.j2", n_cols=n_cols)
+            f"vega_{x}_spec": json.dumps(
+                json.load(open(TEMPLATES / "contig_qc" / "vega" / f"{x}.json"))
+            )
             for x in ("contig_length", "nx_curve", "gc_content", "cumulative_length")
         }
     )

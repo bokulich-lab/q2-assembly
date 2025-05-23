@@ -14,9 +14,9 @@
       "value": []
     }
   ],
-  "description": "Nx curve per sample",
+  "description": "Cumulative contig length curves",
   "data": {
-    "url": "data/nx_curve_data.arrow",
+    "url": "data/cumulative_length_data.arrow",
     "format": {"type": "arrow"}
   },
   "transform": [
@@ -34,7 +34,8 @@
   ],
   "mark": {
     "type": "line",
-    "point": true
+    "point": false,
+    "strokeWidth": 2.5
   },
   "width": "container",
   "height": 350,
@@ -46,14 +47,14 @@
   },
   "encoding": {
     "x": {
-      "field": "percent",
+      "field": "rank",
       "type": "quantitative",
-      "title": "Percent of assembly (Nx)"
+      "title": "No. of contigs"
     },
     "y": {
-      "field": "nx",
+      "field": "cumulative_length",
       "type": "quantitative",
-      "title": "Contig size (bp)",
+      "title": "Cumulative length (bp)",
       "axis": {
         "format": "~s"
       }
@@ -81,9 +82,8 @@
     },
     "tooltip": [
       {"field": "sample", "type": "nominal", "title": "Sample"},
-      {"field": "percent", "type": "quantitative", "title": "Nx"},
-      {"field": "lx", "type": "quantitative", "title": "Lx", "format": ",d"},
-      {"field": "nx", "type": "quantitative", "title": "Contig length (bp)", "format": ",d"}
+      {"field": "rank", "type": "quantitative", "title": "No. of contigs"},
+      {"field": "cumulative_length", "type": "quantitative", "title": "Cumulative length (bp)", "format": ",d"}
     ]
   },
   "config": {
@@ -101,19 +101,6 @@
       "titleFontWeight": "bold",
       "domain": false
     },
-    "legend": {
-      "orient": "top",
-      "columns": {{ n_cols }},
-      "title": "Sample",
-      "padding": 10,
-      "labelFont": "Open Sans, Arial, sans-serif",
-      "labelFontSize": 14,
-      "titleFont": "Open Sans, Arial, sans-serif",
-      "titleFontSize": 15,
-      "symbolType": "circle",
-      "symbolSize": 120,
-      "symbolLimit": 100
-    },
     "view": {
       "stroke": "#eaeaea",
       "strokeWidth": 1
@@ -126,5 +113,5 @@
       "color": "#222"
     }
   },
-  "title": "Nx curve"
+  "title": "Cumulative contig length"
 } 

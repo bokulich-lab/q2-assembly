@@ -18,8 +18,6 @@ from q2_assembly.contig_qc.qc import (
     _calculate_nx_metrics,
     _calculate_all_metrics,
     compute_sample_metrics,
-    render_spec,
-    estimate_column_count,
     TEMPLATES,
     dump_all_to_arrow,
     _reset_indices,
@@ -286,26 +284,6 @@ class TestSummariesAndHelpers(TestPluginBase):
         ).set_index("sample", drop=False)
         expected_metrics.index.name = "id"
         pd.testing.assert_frame_equal(observed_metrics, expected_metrics)
-
-    @parameterized.expand(
-        [
-            (set(), 4),
-            ({"s1", "s2"}, 4),
-            ({"sample_long"}, 3),
-            ({"sample_very_long_indeed"}, 2),
-            ({"short", "another_one_quite_long"}, 2),
-        ],
-    )
-    def test_estimate_column_count(self, sample_ids, expected_cols):
-        self.assertEqual(
-            estimate_column_count(sample_ids if sample_ids else {""}), expected_cols
-        )
-
-    def test_render_spec(self):
-        template = TEMPLATES / "contig_qc" / "vega" / "contig_length.json.j2"
-        observed_spec = render_spec(template, n_cols=10)
-        observed_spec_json: dict = json.loads(observed_spec)
-        self.assertEqual(observed_spec_json["config"]["legend"]["columns"], 10)
 
     def test_dump_all_to_arrow(self):
         data = {
