@@ -327,13 +327,13 @@ def _visualize_quast(
 
         context = {
             "tabs": [
-                {"title": "QC report", "url": "faceted.html.old"},
+                {"title": "QC report", "url": "index.html"},
             ],
             "samples": json.dumps(samples),
         }
 
         templates = [
-            os.path.join(TEMPLATES, "quast", "faceted.html.old"),
+            os.path.join(TEMPLATES, "quast", "index.html"),
         ]
         if not no_icarus:
             templates.append(os.path.join(TEMPLATES, "quast", "q2_icarus.html"))
