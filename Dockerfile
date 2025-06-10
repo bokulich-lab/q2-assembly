@@ -15,6 +15,8 @@ ENV XDG_CONFIG_HOME=/home/qiime2
 RUN mkdir /home/qiime2
 WORKDIR /home/qiime2
 
+COPY environment.yml environment.yml
+
 RUN conda update -q -y conda \
     && conda install -c conda-forge -q -y wget mamba \
     && apt-get install -y procps \
@@ -24,6 +26,7 @@ RUN conda update -q -y conda \
 RUN wget -O ${ENVIRONMENT}-env.yml https://raw.githubusercontent.com/qiime2/distributions/dev/${EPOCH}/${DISTRO}/${ENVIRONMENT}/qiime2-${DISTRO}-ubuntu-latest-conda.yml
 
 RUN mamba env create -n ${DISTRO}-${EPOCH} --file ${ENVIRONMENT}-env.yml \
+    && mamba env update -n ${DISTRO}-${EPOCH} --file environment.yml \
     && mamba clean -a -y \
     && chmod -R a+rwx /opt/conda \
     && rm ${ENVIRONMENT}-env.yml
