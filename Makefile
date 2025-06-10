@@ -12,8 +12,7 @@ test: all
 	py.test
 
 test-cov: all
-	coverage run -m pytest
-	coverage xml
+	python -m pytest --cov=q2_assembly -n 4 && coverage xml -o coverage.xml
 
 install: all
 	$(PYTHON) -m pip install -v .

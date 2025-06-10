@@ -35,15 +35,13 @@ requirements:
   - versioningit
 test:
   requires:
-  - coverage
-  - pytest
-  - pytest-cov
   - parameterized
+  - pytest-xdist
   imports:
   - q2_assembly
   - qiime2.plugins.assembly
   commands:
-  - pytest --cov q2_assembly --cov-report xml:coverage.xml --pyargs q2_assembly
+  - pytest --pyargs q2_assembly -n 4
 about:
   home: https://github.com/bokulich-lab/q2-assembly
   license: BSD-3-Clause
