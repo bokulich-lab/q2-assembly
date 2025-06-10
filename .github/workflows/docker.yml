@@ -9,6 +9,10 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    outputs:
+      latest-dev-tag: ${{ steps.fetch_latest_tags.outputs.latest-dev-tag }}
+      latest-stable-tag: ${{ steps.fetch_latest_tags.outputs.latest-stable-tag }}
+      commit-msg: ${{ steps.get-commit-msg.outputs.commit-msg }}
     steps:
       - uses: actions/checkout@v4
 
@@ -111,24 +115,6 @@ jobs:
       - name: Update environment
         run: mamba env update -n conda-env -f environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
-
-      - name: Install dev versions of QIIME repos
-        if: ${{ steps.create-conda-yaml.outputs.qiime-deps != '' && !contains(steps.get-commit-msg.outputs.commit-msg, '[stable]') && !contains(steps.get-commit-msg.outputs.commit-msg, '[prod]') }}
-        run: mamba run -n conda-env pip install ${{ steps.create-conda-yaml.outputs.qiime-deps }}
-
-      - name: Update specific dependency, if requested
-        if: contains(${{ steps.get-commit-msg.outputs.commit-msg }}, '[add:')
-        run: |
-          commit_msg="${{ steps.get-commit-msg.outputs.commit-msg }}"
-          IFS=',' read -ra ADDR <<< "$commit_msg"
-          for i in "${ADDR[@]}"; do
-              pkg_name=$(echo "$i" | awk -F':' '/\[add/{print $2}')
-              commit_hash=$(echo "$i" | awk -F':' '/\[add/{print $3}' | awk -F']' '{print $1}')
-              if [[ $(yq '.repositories[].name' ./utilities/ci/repositories.yaml | grep -c $pkg_name) -eq 1 ]]; then
-                  pkg_url=$(yq ".repositories[] | select(.name == \"$pkg_name\") | .url" utilities/ci/repositories.yaml | tr -d '"')
-                  mamba run -n conda-env pip install "git+$pkg_url@$commit_hash"
-              fi
-          done
 
       - name: Install plugin
         run: |
