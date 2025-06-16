@@ -201,7 +201,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=min
           build-args: |
-            EPOCH=${{ jobs.test.outputs.epoch }}
+            EPOCH=${{ needs.test.outputs.epoch }}
             DISTRO=tiny
             ENVIRONMENT=passed
 
