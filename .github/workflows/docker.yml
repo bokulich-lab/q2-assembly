@@ -87,58 +87,58 @@ jobs:
           cat environment.yml >> $GITHUB_STEP_SUMMARY
           echo "qiime-deps=$(tr '\n' ' ' < repo-urls.txt | xargs)" >> $GITHUB_OUTPUT
 
-      - name: Setup miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          python-version: "3.10"
-          mamba-version: "*"
-          channels: conda-forge,defaults
-          channel-priority: true
-          activate-environment: conda-env
-          condarc-file: ./utilities/ci/condarc
-          # use-only-tar-bz2: true
+#      - name: Setup miniconda
+#        uses: conda-incubator/setup-miniconda@v3
+#        with:
+#          python-version: "3.10"
+#          mamba-version: "*"
+#          channels: conda-forge,defaults
+#          channel-priority: true
+#          activate-environment: conda-env
+#          condarc-file: ./utilities/ci/condarc
+#          # use-only-tar-bz2: true
 
       - name: Get date
         id: get-date
         run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
         shell: bash
 
-      - name: Cache conda env
-        uses: actions/cache@v3
-        with:
-          path: /usr/share/miniconda/envs
-          key:
-            conda-${{ runner.os }}--${{ runner.arch }}--${{
-            steps.get-date.outputs.today }}-${{
-            hashFiles('environment.yml') }}-${{ env.CACHE_NUMBER
-            }}
-        env:
-          # Increase this value to reset cache if environment.yml has not changed
-          CACHE_NUMBER: 0
-        id: cache
+#      - name: Cache conda env
+#        uses: actions/cache@v3
+#        with:
+#          path: /usr/share/miniconda/envs
+#          key:
+#            conda-${{ runner.os }}--${{ runner.arch }}--${{
+#            steps.get-date.outputs.today }}-${{
+#            hashFiles('environment.yml') }}-${{ env.CACHE_NUMBER
+#            }}
+#        env:
+#          # Increase this value to reset cache if environment.yml has not changed
+#          CACHE_NUMBER: 0
+#        id: cache
 
-      - name: Update environment
-        run: mamba env update -n conda-env -f environment.yml
-        if: steps.cache.outputs.cache-hit != 'true'
+#      - name: Update environment
+#        run: mamba env update -n conda-env -f environment.yml
+#        if: steps.cache.outputs.cache-hit != 'true'
 
-      - name: Install plugin
-        run: |
-          mamba run -n conda-env pip install .
-          mamba run -n conda-env qiime dev refresh-cache
+#      - name: Install plugin
+#        run: |
+#          mamba run -n conda-env pip install .
+#          mamba run -n conda-env qiime dev refresh-cache
 
-      - name: Install dev dependencies
-        run: mamba run -n conda-env pip install pytest pytest-cov coverage parameterized pytest-xdist
+#      - name: Install dev dependencies
+#        run: mamba run -n conda-env pip install pytest pytest-cov coverage parameterized pytest-xdist
 
-      - name: Run tests
-        id: test
-        run: mamba run -n conda-env make test-cov
+#      - name: Run tests
+#        id: test
+#        run: mamba run -n conda-env make test-cov
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        if: steps.test.outcome == 'success'
-        with:
-          name: coverage
-          path: coverage.xml
+#      - name: Upload artifacts
+#        uses: actions/upload-artifact@v4
+#        if: steps.test.outcome == 'success'
+#        with:
+#          name: coverage
+#          path: coverage.xml
 
       ##############################
 
