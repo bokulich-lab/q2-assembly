@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3:latest
+FROM continuumio/miniconda3:latest AS base
 
 ARG EPOCH
 ARG DISTRO
@@ -12,7 +12,6 @@ ENV UNIFRAC_USE_GPU=N
 ENV HOME=/home/qiime2
 ENV XDG_CONFIG_HOME=/home/qiime2
 
-RUN mkdir /home/qiime2
 WORKDIR /home/qiime2
 
 COPY environment.yml environment.yml
@@ -31,12 +30,25 @@ RUN mamba env create -n ${DISTRO}-${EPOCH} --file ${ENVIRONMENT}-env.yml \
     && chmod -R a+rwx /opt/conda \
     && rm ${ENVIRONMENT}-env.yml
 
+COPY . ./plugin
+
+RUN mamba run -n ${DISTRO}-${EPOCH} pip install ./plugin
+
 RUN /bin/bash -c "source activate ${DISTRO}-${EPOCH}"
 ENV CONDA_PREFIX=/opt/conda/envs/${DISTRO}-${EPOCH}/
 RUN qiime dev refresh-cache
 RUN echo "source activate ${DISTRO}-${EPOCH}" >> $HOME/.bashrc
 RUN echo "source tab-qiime" >> $HOME/.bashrc
 
+
+FROM base AS test
+
+RUN mamba env run -n ${DISTRO}-${EPOCH} pip install pytest pytest-cov coverage parameterized pytest-xdist
+CMD ["mamba", "run", "-n", "${DISTRO}-${EPOCH}", "make", "test-cov"]
+
+FROM base AS prod
+
 # Important: let any UID modify these directories so that
 # `docker run -u UID:GID` works
+RUN rm -rf ./plugin
 RUN chmod -R a+rwx /home/qiime2
