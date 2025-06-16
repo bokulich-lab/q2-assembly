@@ -46,7 +46,7 @@ FROM base AS test
 ENV ENV_NAME=${DISTRO}-${EPOCH}
 
 RUN mamba run -n ${ENV_NAME} pip install pytest pytest-cov coverage parameterized pytest-xdist
-CMD ["sh", "-c", "mamba run -n ${ENV_NAME} make test-cov"]
+CMD ["sh", "-c", "mamba run -n ${ENV_NAME} make -f ./plugin/Makefile test-cov"]
 
 FROM base AS prod
 
