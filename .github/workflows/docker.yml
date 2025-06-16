@@ -42,11 +42,12 @@ jobs:
         id: fetch-tags
         run: |
           latest_tags=$(python ./utilities/ci/get-tags.py)
+          echo "$latest_tags" > tags.txt
+          
           latest-dev-tag=$(grep 'latest-dev-tag' tags.txt | cut -d '=' -f 2)
           latest-stable-tag=$(grep 'latest-stable-tag' tags.txt | cut -d '=' -f 2)
           epoch=$(echo $latest-dev-tag | cut -d'.' -f1,2)
           
-          echo "$latest_tags" > tags.txt
           echo "latest-dev-tag=$latest-dev-tag" >> $GITHUB_OUTPUT
           echo "latest-stable-tag=$latest-stable-tag" >> $GITHUB_OUTPUT
           echo "epoch=$epoch" >> $GITHUB_OUTPUT
