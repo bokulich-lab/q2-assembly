@@ -85,8 +85,8 @@ jobs:
           load: true
           tags: ${{ github.sha }}
           target: test
-          cache-from: type=gha
-          cache-to: type=gha,mode=min
+          cache-from: type=registry,ref=quay.io/bokulichlab/q2-assembly:cache
+          cache-to: type=registry,ref=quay.io/bokulichlab/q2-assembly:cache,mode=max
           build-args: |
             EPOCH=${{ steps.vars.outputs.epoch }}
             DISTRO=tiny
