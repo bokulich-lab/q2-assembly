@@ -39,7 +39,7 @@ RUN echo "source tab-qiime" >> $HOME/.bashrc
 FROM base AS test
 
 RUN mamba run -n ${ENV_NAME} pip install pytest pytest-cov coverage parameterized pytest-xdist
-CMD mamba run -n ${ENV_NAME} make -f /plugin/Makefile test-cov
+CMD mamba run -n ${ENV_NAME} make -f ./plugin/Makefile test-cov
 
 FROM base AS prod
 
