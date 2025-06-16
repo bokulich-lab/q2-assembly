@@ -156,7 +156,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build the test image
-        run: docker build --target test -t plugin:test .
+        run: docker build --target test --build-arg EPOCH=${{ steps.vars.outputs.epoch }} --build-arg DISTRO=tiny --build-arg ENVIRONMENT=${{ steps.vars.outputs.environment }} -t plugin:test .
 
 #      - name: Build and push Docker images
 #        uses: docker/build-push-action@v6
