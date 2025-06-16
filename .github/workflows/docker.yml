@@ -62,7 +62,7 @@ jobs:
         run: |
           python ./utilities/ci/get-dependencies.py \
             --distro moshpit \
-            --version-tag ${{ steps.vars.outputs.epoch }} \
+            --version-tag ${{ steps.fetch-tags.outputs.latest-dev-tag }} \
             --repositories-yaml ./utilities/ci/repositories.yaml
           cat environment.yml >> $GITHUB_STEP_SUMMARY
 
