@@ -4,35 +4,31 @@ ARG EPOCH
 ARG DISTRO
 ARG ENVIRONMENT
 
-ENV PATH=/opt/conda/envs/${DISTRO}-${EPOCH}/bin:$PATH
-ENV LC_ALL=C.UTF-8
-ENV LANG=C.UTF-8
-ENV MPLBACKEND=agg
-ENV UNIFRAC_USE_GPU=N
-ENV HOME=/home/qiime2
-ENV XDG_CONFIG_HOME=/home/qiime2
+ENV PATH=/opt/conda/envs/${DISTRO}-${EPOCH}/bin:$PATH \
+    LC_ALL=C.UTF-8 LANG=C.UTF-8 \
+    MPLBACKEND=agg \
+    UNIFRAC_USE_GPU=N \
+    HOME=/home/qiime2 \
+    XDG_CONFIG_HOME=/home/qiime2 \
+    ENV_NAME=${DISTRO}-${EPOCH}
 
 WORKDIR /home/qiime2
 
-COPY environment.yml environment.yml
-
-RUN conda update -q -y conda \
-    && conda install -c conda-forge -q -y wget mamba \
-    && apt-get install -y procps \
+RUN apt-get install -y --no-install-recommends wget procps \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN wget -O ${ENVIRONMENT}-env.yml https://raw.githubusercontent.com/qiime2/distributions/dev/${EPOCH}/${DISTRO}/${ENVIRONMENT}/qiime2-${DISTRO}-ubuntu-latest-conda.yml
-
-RUN mamba env create -n ${DISTRO}-${EPOCH} --file ${ENVIRONMENT}-env.yml \
+RUN conda update -qy conda \
+    && conda install -c conda-forge -qy mamba \
+    && mamba env create -n ${DISTRO}-${EPOCH} --file https://raw.githubusercontent.com/qiime2/distributions/dev/${EPOCH}/${DISTRO}/${ENVIRONMENT}/qiime2-${DISTRO}-ubuntu-latest-conda.yml \
     && mamba env update -n ${DISTRO}-${EPOCH} --file environment.yml \
-    && mamba clean -a -y \
-    && chmod -R a+rwx /opt/conda \
-    && rm ${ENVIRONMENT}-env.yml
+    && mamba clean -all -yes \
+    && chmod -R a+rwx /opt/conda
+
+SHELL ["conda", "run", "-n", "${ENV_NAME}", "/bin/bash", "-c"]
 
 COPY . ./plugin
-
-RUN mamba run -n ${DISTRO}-${EPOCH} pip install ./plugin
+RUN pip install ./plugin
 
 RUN /bin/bash -c "source activate ${DISTRO}-${EPOCH}"
 ENV CONDA_PREFIX=/opt/conda/envs/${DISTRO}-${EPOCH}/
@@ -43,10 +39,8 @@ RUN echo "source tab-qiime" >> $HOME/.bashrc
 
 FROM base AS test
 
-ENV ENV_NAME=${DISTRO}-${EPOCH}
-
-RUN mamba run -n ${ENV_NAME} pip install pytest pytest-cov coverage parameterized pytest-xdist
-CMD ["sh", "-c", "mamba run -n ${ENV_NAME} make -f ./plugin/Makefile test-cov"]
+RUN pip install pytest pytest-cov coverage parameterized pytest-xdist
+CMD ["make", "-f", "/plugin/Makefile", "test-cov"]
 
 FROM base AS prod
 
