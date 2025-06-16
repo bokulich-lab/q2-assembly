@@ -156,7 +156,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Build the test image
-        run: docker buildx build --target test --cache-to type=gha,mode=min --cache-from type=gha,mode=min --build-arg EPOCH=${{ steps.vars.outputs.epoch }} --build-arg DISTRO=tiny --build-arg ENVIRONMENT=${{ steps.vars.outputs.environment }} -t plugin:test .
+        run: docker buildx build --load --target test --cache-to type=gha,mode=min --cache-from type=gha,mode=min --build-arg EPOCH=${{ steps.vars.outputs.epoch }} --build-arg DISTRO=tiny --build-arg ENVIRONMENT=${{ steps.vars.outputs.environment }} -t plugin:test .
 
 #      - name: Build and push Docker images
 #        uses: docker/build-push-action@v6
