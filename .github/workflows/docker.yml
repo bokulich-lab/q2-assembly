@@ -7,28 +7,17 @@ on:
     branches: ["main"]
 
 jobs:
-  build-and-push:
+  test:
     runs-on: ubuntu-latest
     outputs:
       latest-dev-tag: ${{ steps.fetch_latest_tags.outputs.latest-dev-tag }}
       latest-stable-tag: ${{ steps.fetch_latest_tags.outputs.latest-stable-tag }}
       commit-msg: ${{ steps.get-commit-msg.outputs.commit-msg }}
+      epoch: ${{ steps.vars.outputs.epoch }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Get the latest tag
-        id: vars
-        run: |
-          REF=$(git describe --tags --abbrev=0)
-          epoch=$(echo $REF | cut -d'.' -f1,2)
-          if [[ $REF == *.dev* ]]; then env=passed; else env=released; fi
-          echo "epoch=$epoch"    >> $GITHUB_OUTPUT
-          echo "environment=$env" >> $GITHUB_OUTPUT
-
-      - name: Output the latest tag
-        run: echo "The latest tag is ${{ env.latest_tag }}"
 
       - name: Checkout utilities
         uses: actions/checkout@v4
@@ -60,11 +49,135 @@ jobs:
       - name: Create conda yaml
         id: create-conda-yaml
         run: |
-          python ./utilities/ci/get-dependencies.py \
-            --distro moshpit \
-            --version-tag ${{ steps.vars.outputs.epoch }} \
-            --repositories-yaml ./utilities/ci/repositories.yaml
+          commit_msg="${{ steps.get-commit-msg.outputs.commit-msg }}"
+          if [[ "$commit_msg" == *"[stable]"* ]] || [[ "$commit_msg" == *"[prod]"* ]]; then
+              tag="${{ steps.fetch-tags.outputs.latest-stable-tag }}"
+          else
+              tag="${{ steps.fetch-tags.outputs.latest-dev-tag }}"
+          fi
+          # Extract only the year and month part (e.g., 2024.10) from the tag
+          tag_prefix=$(echo $tag | cut -d '.' -f 1,2)
+          python ./utilities/ci/get-dependencies.py --distro "${{ inputs.distro }}" --version-tag $tag_prefix --repositories-yaml ./utilities/ci/repositories.yaml
           cat environment.yml >> $GITHUB_STEP_SUMMARY
+          echo "qiime-deps=$(tr '\n' ' ' < repo-urls.txt | xargs)" >> $GITHUB_OUTPUT
+
+      - name: Setup miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          python-version: "3.10"
+          mamba-version: "*"
+          channels: conda-forge,defaults
+          channel-priority: true
+          activate-environment: conda-env
+          condarc-file: ./utilities/ci/condarc
+          # use-only-tar-bz2: true
+
+      - name: Get date
+        id: get-date
+        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache conda env
+        uses: actions/cache@v3
+        with:
+          path: /usr/share/miniconda/envs
+          key:
+            conda-${{ runner.os }}--${{ runner.arch }}--${{
+            steps.get-date.outputs.today }}-${{
+            hashFiles('environment.yml') }}-${{ env.CACHE_NUMBER
+            }}
+        env:
+          # Increase this value to reset cache if environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+
+      - name: Update environment
+        run: mamba env update -n conda-env -f environment.yml
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Install dev versions of QIIME repos
+        if: ${{ steps.create-conda-yaml.outputs.qiime-deps != '' && !contains(steps.get-commit-msg.outputs.commit-msg, '[stable]') && !contains(steps.get-commit-msg.outputs.commit-msg, '[prod]') }}
+        run: mamba run -n conda-env pip install ${{ steps.create-conda-yaml.outputs.qiime-deps }}
+
+      - name: Update specific dependency, if requested
+        if: contains(${{ steps.get-commit-msg.outputs.commit-msg }}, '[add:')
+        run: |
+          commit_msg="${{ steps.get-commit-msg.outputs.commit-msg }}"
+          IFS=',' read -ra ADDR <<< "$commit_msg"
+          for i in "${ADDR[@]}"; do
+              pkg_name=$(echo "$i" | awk -F':' '/\[add/{print $2}')
+              commit_hash=$(echo "$i" | awk -F':' '/\[add/{print $3}' | awk -F']' '{print $1}')
+              if [[ $(yq '.repositories[].name' ./utilities/ci/repositories.yaml | grep -c $pkg_name) -eq 1 ]]; then
+                  pkg_url=$(yq ".repositories[] | select(.name == \"$pkg_name\") | .url" utilities/ci/repositories.yaml | tr -d '"')
+                  mamba run -n conda-env pip install "git+$pkg_url@$commit_hash"
+              fi
+          done
+
+      - name: Install plugin
+        run: |
+          mamba run -n conda-env pip install .
+          mamba run -n conda-env qiime dev refresh-cache
+
+      - name: Install dev dependencies
+        run: mamba run -n conda-env pip install pytest pytest-cov coverage parameterized pytest-xdist
+
+      - name: Run tests
+        id: test
+        run: mamba run -n conda-env make test-cov
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: steps.test.outcome == 'success'
+        with:
+          name: coverage
+          path: coverage.xml
+
+      - name: Upload env yaml
+        uses: actions/upload-artifact@v4
+        if: steps.test.outcome == 'success'
+        with:
+          name: environment
+          path: environment.yml
+
+  build-and-push:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Checkout utilities
+        uses: actions/checkout@v4
+        with:
+          repository: bokulich-lab/utilities
+          path: utilities
+
+      - name: Install dependencies
+        run: python -m pip install requests yq pyyaml
+
+      - name: 'Download environment.yml'
+        uses: actions/github-script@v7.0.1
+        with:
+          script: |
+            var artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: context.runId,
+            });
+            var matchArtifact = artifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "environment"
+            })[0];
+            var download = await github.rest.actions.downloadArtifact({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               artifact_id: matchArtifact.id,
+               archive_format: 'zip',
+            });
+            var fs = require('fs');
+            fs.writeFileSync('${{github.workspace}}/environment.zip', Buffer.from(download.data));
+
+      - run: unzip coverage.zip
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -88,9 +201,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=min
           build-args: |
-            EPOCH=${{ steps.vars.outputs.epoch }}
+            EPOCH=${{ jobs.test.outputs.epoch }}
             DISTRO=tiny
-            ENVIRONMENT=${{ steps.vars.outputs.environment }}
+            ENVIRONMENT=passed
 
       - name: Run tests in the container
         run: docker run --rm ${{ github.sha }}
