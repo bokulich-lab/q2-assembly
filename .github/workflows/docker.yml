@@ -155,22 +155,24 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build the test image
-        run: docker build --target test --cache-to type=gha,mode=min --cache-from type=gha,mode=min --build-arg EPOCH=${{ steps.vars.outputs.epoch }} --build-arg DISTRO=tiny --build-arg ENVIRONMENT=${{ steps.vars.outputs.environment }} -t plugin:test .
+#      - name: Build the test image
+#        run: docker build --target test --cache-to type=gha,mode=min --cache-from type=gha,mode=min --build-arg EPOCH=${{ steps.vars.outputs.epoch }} --build-arg DISTRO=tiny --build-arg ENVIRONMENT=${{ steps.vars.outputs.environment }} -t plugin:test .
 
-#      - name: Build and push Docker images
-#        uses: docker/build-push-action@v6
-#        with:
-#          context: .
-#          file: ./Dockerfile
-#          push: ${{ github.event_name != 'pull_request' }}
-#          load: true
-#          tags: ${{ github.sha }}
-#          target: test
-#          build-args: |
-#            EPOCH=${{ steps.vars.outputs.epoch }}
-#            DISTRO=tiny
-#            ENVIRONMENT=${{ steps.vars.outputs.environment }}
+      - name: Build the test image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          load: true
+          tags: ${{ github.sha }}
+          target: test
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            EPOCH=${{ steps.vars.outputs.epoch }}
+            DISTRO=tiny
+            ENVIRONMENT=${{ steps.vars.outputs.environment }}
 
       - name: Run tests in the container
-        run: docker run --rm plugin:test
+        run: docker run --rm ${{ github.sha }}
