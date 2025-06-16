@@ -16,17 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set output
-        id: vars
-        run: |
-          REF=${GITHUB_REF#refs/*/}
-          echo "epoch=$(echo $REF | cut -d'.' -f1,2)" >> $GITHUB_OUTPUT
-          echo "docker-tag=${{ secrets.DOCKER_REPO }}:$REF" >> $GITHUB_OUTPUT
-          if [[ $REF == *.dev* ]]; then
-            echo "environment=passed" >> $GITHUB_OUTPUT
-          else
-            echo "environment=released" >> $GITHUB_OUTPUT
-          fi
+#      - name: Set output
+#        id: vars
+#        run: |
+#          REF=${GITHUB_REF#refs/*/}
+#          echo "epoch=$(echo $REF | cut -d'.' -f1,2)" >> $GITHUB_OUTPUT
+#          echo "docker-tag=${{ secrets.DOCKER_REPO }}:$REF" >> $GITHUB_OUTPUT
+#          if [[ $REF == *.dev* ]]; then
+#            echo "environment=passed" >> $GITHUB_OUTPUT
+#          else
+#            echo "environment=released" >> $GITHUB_OUTPUT
+#          fi
 
       - name: Get the latest tag
         id: vars
@@ -34,6 +34,11 @@ jobs:
           git fetch --tags
           REF=$(git describe --tags `git rev-list --tags --max-count=1`)
           echo "epoch=$(echo $REF | cut -d'.' -f1,2)" >> $GITHUB_OUTPUT
+          if [[ $REF == *.dev* ]]; then
+            echo "environment=passed" >> $GITHUB_OUTPUT
+          else
+            echo "environment=released" >> $GITHUB_OUTPUT
+          fi
 
       - name: Output the latest tag
         run: echo "The latest tag is ${{ env.latest_tag }}"
