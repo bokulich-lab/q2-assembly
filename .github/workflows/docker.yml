@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-and-push:
@@ -15,35 +15,20 @@ jobs:
       commit-msg: ${{ steps.get-commit-msg.outputs.commit-msg }}
     steps:
       - uses: actions/checkout@v4
-
-#      - name: Set output
-#        id: vars
-#        run: |
-#          REF=${GITHUB_REF#refs/*/}
-#          echo "epoch=$(echo $REF | cut -d'.' -f1,2)" >> $GITHUB_OUTPUT
-#          echo "docker-tag=${{ secrets.DOCKER_REPO }}:$REF" >> $GITHUB_OUTPUT
-#          if [[ $REF == *.dev* ]]; then
-#            echo "environment=passed" >> $GITHUB_OUTPUT
-#          else
-#            echo "environment=released" >> $GITHUB_OUTPUT
-#          fi
+        with:
+          fetch-depth: 0
 
       - name: Get the latest tag
         id: vars
         run: |
-          git fetch --tags
-          REF=$(git describe --tags `git rev-list --tags --max-count=1`)
-          echo "epoch=$(echo $REF | cut -d'.' -f1,2)" >> $GITHUB_OUTPUT
-          if [[ $REF == *.dev* ]]; then
-            echo "environment=passed" >> $GITHUB_OUTPUT
-          else
-            echo "environment=released" >> $GITHUB_OUTPUT
-          fi
+          REF=$(git describe --tags --abbrev=0)
+          epoch=${REF%%.*}.${REF#*.}
+          if [[ $REF == *.dev* ]]; then env=passed; else env=released; fi
+          echo "epoch=$epoch"    >> $GITHUB_OUTPUT
+          echo "environment=$env" >> $GITHUB_OUTPUT
 
       - name: Output the latest tag
         run: echo "The latest tag is ${{ env.latest_tag }}"
-
-      ##############################
 
       - name: Checkout utilities
         uses: actions/checkout@v4
@@ -75,75 +60,11 @@ jobs:
       - name: Create conda yaml
         id: create-conda-yaml
         run: |
-          commit_msg="${{ steps.get-commit-msg.outputs.commit-msg }}"
-          if [[ "$commit_msg" == *"[stable]"* ]] || [[ "$commit_msg" == *"[prod]"* ]]; then
-              tag="${{ steps.fetch-tags.outputs.latest-stable-tag }}"
-          else
-              tag="${{ steps.fetch-tags.outputs.latest-dev-tag }}"
-          fi
-          # Extract only the year and month part (e.g., 2024.10) from the tag
-          tag_prefix=$(echo $tag | cut -d '.' -f 1,2)
-          python ./utilities/ci/get-dependencies.py --distro moshpit --version-tag 2025.7 --repositories-yaml ./utilities/ci/repositories.yaml
+          python ./utilities/ci/get-dependencies.py \
+            --distro moshpit \
+            --version-tag ${{ steps.vars.outputs.epoch }} \
+            --repositories-yaml ./utilities/ci/repositories.yaml
           cat environment.yml >> $GITHUB_STEP_SUMMARY
-          echo "qiime-deps=$(tr '\n' ' ' < repo-urls.txt | xargs)" >> $GITHUB_OUTPUT
-
-#      - name: Setup miniconda
-#        uses: conda-incubator/setup-miniconda@v3
-#        with:
-#          python-version: "3.10"
-#          mamba-version: "*"
-#          channels: conda-forge,defaults
-#          channel-priority: true
-#          activate-environment: conda-env
-#          condarc-file: ./utilities/ci/condarc
-#          # use-only-tar-bz2: true
-
-      - name: Get date
-        id: get-date
-        run: echo "today=$(/bin/date -u '+%Y%m%d')" >> $GITHUB_OUTPUT
-        shell: bash
-
-#      - name: Cache conda env
-#        uses: actions/cache@v3
-#        with:
-#          path: /usr/share/miniconda/envs
-#          key:
-#            conda-${{ runner.os }}--${{ runner.arch }}--${{
-#            steps.get-date.outputs.today }}-${{
-#            hashFiles('environment.yml') }}-${{ env.CACHE_NUMBER
-#            }}
-#        env:
-#          # Increase this value to reset cache if environment.yml has not changed
-#          CACHE_NUMBER: 0
-#        id: cache
-
-#      - name: Update environment
-#        run: mamba env update -n conda-env -f environment.yml
-#        if: steps.cache.outputs.cache-hit != 'true'
-
-#      - name: Install plugin
-#        run: |
-#          mamba run -n conda-env pip install .
-#          mamba run -n conda-env qiime dev refresh-cache
-
-#      - name: Install dev dependencies
-#        run: mamba run -n conda-env pip install pytest pytest-cov coverage parameterized pytest-xdist
-
-#      - name: Run tests
-#        id: test
-#        run: mamba run -n conda-env make test-cov
-
-#      - name: Upload artifacts
-#        uses: actions/upload-artifact@v4
-#        if: steps.test.outcome == 'success'
-#        with:
-#          name: coverage
-#          path: coverage.xml
-
-      ##############################
-
-#      - name: Set up QEMU
-#        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -154,9 +75,6 @@ jobs:
           registry: quay.io
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
-#      - name: Build the test image
-#        run: docker build --target test --cache-to type=gha,mode=min --cache-from type=gha,mode=min --build-arg EPOCH=${{ steps.vars.outputs.epoch }} --build-arg DISTRO=tiny --build-arg ENVIRONMENT=${{ steps.vars.outputs.environment }} -t plugin:test .
 
       - name: Build the test image
         uses: docker/build-push-action@v6
