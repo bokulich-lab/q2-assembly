@@ -168,7 +168,7 @@ jobs:
           tags: ${{ github.sha }}
           target: test
           cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=min
           build-args: |
             EPOCH=${{ steps.vars.outputs.epoch }}
             DISTRO=tiny
