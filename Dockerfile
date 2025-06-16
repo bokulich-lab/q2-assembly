@@ -23,7 +23,7 @@ RUN conda update -qy conda \
     && conda install -c conda-forge -qy mamba \
     && mamba env create -n ${DISTRO}-${EPOCH} --file https://raw.githubusercontent.com/qiime2/distributions/dev/${EPOCH}/${DISTRO}/${ENVIRONMENT}/qiime2-${DISTRO}-ubuntu-latest-conda.yml \
     && mamba env update -n ${DISTRO}-${EPOCH} --file environment.yml \
-    && mamba clean -all -yes \
+    && mamba clean --all --yes \
     && chmod -R a+rwx /opt/conda
 
 SHELL ["conda", "run", "-n", "${ENV_NAME}", "/bin/bash", "-c"]
