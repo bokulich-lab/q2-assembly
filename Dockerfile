@@ -13,7 +13,7 @@ ENV PATH=/opt/conda/envs/${DISTRO}-${EPOCH}/bin:$PATH \
     ENV_NAME=${DISTRO}-${EPOCH}
 
 WORKDIR /home/qiime2
-COPY environment.yml
+COPY environment.yml .
 
 RUN apt-get install -y --no-install-recommends wget procps \
     && apt-get clean \
