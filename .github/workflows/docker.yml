@@ -22,7 +22,7 @@ jobs:
         id: vars
         run: |
           REF=$(git describe --tags --abbrev=0)
-          epoch=${REF%%.*}.${REF#*.}
+          epoch=$(echo $REF | cut -d'.' -f1,2)
           if [[ $REF == *.dev* ]]; then env=passed; else env=released; fi
           echo "epoch=$epoch"    >> $GITHUB_OUTPUT
           echo "environment=$env" >> $GITHUB_OUTPUT
@@ -62,7 +62,7 @@ jobs:
         run: |
           python ./utilities/ci/get-dependencies.py \
             --distro moshpit \
-            --version-tag ${{ steps.fetch-tags.outputs.latest-dev-tag }} \
+            --version-tag ${{ steps.vars.outputs.epoch }} \
             --repositories-yaml ./utilities/ci/repositories.yaml
           cat environment.yml >> $GITHUB_STEP_SUMMARY
 
