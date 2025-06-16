@@ -16,17 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-#      - name: Set output
-#        id: vars
-#        run: |
-#          REF=${GITHUB_REF#refs/*/}
-#          echo "epoch=$(echo $REF | cut -d'.' -f1,2)" >> $GITHUB_OUTPUT
-#          echo "docker-tag=${{ secrets.DOCKER_REPO }}:$REF" >> $GITHUB_OUTPUT
-#          if [[ $REF == *.dev* ]]; then
-#            echo "environment=passed" >> $GITHUB_OUTPUT
-#          else
-#            echo "environment=released" >> $GITHUB_OUTPUT
-#          fi
+      - name: Set output
+        id: vars
+        run: |
+          REF=${GITHUB_REF#refs/*/}
+          echo "epoch=$(echo $REF | cut -d'.' -f1,2)" >> $GITHUB_OUTPUT
+          echo "docker-tag=${{ secrets.DOCKER_REPO }}:$REF" >> $GITHUB_OUTPUT
+          if [[ $REF == *.dev* ]]; then
+            echo "environment=passed" >> $GITHUB_OUTPUT
+          else
+            echo "environment=released" >> $GITHUB_OUTPUT
+          fi
 
       - name: Get the latest tag
         id: vars
@@ -160,4 +160,10 @@ jobs:
           build-args: |
             EPOCH=${{ steps.vars.outputs.epoch }}
             DISTRO=tiny
-            ENVIRONMENT=passed
+            ENVIRONMENT=${{ steps.vars.outputs.environment }}
+
+      - name: Install test deps in the container
+        run: docker run ${{ github.sha }} mamba run -n tiny-${{ steps.vars.outputs.epoch }} pip install pytest pytest-cov coverage parameterized pytest-xdist
+
+      - name: Run tests in the container
+        run: docker run ${{ github.sha }} mamba run -n tiny-${{ steps.vars.outputs.epoch }} make test-cov
