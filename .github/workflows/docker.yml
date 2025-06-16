@@ -177,7 +177,7 @@ jobs:
             var fs = require('fs');
             fs.writeFileSync('${{github.workspace}}/environment.zip', Buffer.from(download.data));
 
-      - run: unzip coverage.zip
+      - run: unzip environment.zip
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
