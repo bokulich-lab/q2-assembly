@@ -15,8 +15,8 @@ test-cov: all
 	python -m pytest --cov=q2_assembly -n 4 && coverage xml -o coverage.xml
 
 test-docker: all
-    qiime info
-    qiime assembly --help
+	qiime info
+	qiime assembly --help
 
 install: all
 	$(PYTHON) -m pip install -v .
