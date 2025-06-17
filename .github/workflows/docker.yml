@@ -13,7 +13,7 @@ jobs:
       latest-dev-tag: ${{ steps.fetch-tags.outputs.latest-dev-tag }}
       latest-stable-tag: ${{ steps.fetch-tags.outputs.latest-stable-tag }}
       commit-msg: ${{ steps.get-commit-msg.outputs.commit-msg }}
-      epoch: ${{ steps.fetch-tags.outputs.epoch }}
+      epoch: ${{ steps.create-conda-yaml.outputs.epoch }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,7 +50,7 @@ jobs:
           
           echo "latest-dev-tag=$latest_dev_tag" >> $GITHUB_OUTPUT
           echo "latest-stable-tag=$latest_stable_tag" >> $GITHUB_OUTPUT
-          echo "epoch=$epoch" >> $GITHUB_OUTPUT
+#          echo "epoch=$epoch" >> $GITHUB_OUTPUT
 
       - name: Create conda yaml
         id: create-conda-yaml
@@ -66,6 +66,7 @@ jobs:
           python ./utilities/ci/get-dependencies.py --distro moshpit --version-tag $tag_prefix --repositories-yaml ./utilities/ci/repositories.yaml
           cat environment.yml >> $GITHUB_STEP_SUMMARY
           echo "qiime-deps=$(tr '\n' ' ' < repo-urls.txt | xargs)" >> $GITHUB_OUTPUT
+          echo "epoch=$tag_prefix" >> $GITHUB_OUTPUT
 
       - name: Setup miniconda
         uses: conda-incubator/setup-miniconda@v3
