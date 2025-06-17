@@ -212,5 +212,8 @@ jobs:
             DISTRO=tiny
             ENVIRONMENT=passed
 
+      - name: Test plugin installation
+        run: docker exec ${{ github.sha }} -- make -f ./plugin/Makefile test-docker
+
       - name: Run tests in the container
         run: docker run --rm ${{ github.sha }}
