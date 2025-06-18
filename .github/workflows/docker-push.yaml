@@ -1,4 +1,4 @@
-name: Docker Push
+name: Docker push
 
 on:
   workflow_run:
@@ -83,98 +83,60 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Download and push test image
+      - name: Download test image artifact
         if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.build-pr-image == 'true'
-        uses: actions/github-script@v7
+        uses: actions/download-artifact@v4
         with:
-          script: |
-            // Download test image artifact
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.payload.workflow_run.id,
-            });
-
-            const testImageArtifact = artifacts.data.artifacts.find(
-              artifact => artifact.name === 'test-docker-image'
-            );
-
-            if (testImageArtifact) {
-              const download = await github.rest.actions.downloadArtifact({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                artifact_id: testImageArtifact.id,
-                archive_format: 'zip',
-              });
-
-              const fs = require('fs');
-              fs.writeFileSync('test-image.zip', Buffer.from(download.data));
-            }
+          name: test-docker-image
+          path: .
+          repository: ${{ inputs.repository }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Load and push test image
         if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.build-pr-image == 'true'
         run: |
-          if [ -f "test-image.zip" ]; then
-            unzip test-image.zip
-            if [ -f "test-image.tar.gz" ]; then
-              # Load the image
-              docker load < test-image.tar.gz
-              
-              # Determine the tag based on event type
-              if [ "${{ steps.metadata.outputs.event-name }}" = "pull_request" ]; then
-                TAG="quay.io/${{ steps.metadata.outputs.repository }}:pr-${{ steps.metadata.outputs.pr-number }}-${{ steps.metadata.outputs.short-sha }}"
-              else
-                TAG="quay.io/${{ steps.metadata.outputs.repository }}:test-${{ steps.metadata.outputs.short-sha }}"
-              fi
-              
-              # Re-tag and push
-              docker tag ${{ steps.metadata.outputs.sha }} "$TAG"
-              docker push "$TAG"
-              echo "Pushed test image: $TAG"
+          if [ -f "test-image.tar.gz" ]; then
+            # Load the image
+            docker load < test-image.tar.gz
+          
+            # Determine the tag based on event type
+            if [ "${{ steps.metadata.outputs.event-name }}" = "pull_request" ]; then
+              TAG="quay.io/bokulichlab/${{ steps.metadata.outputs.repository }}:pr-${{ steps.metadata.outputs.pr-number }}-${{ steps.metadata.outputs.short-sha }}"
+            else
+              TAG="quay.io/bokulichlab/${{ steps.metadata.outputs.repository }}:test-${{ steps.metadata.outputs.short-sha }}"
             fi
+          
+            # Re-tag and push
+            docker tag ${{ steps.metadata.outputs.sha }} "$TAG"
+            docker push "$TAG"
+            echo "Pushed test image: $TAG"
+          else
+            echo "No test image artifact found"
           fi
 
-      - name: Download and push production image
+      - name: Download production image artifact
         if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.is-main-push == 'true'
-        uses: actions/github-script@v7
+        uses: actions/download-artifact@v4
         with:
-          script: |
-            // Download production image artifact
-            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              run_id: context.payload.workflow_run.id,
-            });
-
-            const prodImageArtifact = artifacts.data.artifacts.find(
-              artifact => artifact.name === 'prod-docker-image'
-            );
-
-            if (prodImageArtifact) {
-              const download = await github.rest.actions.downloadArtifact({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                artifact_id: prodImageArtifact.id,
-                archive_format: 'zip',
-              });
-
-              const fs = require('fs');
-              fs.writeFileSync('prod-image.zip', Buffer.from(download.data));
-            }
+          name: prod-docker-image
+          path: .
+          repository: ${{ inputs.repository }}
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Load and push production image
         if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.is-main-push == 'true'
         run: |
-          if [ -f "prod-image.zip" ]; then
-            unzip prod-image.zip
-            if [ -f "prod-image.tar" ]; then
-              # Load the image
-              docker load < prod-image.tar
-              
-              # Tag and push production image
-              TAG="quay.io/${{ steps.metadata.outputs.repository }}:${{ steps.metadata.outputs.epoch }}-${{ steps.metadata.outputs.short-sha }}"
-              docker tag temp-prod-image "$TAG"
-              docker push "$TAG"
-              echo "Pushed production image: $TAG"
-            fi
+          if [ -f "prod-image.tar" ]; then
+            # Load the image
+            docker load < prod-image.tar
+          
+            # Tag and push production image
+            TAG="quay.io/bokulichlab/${{ steps.metadata.outputs.repository }}:${{ steps.metadata.outputs.epoch }}-${{ steps.metadata.outputs.short-sha }}"
+            docker tag temp-prod-image "$TAG"
+            docker push "$TAG"
+            echo "Pushed production image: $TAG"
+          else
+            echo "No production image artifact found"
           fi

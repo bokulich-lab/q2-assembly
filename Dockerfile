@@ -1,7 +1,6 @@
 FROM continuumio/miniconda3:latest AS base
 
 ARG EPOCH
-ARG DISTRO
 ARG ENVIRONMENT
 ARG PLUGIN_NAME
 
@@ -22,7 +21,6 @@ RUN apt-get install -y --no-install-recommends wget procps \
 
 RUN conda update -qy conda \
     && conda install -c conda-forge -qy mamba \
-#    && mamba env create -n ${ENV_NAME} --file https://raw.githubusercontent.com/qiime2/distributions/dev/${EPOCH}/tiny/${ENVIRONMENT}/qiime2-tiny-ubuntu-latest-conda.yml \
     && mamba env create -n ${ENV_NAME} --file environment.yml \
     && mamba clean --all --yes \
     && chmod -R a+rwx /opt/conda
