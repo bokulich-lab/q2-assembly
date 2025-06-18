@@ -89,8 +89,7 @@ jobs:
         with:
           name: test-docker-image
           path: .
-          repository: ${{ inputs.repository }}
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Load and push test image
@@ -121,8 +120,7 @@ jobs:
         with:
           name: prod-docker-image
           path: .
-          repository: ${{ inputs.repository }}
-          run-id: ${{ inputs.run_id }}
+          run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Load and push production image
