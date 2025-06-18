@@ -12,8 +12,7 @@ jobs:
       distro: moshpit
       plugin_name: q2-assembly
       build_docker: true
-      push_pr_image: true
-    secrets: inherit
+      push_pr_image: false
   
   qiime-ci:
     uses: qiime2/distributions/.github/workflows/lib-ci-dev.yaml@dev
