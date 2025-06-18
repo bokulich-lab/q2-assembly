@@ -3,14 +3,15 @@ FROM continuumio/miniconda3:latest AS base
 ARG EPOCH
 ARG DISTRO
 ARG ENVIRONMENT
+ARG PLUGIN_NAME
 
-ENV PATH=/opt/conda/envs/${DISTRO}-${EPOCH}/bin:$PATH \
+ENV PATH=/opt/conda/envs/${PLUGIN_NAME}-${EPOCH}/bin:$PATH \
     LC_ALL=C.UTF-8 LANG=C.UTF-8 \
     MPLBACKEND=agg \
     UNIFRAC_USE_GPU=N \
     HOME=/home/qiime2 \
     XDG_CONFIG_HOME=/home/qiime2 \
-    ENV_NAME=${DISTRO}-${EPOCH}
+    ENV_NAME=${PLUGIN_NAME}-${EPOCH}
 
 WORKDIR /home/qiime2
 COPY environment.yml .
