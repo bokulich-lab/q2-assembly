@@ -11,9 +11,3 @@ jobs:
     with:
       distro: moshpit
       build_docker: true
-  
-  qiime-ci:
-    uses: qiime2/distributions/.github/workflows/lib-ci-dev.yaml@dev
-    with:
-      distro: moshpit
-      recipe-path: 'conda-recipe'
