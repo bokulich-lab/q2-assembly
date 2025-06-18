@@ -11,7 +11,6 @@ jobs:
     with:
       distro: moshpit
       build_docker: true
-      push_pr_image: true
   
   qiime-ci:
     uses: qiime2/distributions/.github/workflows/lib-ci-dev.yaml@dev

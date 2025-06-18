@@ -57,7 +57,7 @@ jobs:
               echo "ref=$(jq -r '.ref' build-metadata.json)" >> $GITHUB_OUTPUT
               echo "event-name=$(jq -r '.event_name' build-metadata.json)" >> $GITHUB_OUTPUT
               echo "pr-number=$(jq -r '.pr_number' build-metadata.json)" >> $GITHUB_OUTPUT
-              echo "push-pr-image=$(jq -r '.push_pr_image' build-metadata.json)" >> $GITHUB_OUTPUT
+              echo "build-pr-image=$(jq -r '.build_pr_image' build-metadata.json)" >> $GITHUB_OUTPUT
               echo "is-main-push=$(jq -r '.is_main_push' build-metadata.json)" >> $GITHUB_OUTPUT
               echo "has-metadata=true" >> $GITHUB_OUTPUT
               
@@ -84,7 +84,7 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Download and push test image
-        if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.push-pr-image == 'true'
+        if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.build-pr-image == 'true'
         uses: actions/github-script@v7
         with:
           script: |
@@ -112,7 +112,7 @@ jobs:
             }
 
       - name: Load and push test image
-        if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.push-pr-image == 'true'
+        if: steps.metadata.outputs.has-metadata == 'true' && steps.metadata.outputs.build-pr-image == 'true'
         run: |
           if [ -f "test-image.zip" ]; then
             unzip test-image.zip
