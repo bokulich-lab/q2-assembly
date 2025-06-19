@@ -32,5 +32,5 @@ __all__ = [
     "spades",
     "helpers",
     "filter",
-    "qc"
+    "qc",
 ]

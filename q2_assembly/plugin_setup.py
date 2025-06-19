@@ -570,7 +570,7 @@ plugin.methods.register_function(
     },
     name="Calculate contig quality metrics",
     description="Calculates quality metrics (e.g., length, GC content, "
-                "N(x) values, cumulative length) of assembled contigs.",
+    "N(x) values, cumulative length) of assembled contigs.",
     citations=[],
 )
 
@@ -598,7 +598,7 @@ plugin.visualizers.register_function(
     },
     name="Calculate contig quality metrics",
     description="Calculates quality metrics (e.g., length, GC content, "
-                "N(x) values, cumulative length) of assembled contigs.",
+    "N(x) values, cumulative length) of assembled contigs.",
     citations=[],
 )
 
@@ -630,8 +630,8 @@ plugin.pipelines.register_function(
     },
     name="Visualize contig quality metrics",
     description="Generates an interactive visualization to assess and visualize "
-                "quality metrics (e.g., length, GC content, N(x) values, cumulative "
-                "length) of assembled contigs.",
+    "quality metrics (e.g., length, GC content, N(x) values, cumulative "
+    "length) of assembled contigs.",
     citations=[],
 )
 
