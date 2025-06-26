@@ -407,6 +407,7 @@ plugin.pipelines.register_function(
         "This method uses Mason to generate reads simulated from given "
         "reference genomes for multiple samples."
     ),
+    citations=[citations["fu_mi_publications962"]],
 )
 
 I_index, O_alignment = TypeMap(
