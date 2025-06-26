@@ -1,5 +1,5 @@
 # q2-assembly
-![CI](https://github.com/bokulich-lab/q2-assembly/actions/workflows/ci-dev.yaml/badge.svg)
+![CI](https://github.com/bokulich-lab/q2-assembly/actions/workflows/ci.yaml/badge.svg)
 [![codecov](https://codecov.io/gh/bokulich-lab/q2-assembly/branch/main/graph/badge.svg?token=THMBOFUZR0)](https://codecov.io/gh/bokulich-lab/q2-assembly)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
