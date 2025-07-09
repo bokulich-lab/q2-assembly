@@ -1,8 +1,10 @@
 import os
 from pathlib import Path
+from typing import List
 
 import numpy as np
 import pandas as pd
+import qiime2
 import qiime2 as q2
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
@@ -376,26 +378,29 @@ class TestIntegration(TestPluginBase):
             obs_metrics.to_dataframe(), exp_metrics, check_dtype=False
         )
 
+        def _sort_obs_data(data, by) -> pd.DataFrame:
+            data = data.to_dataframe()
+            data.sort_values(by=by, inplace=True)
+            data.reset_index(drop=True, inplace=True)
+            data.index = data.index.map(str)
+            data.index.name = "id"
+            return data
+
         # test Nx metrics
-        obs_nx = obs_nx.to_dataframe()
-        obs_nx.sort_values(by=["sample", "percent"], inplace=True)
-        obs_nx.reset_index(drop=True, inplace=True)
-        obs_nx.index = obs_nx.index.map(str)
-        obs_nx.index.name = "id"
+        obs_nx = _sort_obs_data(obs_nx, by=["sample", "percent"])
         pd.testing.assert_frame_equal(obs_nx, exp_nx, check_dtype=False)
 
         # test GC metrics
-        pd.testing.assert_frame_equal(obs_gc.to_dataframe(), exp_gc, check_dtype=False)
+        obs_gc = _sort_obs_data(obs_gc, by=["sample"])
+        pd.testing.assert_frame_equal(obs_gc, exp_gc, check_dtype=False)
 
         # test contig lengths
-        pd.testing.assert_frame_equal(
-            obs_len.to_dataframe(), exp_len, check_dtype=False
-        )
+        obs_len = _sort_obs_data(obs_len, by=["sample"])
+        pd.testing.assert_frame_equal(obs_len, exp_len, check_dtype=False)
 
         # test cumulative lengths
-        pd.testing.assert_frame_equal(
-            obs_cumul.to_dataframe(), exp_cumul, check_dtype=False
-        )
+        obs_cumul = _sort_obs_data(obs_cumul, by=["sample"])
+        pd.testing.assert_frame_equal(obs_cumul, exp_cumul, check_dtype=False)
 
     def test_evaluate_contigs_pipeline_single_partition(self):
         obs_results, obs_viz = assembly.pipelines.evaluate_contigs(
