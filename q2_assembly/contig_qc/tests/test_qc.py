@@ -371,14 +371,25 @@ class TestIntegration(TestPluginBase):
         obs_metrics, obs_nx, obs_gc, obs_len, obs_cumul = obs_results
         exp_metrics, exp_nx, exp_gc, exp_len, exp_cumul = exp_results
 
+        # test sample metrics
         pd.testing.assert_frame_equal(
             obs_metrics.to_dataframe(), exp_metrics, check_dtype=False
         )
-        pd.testing.assert_frame_equal(obs_nx.to_dataframe(), exp_nx, check_dtype=False)
+
+        # test Nx metrics
+        obs_nx = obs_nx.to_dataframe()
+        obs_nx.sort_values(by=["sample", "percent"], inplace=True)
+        pd.testing.assert_frame_equal(obs_nx, exp_nx, check_dtype=False)
+
+        # test GC metrics
         pd.testing.assert_frame_equal(obs_gc.to_dataframe(), exp_gc, check_dtype=False)
+
+        # test contig lengths
         pd.testing.assert_frame_equal(
             obs_len.to_dataframe(), exp_len, check_dtype=False
         )
+
+        # test cumulative lengths
         pd.testing.assert_frame_equal(
             obs_cumul.to_dataframe(), exp_cumul, check_dtype=False
         )
