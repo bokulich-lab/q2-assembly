@@ -1,10 +1,8 @@
 import os
 from pathlib import Path
-from typing import List
 
 import numpy as np
 import pandas as pd
-import qiime2
 import qiime2 as q2
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
