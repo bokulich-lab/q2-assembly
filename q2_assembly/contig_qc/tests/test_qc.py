@@ -367,7 +367,21 @@ class TestIntegration(TestPluginBase):
 
         for obs, exp in zip(obs_results, exp_results):
             exp.index = exp.index.astype(str)
-            pd.testing.assert_frame_equal(obs.to_dataframe(), exp, check_dtype=False)
+
+        obs_metrics, obs_nx, obs_gc, obs_len, obs_cumul = obs_results
+        exp_metrics, exp_nx, exp_gc, exp_len, exp_cumul = exp_results
+
+        pd.testing.assert_frame_equal(
+            obs_metrics.to_dataframe(), exp_metrics, check_dtype=False
+        )
+        pd.testing.assert_frame_equal(obs_nx.to_dataframe(), exp_nx, check_dtype=False)
+        pd.testing.assert_frame_equal(obs_gc.to_dataframe(), exp_gc, check_dtype=False)
+        pd.testing.assert_frame_equal(
+            obs_len.to_dataframe(), exp_len, check_dtype=False
+        )
+        pd.testing.assert_frame_equal(
+            obs_cumul.to_dataframe(), exp_cumul, check_dtype=False
+        )
 
     def test_evaluate_contigs_pipeline_single_partition(self):
         obs_results, obs_viz = assembly.pipelines.evaluate_contigs(

@@ -432,6 +432,7 @@ def compute_sample_metrics(contigs_data_df: pd.DataFrame) -> pd.DataFrame:
         ).set_index("sample", drop=False)
     else:
         result = result.set_index("sample", drop=False)
+    result.sort_index(inplace=True)
     result.index.name = "id"
     return result
 
