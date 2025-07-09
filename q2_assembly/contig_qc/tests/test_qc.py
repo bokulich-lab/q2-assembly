@@ -378,9 +378,8 @@ class TestIntegration(TestPluginBase):
 
         # test Nx metrics
         obs_nx = obs_nx.to_dataframe()
-        obs_nx.sort_values(by=["sample", "percent"], inplace=True).reset_index(
-            inplace=True
-        )
+        obs_nx.sort_values(by=["sample", "percent"], inplace=True)
+        obs_nx.reset_index(inplace=True)
         pd.testing.assert_frame_equal(obs_nx, exp_nx, check_dtype=False)
 
         # test GC metrics
