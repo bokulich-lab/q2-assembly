@@ -82,7 +82,7 @@ class TestFilterContigs(TestPluginBase):
             index=pd.Index(["sample1", "sample2"], name="id"),
         )
         metadata_subset = q2.Metadata(metadata_subset_df)
-        
+
         obs = filter_contigs(contigs=self.contigs, metadata=metadata_subset)
 
         self.assertDictEqual(
