@@ -9,7 +9,7 @@ import importlib
 import os
 import subprocess
 import tempfile
-from typing import List
+from typing import List, Optional
 from uuid import NAMESPACE_OID, uuid3, uuid4, uuid5
 
 import shortuuid
@@ -175,13 +175,15 @@ def concatenate_files(input_files, output_file):
     subprocess.run(cmd, stdout=open(output_file, "w"), check=True)
 
 
-def modify_contig_ids(contig_file: str, sample: str, uuid_type: str):
+def modify_contig_ids(contig_file: str, sample: str, uuid_type: str, sample_id: Optional[str] = None, separator: str = ":"):
     """Modifies the contig IDs to include the sample name and UUID.
 
     Args:
         contig_file: Path to the contig file.
         sample: Sample name to be included in the contig ID.
         uuid_type: UUID type to be used in the contig ID.
+        sample_id: Sample ID to be used in the contig ID.
+        separator: Separator to be used in the contig ID.
     """
 
     if uuid_type == "shortuuid":
@@ -199,6 +201,9 @@ def modify_contig_ids(contig_file: str, sample: str, uuid_type: str):
                     new_id = str(uuid_func())
                 else:
                     new_id = str(uuid_func(NAMESPACE_OID, contig.metadata["id"]))
+
+                if sample_id:
+                    new_id = f"{sample_id}{separator}{new_id}"
 
                 contig.metadata["id"] = new_id
                 io.write(contig, format="fasta", into=modified_contigs)
