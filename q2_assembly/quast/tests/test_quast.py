@@ -437,10 +437,11 @@ class TestQuast(TestPluginBase):
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p1.assert_called_once_with(exp_command, check=True)
 
-    @patch("q2_assembly.quast._create_tabular_results")
+    @patch("q2_assembly.quast.quast._create_tabular_results")
     @patch("platform.system", return_value="Linux")
-    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
-    @patch("q2_assembly.quast._fix_html_reports", return_value=None)
+    @patch("q2_assembly.quast.quast._evaluate_quast",
+           return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
     def test_visualize_quast_action_no_reads(self, p1, p2, p3, p4, p5, p6):
@@ -500,9 +501,10 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
-    @patch("q2_assembly.quast._create_tabular_results")
-    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
-    @patch("q2_assembly.quast._fix_html_reports", return_value=None)
+    @patch("q2_assembly.quast.quast._create_tabular_results")
+    @patch("q2_assembly.quast.quast._evaluate_quast",
+           return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
     def test_visualize_quast_action_single_end(self, p1, p2, p3, p4, p5):
@@ -577,9 +579,10 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
-    @patch("q2_assembly.quast._create_tabular_results")
-    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
-    @patch("q2_assembly.quast._fix_html_reports", return_value=None)
+    @patch("q2_assembly.quast.quast._create_tabular_results")
+    @patch("q2_assembly.quast.quast._evaluate_quast",
+           return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
     def test_visualize_quast_action_paired_end(self, p1, p2, p3, p4, p5):
@@ -652,9 +655,10 @@ class TestQuast(TestPluginBase):
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
-    @patch("q2_assembly.quast._create_tabular_results")
-    @patch("q2_assembly.quast._evaluate_quast", return_value=["sample1", "sample2"])
-    @patch("q2_assembly.quast._fix_html_reports", return_value=None)
+    @patch("q2_assembly.quast.quast._create_tabular_results")
+    @patch("q2_assembly.quast.quast._evaluate_quast",
+           return_value=["sample1", "sample2"])
+    @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
     def test_evaluate_quast_action_paired_end_no_icarus(self, p1, p2, p3, p4, p5):
@@ -726,7 +730,7 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
     @patch("pandas.read_csv")
-    @patch("q2_assembly.quast._parse_columns")
+    @patch("q2_assembly.quast.utils._parse_columns")
     def test_create_tabular_results(self, p1, p2):
         report_path = os.path.join(self.temp_dir.name, "transposed_report.tsv")
         mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
@@ -738,7 +742,7 @@ class TestQuast(TestPluginBase):
         p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
 
     @patch("pandas.read_csv")
-    @patch("q2_assembly.quast._parse_columns")
+    @patch("q2_assembly.quast.utils._parse_columns")
     def test_create_tabular_results_in_combined_subdir(self, p1, p2):
         report_path = os.path.join(
             self.temp_dir.name, "combined_reference", "transposed_report.tsv"
@@ -822,7 +826,7 @@ class TestQuast(TestPluginBase):
             action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
             with patch(
-                "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+                "q2_types.genome_data.GenomeSequencesDirectoryFormat"
             ) as MockGenomeSequencesDirectoryFormat:
                 MockGenomeSequencesDirectoryFormat.return_value = (
                     GenomeSequencesDirectoryFormat(
@@ -853,7 +857,7 @@ class TestQuast(TestPluginBase):
             action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
             with patch(
-                "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+                "q2_types.genome_data.GenomeSequencesDirectoryFormat"
             ) as MockGenomeSequencesDirectoryFormat:
 
                 with warnings.catch_warnings(record=True) as w:
@@ -892,7 +896,7 @@ class TestQuast(TestPluginBase):
             mock_temp_dir.return_value.__enter__.return_value = tmp
             action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
             with patch(
-                "q2_assembly.quast.GenomeSequencesDirectoryFormat"
+                "q2_types.genome_data.GenomeSequencesDirectoryFormat"
             ) as MockGenomeSequencesDirectoryFormat:
                 with warnings.catch_warnings(record=True) as w:
                     # corrupt file

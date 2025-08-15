@@ -127,7 +127,7 @@ class TestISS(TestPluginBase):
         self.assertListEqual(obs_reads, exp_reads)
 
     @patch("subprocess.run")
-    @patch("q2_assembly.iss._rename_reads_files")
+    @patch("q2_assembly.iss.iss._rename_reads_files")
     def test_generate_reads(self, p1, p2):
         samples = ["samp1", "samp2"]
         result_fp = "/there"
@@ -170,7 +170,7 @@ class TestISS(TestPluginBase):
             generate_reads(sample_names=["s1", "s2", "s3", "s1", "s2"])
 
     @patch("shutil.move")
-    @patch("q2_assembly.iss._generate_reads")
+    @patch("q2_assembly.iss.iss._generate_reads")
     @patch("tempfile.TemporaryDirectory")
     def test_generate_reads_action(self, p1, p2, p3):
         test_temp_dir = MockTempDir()

@@ -101,7 +101,7 @@ class TestUtils(TestPluginBase):
                     expected_desc = content[expected_id]["description"]
                     expected_sequence = content[expected_id]["sequence"]
 
-                    self.assertEquals(actual_id, expected_id)
+                    self.assertEqual(actual_id, expected_id)
                     self.assertEqual(actual_description, expected_desc)
                     self.assertEqual(actual_sequence, expected_sequence)
 
@@ -174,7 +174,7 @@ class TestUtils(TestPluginBase):
                             expected_desc = content[expected_id]["description"]
                             expected_sequence = content[expected_id]["sequence"]
 
-                            self.assertEquals(actual_id, expected_id)
+                            self.assertEqual(actual_id, expected_id)
                             self.assertEqual(actual_description, expected_desc)
                             self.assertEqual(actual_sequence, expected_sequence)
 
@@ -238,7 +238,7 @@ class TestUtils(TestPluginBase):
                 self.assertTrue(all(regex.match(new_id) for new_id in new_contig_ids))
 
     @parameterized.expand(["shortuuid", "uuid3", "uuid4", "uuid5"])
-    @patch("q2_assembly.helpers.modify_contig_ids")
+    @patch("q2_assembly._utils.modify_contig_ids")
     def test_rename_contigs_method_call(self, uuid_type, p1):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         _ = rename_contigs(contigs, uuid_type)

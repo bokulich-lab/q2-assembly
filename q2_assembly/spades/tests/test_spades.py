@@ -208,8 +208,8 @@ class TestSpades(TestPluginBase):
                 "test_sample", "fwd_reads.fastq.gz", None, self.fake_common_args, result
             )
 
-    @patch("q2_assembly.spades.modify_contig_ids")
-    @patch("q2_assembly.spades._process_sample")
+    @patch("q2_assembly._utils.modify_contig_ids")
+    @patch("q2_assembly.spades.spades._process_sample")
     def test_assemble_spades_paired(self, p1, p2):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
@@ -225,13 +225,13 @@ class TestSpades(TestPluginBase):
         p1.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.spades.modify_contig_ids")
-    @patch("q2_assembly.spades.concatenate_files")
+    @patch("q2_assembly._utils.modify_contig_ids")
+    @patch("q2_assembly._utils.concatenate_files")
     @patch(
         "tempfile.TemporaryDirectory",
         return_value=MagicMock(__enter__=MagicMock(return_value="/tmp/mock_tmp_dir")),
     )
-    @patch("q2_assembly.spades._process_sample")
+    @patch("q2_assembly.spades.spades._process_sample")
     def test_assemble_spades_paired_coassemble(self, p1, p2, p3, p4):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
@@ -253,13 +253,13 @@ class TestSpades(TestPluginBase):
         p4.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.spades.modify_contig_ids")
-    @patch("q2_assembly.spades.concatenate_files")
+    @patch("q2_assembly._utils.modify_contig_ids")
+    @patch("q2_assembly._utils.concatenate_files")
     @patch(
         "tempfile.TemporaryDirectory",
         return_value=MagicMock(__enter__=MagicMock(return_value="/tmp/mock_tmp_dir")),
     )
-    @patch("q2_assembly.spades._process_sample")
+    @patch("q2_assembly.spades.spades._process_sample")
     def test_assemble_spades_paired_single_sample_coassemble(self, p1, p2, p3, p4):
         input_files = self.get_data_path("reads/single-sample/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
@@ -282,7 +282,7 @@ class TestSpades(TestPluginBase):
         p4.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.spades._process_sample")
+    @patch("q2_assembly.spades.spades._process_sample")
     def test_assemble_spades_single(self, p):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -297,8 +297,8 @@ class TestSpades(TestPluginBase):
                 common_args=self.test_params_list,
             )
 
-    @patch("q2_assembly.spades.modify_contig_ids")
-    @patch("q2_assembly.spades._process_sample")
+    @patch("q2_assembly._utils.modify_contig_ids")
+    @patch("q2_assembly.spades.spades._process_sample")
     def test_assemble_spades_single_coassemble(self, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -315,8 +315,8 @@ class TestSpades(TestPluginBase):
             )
             p2.assert_not_called()
 
-    @patch("q2_assembly.spades.modify_contig_ids")
-    @patch("q2_assembly.spades._process_sample")
+    @patch("q2_assembly._utils.modify_contig_ids")
+    @patch("q2_assembly.spades.spades._process_sample")
     def test_assemble_spades_single_single_sample_coassemble(self, p1, p2):
         input_files = self.get_data_path("reads/single-sample/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -333,8 +333,8 @@ class TestSpades(TestPluginBase):
             )
             p2.assert_not_called()
 
-    @patch("q2_assembly.spades.modify_contig_ids")
-    @patch("q2_assembly.spades._assemble_spades")
+    @patch("q2_assembly._utils.modify_contig_ids")
+    @patch("q2_assembly.spades.spades._assemble_spades")
     def test_assemble_spades_process_params(self, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -362,8 +362,8 @@ class TestSpades(TestPluginBase):
         )
 
     @parameterized.expand([("shortuuid",), ("uuid3",), ("uuid4",), ("uuid5",)])
-    @patch("q2_assembly.spades.modify_contig_ids")
-    @patch("q2_assembly.spades._process_sample")
+    @patch("q2_assembly._utils.modify_contig_ids")
+    @patch("q2_assembly.spades.spades._process_sample")
     def test_assemble_spades_different_uuids(self, uuid_type, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")

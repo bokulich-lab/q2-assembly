@@ -54,7 +54,7 @@ class TestMason(TestPluginBase):
         exp = ["--k_bool"]
         self.assertListEqual(obs, exp)
 
-    @patch("q2_assembly.mason._process_sample")
+    @patch("q2_assembly.mason.mason._process_sample")
     def test_simulate_reads_mason_helper(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
@@ -63,7 +63,7 @@ class TestMason(TestPluginBase):
         )
 
         with patch(
-            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
+            "q2_types.genome_data.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
             result = _simulate_reads_mason(
@@ -332,8 +332,8 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
             self.assertFalse(os.path.exists(f1))
             self.assertFalse(os.path.exists(f2))
 
-    @patch("q2_assembly.mason.run_command")
-    @patch("q2_assembly.mason._combine_reads")
+    @patch("q2_assembly._utils.run_command")
+    @patch("q2_assembly.mason.mason._combine_reads")
     def test_process_sample(self, mock_combine_reads, mock_run_command):
         sample = "sampleY"
         genome_files = ["/tmp/genome1.fasta", "/tmp/genome2.fasta"]
