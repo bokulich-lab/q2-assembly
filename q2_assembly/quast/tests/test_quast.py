@@ -439,8 +439,9 @@ class TestQuast(TestPluginBase):
 
     @patch("q2_assembly.quast.quast._create_tabular_results")
     @patch("platform.system", return_value="Linux")
-    @patch("q2_assembly.quast.quast._evaluate_quast",
-           return_value=["sample1", "sample2"])
+    @patch(
+        "q2_assembly.quast.quast._evaluate_quast", return_value=["sample1", "sample2"]
+    )
     @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
@@ -502,8 +503,9 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
     @patch("q2_assembly.quast.quast._create_tabular_results")
-    @patch("q2_assembly.quast.quast._evaluate_quast",
-           return_value=["sample1", "sample2"])
+    @patch(
+        "q2_assembly.quast.quast._evaluate_quast", return_value=["sample1", "sample2"]
+    )
     @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
@@ -580,8 +582,9 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
     @patch("q2_assembly.quast.quast._create_tabular_results")
-    @patch("q2_assembly.quast.quast._evaluate_quast",
-           return_value=["sample1", "sample2"])
+    @patch(
+        "q2_assembly.quast.quast._evaluate_quast", return_value=["sample1", "sample2"]
+    )
     @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
@@ -656,8 +659,9 @@ class TestQuast(TestPluginBase):
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
     @patch("q2_assembly.quast.quast._create_tabular_results")
-    @patch("q2_assembly.quast.quast._evaluate_quast",
-           return_value=["sample1", "sample2"])
+    @patch(
+        "q2_assembly.quast.quast._evaluate_quast", return_value=["sample1", "sample2"]
+    )
     @patch("q2_assembly.quast.quast._fix_html_reports", return_value=None)
     @patch("q2templates.render")
     @patch("tempfile.TemporaryDirectory")
