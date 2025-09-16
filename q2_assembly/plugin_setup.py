@@ -207,15 +207,15 @@ plugin.pipelines.register_function(
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
         "references": "Reference genomes to align the assembled contigs against.",
-        "alignment_maps": "Reads-to-contigs alignment maps (alternative to 'reads')."
+        "alignment_maps": "Reads-to-contigs alignment maps (alternative to 'reads') "
         "directly.",
     },
     parameter_descriptions=quast_param_descriptions,
     output_descriptions={
         "results_table": "QUAST result table.",
         "visualization": "Visualization of the QUAST results.",
-        "reference_genomes": "Genome sequences downloaded by QUAST. NOTE: If the user"
-        "provides the sequences as input, then this artifact"
+        "reference_genomes": "Genome sequences downloaded by QUAST. NOTE: If the user "
+        "provides the sequences as input, then this artifact "
         "will be the input artifact.",
     },
     name="Evaluate quality of the assembled contigs using metaQUAST.",
