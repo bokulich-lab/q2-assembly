@@ -8,11 +8,13 @@
 
 import os
 import shutil
+
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
 from q2_assembly._utils import modify_contig_ids
+
 
 def rename_contigs(
     contigs: ContigSequencesDirFmt, uuid_type: str

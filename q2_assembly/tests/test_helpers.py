@@ -20,7 +20,6 @@ import skbio
 from parameterized import parameterized
 from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
-from qiime2.plugins import assembly
 
 from q2_assembly.helpers.helpers import rename_contigs
 
