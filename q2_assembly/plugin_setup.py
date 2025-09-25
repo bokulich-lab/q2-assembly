@@ -106,33 +106,6 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_assembly.helpers.partition_contigs,
-    inputs={"contigs": SampleData[Contigs]},
-    parameters={"num_partitions": Int % Range(1, None)},
-    outputs={"partitioned_contigs": Collection[SampleData[Contigs]]},
-    input_descriptions={"contigs": "The contigs to partition."},
-    parameter_descriptions={
-        "num_partitions": "The number of partitions to split the contigs"
-        " into. Defaults to partitioning into individual"
-        " samples."
-    },
-    name="Partition contigs",
-    description="Partition contigs into individual samples or the number of"
-    " partitions specified.",
-)
-
-plugin.methods.register_function(
-    function=q2_assembly.helpers.collate_contigs,
-    inputs={"contigs": List[SampleData[Contigs]]},
-    parameters={},
-    outputs={"collated_contigs": SampleData[Contigs]},
-    input_descriptions={"contigs": "A collection of contigs to be collated."},
-    name="Collate contigs",
-    description="Takes a collection of SampleData[Contigs] and collates them"
-    " into a single artifact.",
-)
-
-plugin.methods.register_function(
     function=q2_assembly.helpers.rename_contigs,
     inputs={"contigs": SampleData[Contigs]},
     parameters={"uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"])},
@@ -507,26 +480,6 @@ plugin.methods.register_function(
     },
     name="Map reads to contigs helper.",
     description="Not to be called directly. Used by map_reads.",
-)
-
-plugin.methods.register_function(
-    function=q2_assembly.helpers.collate_genomes,
-    inputs={"genomes": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
-    parameters={"on_duplicates": Str % Choices(["error", "warn"])},
-    outputs={"collated_genomes": GenomeData[DNASequence]},
-    input_descriptions={"genomes": "A  list of genomes to be collated."},
-    parameter_descriptions={
-        "on_duplicates": "Preferred behaviour when duplicated genome IDs "
-        'are encountered: "warn" displays a warning and '
-        "continues with the combination of the genomes "
-        'while "error" raises an error and aborts further '
-        "execution."
-    },
-    output_descriptions={"collated_genomes": "The converted genomes."},
-    name="Convert a list of FeatureData[Sequence] or a list of GenomeData[DNASequence] "
-    "to GenomeData[DNASequence].",
-    description="This method converts a list of FeatureData[Sequence] or a list of "
-    "GenomeData[DNASequence] to a GenomeData[DNASequence] artifact.",
 )
 
 plugin.methods.register_function(
