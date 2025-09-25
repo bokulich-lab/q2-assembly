@@ -62,8 +62,36 @@ class TestFilterContigs(TestPluginBase):
             filter_contigs(contigs=self.contigs)
 
     def test_filter_metadata_no_query(self):
-        with self.assertRaisesRegex(ValueError, "A filter query must be provided"):
-            filter_contigs(contigs=self.contigs, metadata=self.metadata)
+        # When no 'where' query is provided, should filter to include all samples
+        # present in the metadata (sample1, sample2, sample3)
+        obs = filter_contigs(contigs=self.contigs, metadata=self.metadata)
+
+        self.assertDictEqual(
+            obs.sample_dict(),
+            {
+                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
+                "sample2": os.path.join(obs.path, "sample2_contigs.fa"),
+                "sample3": os.path.join(obs.path, "sample3_contigs.fa"),
+            },
+        )
+
+    def test_filter_metadata_subset_ids_only(self):
+        # Test filtering by metadata that only contains a subset of sample IDs
+        metadata_subset_df = pd.DataFrame(
+            data={"col1": ["yes", "no"]},
+            index=pd.Index(["sample1", "sample2"], name="id"),
+        )
+        metadata_subset = q2.Metadata(metadata_subset_df)
+
+        obs = filter_contigs(contigs=self.contigs, metadata=metadata_subset)
+
+        self.assertDictEqual(
+            obs.sample_dict(),
+            {
+                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
+                "sample2": os.path.join(obs.path, "sample2_contigs.fa"),
+            },
+        )
 
     def test_filter_by_length(self):
         obs = filter_contigs(contigs=self.contigs, length_threshold=320)
