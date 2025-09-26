@@ -463,6 +463,26 @@ class TestMegahit(TestPluginBase):
             [call(ANY, "sample1", uuid_type), call(ANY, "sample2", uuid_type)]
         )
 
+    @patch("q2_assembly.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit._process_sample")
+    @patch("builtins.print")
+    @patch("sys.platform", "darwin")
+    def test_macos_cpu_threads_warning(self, p1, p2, p3):
+        input_files = self.get_data_path("reads/single-end")
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+
+        _assemble_megahit(reads=reads, num_cpu_threads=2, presets="disabled")
+
+        p1.assert_called_once_with(
+            "WARNING: MEGAHIT is running under macOS. "
+            "num_cpu_threads > 1 may cause program to break. "
+            "Resetting num_cpu_threads to 1."
+        )
+
+        pos_args, _ = p2.call_args
+        common_args = pos_args[3]
+        self.assertEqual(common_args[common_args.index("--num-cpu-threads") + 1], "1")
+
 
 if __name__ == "__main__":
     unittest.main()
