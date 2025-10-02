@@ -9,6 +9,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import warnings
 from typing import List, Union
@@ -205,6 +206,13 @@ def _assemble_megahit(
         raise ValueError(
             "If any of the parameters k_min, k_max, or k_step are used "
             "then all must be explicitly set."
+        )
+    if sys.platform == "darwin" and num_cpu_threads != 1:
+        num_cpu_threads = 1
+        print(
+            "WARNING: MEGAHIT is running under macOS. "
+            "num_cpu_threads > 1 may cause program to break. "
+            "Resetting num_cpu_threads to 1."
         )
 
     kwargs = {
