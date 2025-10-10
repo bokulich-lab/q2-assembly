@@ -142,7 +142,7 @@ def assemble_megahit(
     }
 
     _assemble_megahit = ctx.get_action("assembly", "_assemble_megahit")
-    collate_contigs = ctx.get_action("assembly", "collate_contigs")
+    collate_contigs = ctx.get_action("types", "collate_contigs")
 
     if reads.type <= SampleData[SequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_single")
