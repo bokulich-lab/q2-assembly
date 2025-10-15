@@ -19,7 +19,6 @@ from q2_assembly.mason.mason import (
     _process_mason_arg,
     _simulate_reads_mason,
     generate_abundances,
-    abundances_to_df,
     _combine_reads,
     _process_sample,
     simulate_reads_mason,
@@ -278,30 +277,6 @@ class TestGenerateAbundances(TestPluginBase):
             ValueError, "Invalid abundance profile option: 'invalid'"
         ):
             generate_abundances("invalid", 2)
-
-
-class TestAbundancesToDF(TestPluginBase):
-    package = "q2_assembly.tests"
-
-    def test_abundances_to_df(self):
-        abundances = [0.1, 0.2, 0.7]
-        genome_files = [
-            "/tmp/genomeA.fasta",
-            "/tmp/genomeB.fasta",
-            "/tmp/genomeC.fasta",
-        ]
-        sample_id = "sample1"
-        df = abundances_to_df(abundances, genome_files, sample_id)
-        self.assertListEqual(list(df.index), ["genomeA", "genomeB", "genomeC"])
-        self.assertListEqual(list(df[sample_id]), abundances)
-
-    def test_abundances_to_df_empty(self):
-        abundances = []
-        genome_files = []
-        sample_id = "sample1"
-        df = abundances_to_df(abundances, genome_files, sample_id)
-        self.assertEqual(df.shape, (0, 1))
-        self.assertListEqual(list(df.columns), [sample_id])
 
 
 class TestCombineReadsAndProcessSample(TestPluginBase):

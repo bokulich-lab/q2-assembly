@@ -44,8 +44,12 @@ def _process_mason_arg(arg_key, arg_val):
         return flags
 
 
-def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5, random_seed=42):
+def generate_abundances(
+        profile, genomes, sample_name, mu=0, sigma=1, lambd=0.5, random_seed=42
+) -> pd.DataFrame:
     np.random.seed(random_seed)
+    genome_ids = list(genomes.file_dict().keys())
+    num_genomes = len(genome_ids)
 
     if profile == "uniform":
         abundances = [1 / num_genomes] * num_genomes
@@ -58,17 +62,9 @@ def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5, random_s
     else:
         raise ValueError(f"Invalid abundance profile option: '{profile}'")
 
-    return list(abundances)
-
-
-def abundances_to_df(abundances, genome_files, sample_id):
-    data = {
-        "id": [os.path.basename(f).split(".")[0] for f in genome_files],
-        sample_id: abundances,
-    }
-    df = pd.DataFrame(data)
-    df.set_index("id", inplace=True)
-    return df
+    return pd.DataFrame(
+        data={sample_name: abundances}, index=pd.Index(genome_ids, name="id")
+    )
 
 
 def _combine_reads(sample_id, results_dir, orientation="forward"):
@@ -91,12 +87,20 @@ def _combine_reads(sample_id, results_dir, orientation="forward"):
 
 
 def _process_sample(
-    sample, genome_files, abundances, total_reads, results_dir, threads, read_len, seed
+    sample, genomes, abundances: pd.DataFrame, total_reads, results_dir, threads, read_len, seed
 ):
-    for genome_file, abundance in zip(genome_files, abundances):
-        genome_reads = int(total_reads * abundance)
-        _id = os.path.splitext(os.path.basename(genome_file))[0]
-        print(f"[Sample: {sample}] Generating {genome_reads} reads for {_id}")
+    genomes_dict = genomes.file_dict() # {genome1: path1, genome2: path2}
+    abundances_dict = abundances[sample].to_dict() # {genome1: abundance1, genome2: abundance2}
+    genomes_final = {}
+    for genome_id in genomes_dict:
+        genomes_final[genome_id] = {
+            "fp": genomes_dict[genome_id],
+            "reads": int(total_reads * abundances_dict[genome_id]),
+        }
+    for genome_id, genome_data in genomes_final.items():
+        reads_count = genome_data["reads"]
+        genome_fp = genome_data["fp"]
+        print(f"[Sample: {sample}] Generating {reads_count} reads for {genome_id}")
 
         cmd = [
             "mason_simulator",
@@ -110,13 +114,13 @@ def _process_sample(
             "--num-threads",
             str(threads),
             "--input-reference",
-            genome_file,
+            genome_fp,
             "--num-fragments",
-            str(genome_reads),
+            str(reads_count),
             "--out",
-            os.path.join(results_dir, f"{sample}_{_id}_00_L001_R1_001.fastq.gz"),
+            os.path.join(results_dir, f"{sample}_{genome_id}_00_L001_R1_001.fastq.gz"),
             "--out-right",
-            os.path.join(results_dir, f"{sample}_{_id}_00_L001_R2_001.fastq.gz"),
+            os.path.join(results_dir, f"{sample}_{genome_id}_00_L001_R2_001.fastq.gz"),
         ]
 
         run_command(cmd, verbose=True)
@@ -134,7 +138,7 @@ def _simulate_reads_mason(
     read_length: int = 100,
     random_seed: int = 42,
     threads: int = 1,
-) -> CasavaOneEightSingleLanePerSampleDirFmt:
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, pd.DataFrame):
 
     # we will copy the genomes to a temporary directory: mason generates fai
     # files that would interfere with validation
@@ -142,13 +146,12 @@ def _simulate_reads_mason(
     shutil.copytree(str(reference_genomes.path), str(tmp_refs.path), dirs_exist_ok=True)
 
     result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
-    genome_files = list(tmp_refs.file_dict().values())
     abundances = generate_abundances(
-        abundance_profile, len(genome_files), random_seed=random_seed
+        abundance_profile, tmp_refs, sample_name, random_seed=random_seed
     )
     _process_sample(
         sample=sample_name,
-        genome_files=genome_files,
+        genomes=tmp_refs,
         abundances=abundances,
         total_reads=num_reads,
         results_dir=str(result_reads),
@@ -159,7 +162,7 @@ def _simulate_reads_mason(
 
     del tmp_refs
 
-    return result_reads
+    return result_reads, abundances.T
 
 
 def simulate_reads_mason(
@@ -228,12 +231,13 @@ def simulate_reads_mason(
 
     _simulate = ctx.get_action("assembly", "_simulate_reads_mason")
     collate_reads = ctx.get_action("fondue", "combine_seqs")
+    merge_tables = ctx.get_action("feature_table", "merge")
 
-    samples = []
+    samples, abundances = [], []
     for sample_name, abundance_profile, reads, length in zip(
         sample_names, abundance_profiles, num_reads, read_length
     ):
-        (sample,) = _simulate(
+        reads, abundance = _simulate(
             reference_genomes=reference_genomes,
             abundance_profile=abundance_profile,
             sample_name=sample_name,
@@ -241,8 +245,10 @@ def simulate_reads_mason(
             read_length=length,
             **kwargs,
         )
-        samples.append(sample)
+        samples.append(reads)
+        abundances.append(abundance)
 
     (collated_samples,) = collate_reads(samples)
+    (merged_abundances,) = merge_tables(abundances)
 
-    return collated_samples
+    return collated_samples, merged_abundances

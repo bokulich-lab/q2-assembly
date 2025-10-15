@@ -346,12 +346,18 @@ plugin.methods.register_function(
     function=q2_assembly.mason._simulate_reads_mason,
     inputs={"reference_genomes": GenomeData[DNASequence]},
     parameters=_mason_helper_params,
-    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    outputs=[
+        ("reads", SampleData[PairedEndSequencesWithQuality]),
+        ("abundances", FeatureTable[Frequency])
+    ],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation."
     },
     parameter_descriptions=mason_helper_param_descriptions,
-    output_descriptions={"reads": "Simulated paired-end reads."},
+    output_descriptions={
+        "reads": "Simulated paired-end reads.",
+        "abundances": "Abundances of genomes from which the reads were simulated."
+    },
     name="Simulate NGS reads using Mason.",
     description=(
         "This method uses Mason to generate paired-end reads simulated "
@@ -366,7 +372,10 @@ plugin.pipelines.register_function(
         **mason_params,
         **partition_params,
     },
-    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    outputs=[
+        ("reads", SampleData[PairedEndSequencesWithQuality]),
+        ("abundances", FeatureTable[Frequency])
+    ],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation."
     },
@@ -374,7 +383,10 @@ plugin.pipelines.register_function(
         **mason_param_descriptions,
         **partition_param_descriptions,
     },
-    output_descriptions={"reads": "Simulated paired-end reads."},
+    output_descriptions={
+        "reads": "Simulated paired-end reads.",
+        "abundances": "Abundances of genomes from which the reads were simulated."
+    },
     name="Short read simulation with Mason.",
     description=(
         "This method uses Mason to generate reads simulated from given "
