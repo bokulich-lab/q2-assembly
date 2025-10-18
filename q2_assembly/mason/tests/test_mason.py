@@ -11,6 +11,7 @@ import tempfile
 import unittest
 from unittest.mock import call, patch, MagicMock
 
+import pandas as pd
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFmt
 from qiime2.plugin.testing import TestPluginBase
@@ -65,32 +66,38 @@ class TestMason(TestPluginBase):
             "q2_assembly.mason.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
-            result = _simulate_reads_mason(
+            reads, ft = _simulate_reads_mason(
                 reference_genomes=refs,
                 sample_name="sample1",
                 num_reads=2000000,
                 read_length=125,
                 abundance_profile="uniform",
             )
-        self.assertIsInstance(result, CasavaOneEightSingleLanePerSampleDirFmt)
+        self.assertIsInstance(reads, CasavaOneEightSingleLanePerSampleDirFmt)
         p_process.assert_called_once_with(
             sample="sample1",
-            genome_files=[
-                os.path.join(str(mock_genomes_dir_fmt), "ref1.fasta"),
-                os.path.join(str(mock_genomes_dir_fmt), "ref2.fasta"),
-            ],
-            abundances=[0.5, 0.5],
+            genomes=mock_genomes_dir_fmt,
+            abundances=pd.DataFrame(
+                data={"sample1": [0.5, 0.5]},
+                index=pd.Index(["ref1", "ref2"], name="id")
+            ),
             total_reads=2000000,
-            results_dir=str(result),
+            results_dir=str(reads),
             threads=1,
             read_len=125,
             seed=42,
         )
+        expected_ft = pd.DataFrame(
+            data={"ref1": [0.5], "ref2": [0.5]},
+            index=pd.Index(["sample1"], name="id")
+        )
+        pd.testing.assert_frame_equal(ft, expected_ft)
 
     def test_simulate_reads_mason_one_sample(self):
-        f1 = MagicMock(return_value=("reads",))
+        f1 = MagicMock(return_value=("reads", "ft"))
         f2 = MagicMock(return_value=("collated_reads",))
-        mock_action = MagicMock(side_effect=[f1, f2])
+        f3 = MagicMock(return_value=("merged_tables",))
+        mock_action = MagicMock(side_effect=[f1, f2, f3])
         mock_ctx = MagicMock(get_action=mock_action)
 
         simulate_reads_mason(
@@ -114,9 +121,10 @@ class TestMason(TestPluginBase):
         f2.assert_called_once_with(["reads"])
 
     def test_simulate_reads_mason_multiple_samples(self):
-        f1 = MagicMock(side_effect=(("reads1",), ("reads2",)))
+        f1 = MagicMock(side_effect=(("reads1", "ft1"), ("reads2", "ft2")))
         f2 = MagicMock(return_value=("collated_reads",))
-        mock_action = MagicMock(side_effect=[f1, f2])
+        f3 = MagicMock(return_value=("merged_tables",))
+        mock_action = MagicMock(side_effect=[f1, f2, f3])
         mock_ctx = MagicMock(get_action=mock_action)
 
         simulate_reads_mason(
@@ -213,9 +221,10 @@ class TestMason(TestPluginBase):
             )
 
     def test_simulate_reads_mason_expand_arguments(self):
-        f1 = MagicMock(side_effect=(("reads1",), ("reads2",)))
+        f1 = MagicMock(side_effect=(("reads1", "ft1"), ("reads2", "ft2")))
         f2 = MagicMock(return_value=("collated_reads",))
-        mock_action = MagicMock(side_effect=[f1, f2])
+        f3 = MagicMock(return_value=("merged_tables",))
+        mock_action = MagicMock(side_effect=[f1, f2, f3])
         mock_ctx = MagicMock(get_action=mock_action)
 
         simulate_reads_mason(
@@ -256,27 +265,39 @@ class TestGenerateAbundances(TestPluginBase):
     package = "q2_assembly.tests"
 
     def test_uniform_profile(self):
-        result = generate_abundances("uniform", 4)
-        expected = [0.25, 0.25, 0.25, 0.25]
-        for r, e in zip(result, expected):
-            self.assertAlmostEqual(r, e)
+        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format4"), "r")
+        result = generate_abundances("uniform", genomes, "sample1")
+        expected = pd.DataFrame(
+            data={"sample1": [0.25, 0.25, 0.25, 0.25]},
+            index=pd.Index(["ref1", "ref2", "ref3", "ref4"], name="id")
+        )
+        pd.testing.assert_frame_equal(result, expected)
 
     def test_exponential_profile(self):
-        result = generate_abundances("exponential", 3, lambd=1.0)
-        # Should sum to 1
-        self.assertAlmostEqual(sum(result), 1.0)
-        self.assertTrue(all(x > 0 for x in result))
+        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format3"), "r")
+        result = generate_abundances("exponential", genomes, "sample1", lambd=1.0)
+        expected = pd.DataFrame(
+            data={"sample1": [0.6652, 0.2447, 0.0900]},
+            index=pd.Index(["ref1", "ref2", "ref3"], name="id")
+        )
+        pd.testing.assert_frame_equal(result, expected, check_exact=False, rtol=0.001)
 
     def test_lognormal_profile(self):
-        result = generate_abundances("lognormal", 5, mu=0, sigma=1)
-        self.assertAlmostEqual(sum(result), 1.0)
-        self.assertEqual(len(result), 5)
+        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format5"), "r")
+        result = generate_abundances("lognormal", genomes, "sample1", mu=0, sigma=1)
+        expected = pd.DataFrame(
+            data={"sample1": [0.1676, 0.0888, 0.1950, 0.4678, 0.0807]},
+            index=pd.Index(["ref1", "ref2", "ref3", "ref4", "ref5"], name="id")
+        )
+        pd.testing.assert_frame_equal(result, expected, check_exact=False, rtol=0.001)
+
 
     def test_invalid_profile(self):
+        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format4"), "r")
         with self.assertRaisesRegex(
             ValueError, "Invalid abundance profile option: 'invalid'"
         ):
-            generate_abundances("invalid", 2)
+            generate_abundances("invalid", genomes, "sample1")
 
 
 class TestCombineReadsAndProcessSample(TestPluginBase):
@@ -311,8 +332,11 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
     @patch("q2_assembly.mason._combine_reads")
     def test_process_sample(self, mock_combine_reads, mock_run_command):
         sample = "sampleY"
-        genome_files = ["/tmp/genome1.fasta", "/tmp/genome2.fasta"]
-        abundances = [0.6, 0.4]
+        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format1"), "r")
+        abundances = pd.DataFrame(
+            data={sample: [0.6, 0.4]},
+            index=pd.Index(["ref1", "ref2"], name="id")
+        )
         total_reads = 1000
         tmp_dir = tempfile.mkdtemp()
         threads = 2
@@ -321,7 +345,7 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
 
         _process_sample(
             sample,
-            genome_files,
+            genomes,
             abundances,
             total_reads,
             tmp_dir,
@@ -331,9 +355,9 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
         )
         # Should call run_command for each genome with the expected command
         expected_calls = []
-        for genome_file, abundance in zip(genome_files, abundances):
+        for genome_id, genome_fp in genomes.file_dict().items():
+            abundance = abundances.loc[genome_id, sample]
             genome_reads = int(total_reads * abundance)
-            _id = os.path.basename(genome_file).replace(".fasta", "")
             expected_cmd = [
                 "mason_simulator",
                 "-v",
@@ -346,13 +370,13 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
                 "--num-threads",
                 str(threads),
                 "--input-reference",
-                genome_file,
+                genome_fp,
                 "--num-fragments",
                 str(genome_reads),
                 "--out",
-                os.path.join(tmp_dir, f"{sample}_{_id}_00_L001_R1_001.fastq.gz"),
+                os.path.join(tmp_dir, f"{sample}_{genome_id}_00_L001_R1_001.fastq.gz"),
                 "--out-right",
-                os.path.join(tmp_dir, f"{sample}_{_id}_00_L001_R2_001.fastq.gz"),
+                os.path.join(tmp_dir, f"{sample}_{genome_id}_00_L001_R2_001.fastq.gz"),
             ]
             expected_calls.append(call(expected_cmd, verbose=True))
 

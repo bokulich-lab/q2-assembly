@@ -48,7 +48,7 @@ def generate_abundances(
         profile, genomes, sample_name, mu=0, sigma=1, lambd=0.5, random_seed=42
 ) -> pd.DataFrame:
     np.random.seed(random_seed)
-    genome_ids = list(genomes.file_dict().keys())
+    genome_ids = sorted(list(genomes.file_dict().keys()))
     num_genomes = len(genome_ids)
 
     if profile == "uniform":
