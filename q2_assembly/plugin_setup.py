@@ -23,7 +23,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
-from qiime2.plugin import Citations, Collection, Int, List, Plugin, Range, Metadata
+from qiime2.plugin import Citations, Int, List, Plugin, Range, Metadata
 
 import q2_assembly
 from q2_assembly import __version__
@@ -107,33 +107,6 @@ plugin.methods.register_function(
 )
 
 plugin.methods.register_function(
-    function=q2_assembly.helpers.partition_contigs,
-    inputs={"contigs": SampleData[Contigs]},
-    parameters={"num_partitions": Int % Range(1, None)},
-    outputs={"partitioned_contigs": Collection[SampleData[Contigs]]},
-    input_descriptions={"contigs": "The contigs to partition."},
-    parameter_descriptions={
-        "num_partitions": "The number of partitions to split the contigs"
-        " into. Defaults to partitioning into individual"
-        " samples."
-    },
-    name="Partition contigs",
-    description="Partition contigs into individual samples or the number of"
-    " partitions specified.",
-)
-
-plugin.methods.register_function(
-    function=q2_assembly.helpers.collate_contigs,
-    inputs={"contigs": List[SampleData[Contigs]]},
-    parameters={},
-    outputs={"collated_contigs": SampleData[Contigs]},
-    input_descriptions={"contigs": "A collection of contigs to be collated."},
-    name="Collate contigs",
-    description="Takes a collection of SampleData[Contigs] and collates them"
-    " into a single artifact.",
-)
-
-plugin.methods.register_function(
     function=q2_assembly.helpers.rename_contigs,
     inputs={"contigs": SampleData[Contigs]},
     parameters={"uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"])},
@@ -208,15 +181,15 @@ plugin.pipelines.register_function(
         "contigs": "Assembled contigs to be analyzed.",
         "reads": "Original single- or paired-end reads.",
         "references": "Reference genomes to align the assembled contigs against.",
-        "alignment_maps": "Reads-to-contigs alignment maps (alternative to 'reads')."
+        "alignment_maps": "Reads-to-contigs alignment maps (alternative to 'reads') "
         "directly.",
     },
     parameter_descriptions=quast_param_descriptions,
     output_descriptions={
         "results_table": "QUAST result table.",
         "visualization": "Visualization of the QUAST results.",
-        "reference_genomes": "Genome sequences downloaded by QUAST. NOTE: If the user"
-        "provides the sequences as input, then this artifact"
+        "reference_genomes": "Genome sequences downloaded by QUAST. NOTE: If the user "
+        "provides the sequences as input, then this artifact "
         "will be the input artifact.",
     },
     name="Evaluate quality of the assembled contigs using metaQUAST.",
@@ -508,26 +481,6 @@ plugin.methods.register_function(
     },
     name="Map reads to contigs helper.",
     description="Not to be called directly. Used by map_reads.",
-)
-
-plugin.methods.register_function(
-    function=q2_assembly.helpers.collate_genomes,
-    inputs={"genomes": List[FeatureData[Sequence]] | List[GenomeData[DNASequence]]},
-    parameters={"on_duplicates": Str % Choices(["error", "warn"])},
-    outputs={"collated_genomes": GenomeData[DNASequence]},
-    input_descriptions={"genomes": "A  list of genomes to be collated."},
-    parameter_descriptions={
-        "on_duplicates": "Preferred behaviour when duplicated genome IDs "
-        'are encountered: "warn" displays a warning and '
-        "continues with the combination of the genomes "
-        'while "error" raises an error and aborts further '
-        "execution."
-    },
-    output_descriptions={"collated_genomes": "The converted genomes."},
-    name="Convert a list of FeatureData[Sequence] or a list of GenomeData[DNASequence] "
-    "to GenomeData[DNASequence].",
-    description="This method converts a list of FeatureData[Sequence] or a list of "
-    "GenomeData[DNASequence] to a GenomeData[DNASequence] artifact.",
 )
 
 plugin.methods.register_function(

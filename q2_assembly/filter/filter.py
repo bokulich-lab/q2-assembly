@@ -60,12 +60,6 @@ def filter_contigs(
             "metadata, length_threshold, remove_empty."
         )
 
-    if metadata and not where:
-        raise ValueError(
-            "A filter query must be provided through the 'where' parameter "
-            "when filtering by metadata."
-        )
-
     if length_threshold > 0:
         contigs = _filter_by_length(contigs, length_threshold)
 

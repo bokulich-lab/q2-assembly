@@ -9,6 +9,7 @@
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import warnings
 from typing import List, Union
@@ -141,7 +142,7 @@ def assemble_megahit(
     }
 
     _assemble_megahit = ctx.get_action("assembly", "_assemble_megahit")
-    collate_contigs = ctx.get_action("assembly", "collate_contigs")
+    collate_contigs = ctx.get_action("types", "collate_contigs")
 
     if reads.type <= SampleData[SequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_single")
@@ -205,6 +206,13 @@ def _assemble_megahit(
         raise ValueError(
             "If any of the parameters k_min, k_max, or k_step are used "
             "then all must be explicitly set."
+        )
+    if sys.platform == "darwin" and num_cpu_threads != 1:
+        num_cpu_threads = 1
+        print(
+            "WARNING: MEGAHIT is running under macOS. "
+            "num_cpu_threads > 1 may cause program to break. "
+            "Resetting num_cpu_threads to 1."
         )
 
     kwargs = {

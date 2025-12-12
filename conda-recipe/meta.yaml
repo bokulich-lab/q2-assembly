@@ -19,7 +19,7 @@ requirements:
   - gridss
   - insilicoseq
   - mason
-  - megahit ==1.2.9
+  - megahit {{ megahit }}
   - pyarrow
   - pysam {{ pysam }}
   - qiime2 >={{ qiime2 }}

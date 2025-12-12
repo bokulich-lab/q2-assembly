@@ -87,7 +87,7 @@ def index_contigs(
     }
 
     _index_contigs = ctx.get_action("assembly", "_index_contigs")
-    partition_contigs = ctx.get_action("assembly", "partition_contigs")
+    partition_contigs = ctx.get_action("types", "partition_contigs")
     collate_indices = ctx.get_action("assembly", "collate_indices")
 
     (partitioned_contigs,) = partition_contigs(contigs, num_partitions)
