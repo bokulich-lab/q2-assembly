@@ -580,7 +580,7 @@ def _visualize_contig_qc(
 
 
 def evaluate_contigs(ctx, contigs, metadata=None, n_cpus=1, num_partitions=1):
-    _partition = ctx.get_action("assembly", "partition_contigs")
+    _partition = ctx.get_action("types", "partition_contigs")
     _evaluate = ctx.get_action("assembly", "_evaluate_contigs")
     _visualize = ctx.get_action("assembly", "_visualize_contig_qc")
 
