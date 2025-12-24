@@ -10,7 +10,7 @@ import importlib
 
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
-from q2_types.feature_table import FeatureTable, Frequency
+from q2_types.feature_table import FeatureTable, Frequency, RelativeFrequency
 from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
     AlignmentMap,
@@ -344,14 +344,18 @@ mason_param_descriptions = {
 
 plugin.methods.register_function(
     function=q2_assembly.mason._simulate_reads_mason,
-    inputs={"reference_genomes": GenomeData[DNASequence]},
+    inputs={
+        "reference_genomes": GenomeData[DNASequence],
+        "abundances": FeatureTable[RelativeFrequency],
+    },
     parameters=_mason_helper_params,
     outputs=[
         ("reads", SampleData[PairedEndSequencesWithQuality]),
-        ("abundances", FeatureTable[Frequency])
+        ("abundances", FeatureTable[RelativeFrequency])
     ],
     input_descriptions={
-        "reference_genomes": "Input reference genomes for read simulation."
+        "reference_genomes": "Input reference genomes for read simulation.",
+        "abundances": "Pre-calculated abundance profiles to be used for read generation."
     },
     parameter_descriptions=mason_helper_param_descriptions,
     output_descriptions={
