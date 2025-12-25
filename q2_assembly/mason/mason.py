@@ -147,9 +147,10 @@ def _simulate_reads_mason(
     shutil.copytree(str(reference_genomes.path), str(tmp_refs.path), dirs_exist_ok=True)
 
     result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
-    abundances = generate_abundances(
-        abundance_profile, tmp_refs, sample_name, random_seed=random_seed
-    )
+    if not abundances:
+        abundances = generate_abundances(
+            abundance_profile, tmp_refs, sample_name, random_seed=random_seed
+        )
     _process_sample(
         sample=sample_name,
         genomes=tmp_refs,
