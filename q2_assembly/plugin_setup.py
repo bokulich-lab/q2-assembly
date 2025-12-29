@@ -371,7 +371,10 @@ plugin.methods.register_function(
 
 plugin.pipelines.register_function(
     function=q2_assembly.mason.simulate_reads_mason,
-    inputs={"reference_genomes": GenomeData[DNASequence]},
+    inputs={
+        "reference_genomes": GenomeData[DNASequence],
+        "abundances": FeatureTable[RelativeFrequency],
+    },
     parameters={
         **mason_params,
         **partition_params,
@@ -381,7 +384,8 @@ plugin.pipelines.register_function(
         ("abundances", FeatureTable[Frequency])
     ],
     input_descriptions={
-        "reference_genomes": "Input reference genomes for read simulation."
+        "reference_genomes": "Input reference genomes for read simulation.",
+        "abundances": "Pre-calculated abundance profiles to be used for read generation."
     },
     parameter_descriptions={
         **mason_param_descriptions,
