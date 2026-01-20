@@ -91,7 +91,6 @@ def _process_sample(
     sample,
     genomes,
     abundances: pd.DataFrame,
-    total_reads,
     results_dir,
     threads,
     read_len,
@@ -105,7 +104,7 @@ def _process_sample(
     for genome_id, abundance in abundances_dict.items():
         genomes_final[genome_id] = {
             "fp": genomes_dict[genome_id],
-            "reads": int(total_reads * abundance),
+            "reads": int(abundance),
         }
     for genome_id, genome_data in genomes_final.items():
         reads_count = genome_data["reads"]
@@ -172,13 +171,12 @@ def _simulate_reads_mason(
         )
     # TODO: assert that all final read counts will be greater or equal to 1
     read_counts = num_reads * relative_abundances
-    abundances = relative_abundances[read_counts > 1].dropna(inplace=False)
+    abundances = read_counts[read_counts > 1].dropna(inplace=False)
 
     _process_sample(
         sample=sample_name,
         genomes=tmp_refs,
         abundances=abundances,
-        total_reads=num_reads,
         results_dir=str(result_reads),
         threads=threads,
         read_len=read_length,

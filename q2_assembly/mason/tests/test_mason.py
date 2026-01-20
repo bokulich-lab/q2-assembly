@@ -80,21 +80,22 @@ class TestMason(TestPluginBase):
             sample="sample1",
             genomes=mock_genomes_dir_fmt,
             abundances=ANY,
-            total_reads=2000000,
             results_dir=str(reads),
             threads=1,
             read_len=125,
             seed=42,
         )
         exp_abundances = pd.DataFrame(
-            data={"sample1": [0.5, 0.5]}, index=pd.Index(["ref1", "ref2"], name="id")
+            data={"sample1": [1000000.0, 1000000.0]},
+            index=pd.Index(["ref1", "ref2"], name="id"),
         )
         pd.testing.assert_frame_equal(
             p_process.call_args[1]["abundances"], exp_abundances
         )
 
         expected_ft = pd.DataFrame(
-            data={"ref1": [0.5], "ref2": [0.5]}, index=pd.Index(["sample1"], name="id")
+            data={"ref1": [1000000.0], "ref2": [1000000.0]},
+            index=pd.Index(["sample1"], name="id"),
         )
         pd.testing.assert_frame_equal(ft, expected_ft)
 
@@ -128,16 +129,18 @@ class TestMason(TestPluginBase):
             sample="sample1",
             genomes=mock_genomes_dir_fmt,
             abundances=ANY,
-            total_reads=2000000,
             results_dir=str(reads),
             threads=1,
             read_len=125,
             seed=42,
         )
-        pd.testing.assert_frame_equal(p_process.call_args[1]["abundances"], abundances)
+        pd.testing.assert_frame_equal(
+            p_process.call_args[1]["abundances"], abundances * 2000000
+        )
 
         expected_ft = pd.DataFrame(
-            data={"ref1": [0.7], "ref2": [0.3]}, index=pd.Index(["sample1"], name="id")
+            data={"ref1": [1400000.0], "ref2": [600000.0]},
+            index=pd.Index(["sample1"], name="id"),
         )
         pd.testing.assert_frame_equal(ft, expected_ft)
 
@@ -613,9 +616,8 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
             self.get_data_path("genomes-dir-format1"), "r"
         )
         abundances = pd.DataFrame(
-            data={sample: [0.6, 0.4]}, index=pd.Index(["ref1", "ref2"], name="id")
+            data={sample: [600, 400]}, index=pd.Index(["ref1", "ref2"], name="id")
         )
-        total_reads = 1000
         tmp_dir = tempfile.mkdtemp()
         threads = 2
         read_len = 150
@@ -625,7 +627,6 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
             sample,
             genomes,
             abundances,
-            total_reads,
             tmp_dir,
             threads,
             read_len,
@@ -635,7 +636,6 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
         expected_calls = []
         for genome_id, genome_fp in genomes.file_dict().items():
             abundance = abundances.loc[genome_id, sample]
-            genome_reads = int(total_reads * abundance)
             expected_cmd = [
                 "mason_simulator",
                 "-v",
@@ -650,7 +650,7 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
                 "--input-reference",
                 genome_fp,
                 "--num-fragments",
-                str(genome_reads),
+                str(abundance),
                 "--out",
                 os.path.join(tmp_dir, f"{sample}_{genome_id}_00_L001_R1_001.fastq.gz"),
                 "--out-right",
