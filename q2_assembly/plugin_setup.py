@@ -351,7 +351,7 @@ plugin.methods.register_function(
     parameters=_mason_helper_params,
     outputs=[
         ("reads", SampleData[PairedEndSequencesWithQuality]),
-        ("abundances", FeatureTable[RelativeFrequency])
+        ("abundances", FeatureTable[Frequency])
     ],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation.",
@@ -381,7 +381,7 @@ plugin.pipelines.register_function(
     },
     outputs=[
         ("reads", SampleData[PairedEndSequencesWithQuality]),
-        ("abundances", FeatureTable[Frequency])
+        ("table", FeatureTable[Frequency])
     ],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation.",
@@ -393,7 +393,7 @@ plugin.pipelines.register_function(
     },
     output_descriptions={
         "reads": "Simulated paired-end reads.",
-        "abundances": "Abundances of genomes from which the reads were simulated."
+        "table": "Abundances of genomes from which the reads were simulated."
     },
     name="Short read simulation with Mason.",
     description=(
