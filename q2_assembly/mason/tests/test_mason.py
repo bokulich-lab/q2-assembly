@@ -9,11 +9,12 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import call, patch, MagicMock
+from unittest.mock import call, patch, MagicMock, ANY
 
 import pandas as pd
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
 from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFmt
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.mason.mason import (
@@ -54,7 +55,7 @@ class TestMason(TestPluginBase):
         exp = ["--k_bool"]
         self.assertListEqual(obs, exp)
 
-    @patch("q2_assembly.mason.mason._process_sample")
+    @patch("q2_assembly.mason._process_sample")
     def test_simulate_reads_mason_helper(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
@@ -63,7 +64,7 @@ class TestMason(TestPluginBase):
         )
 
         with patch(
-            "q2_assembly.mason.mason.GenomeSequencesDirectoryFormat",
+            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
             reads, ft = _simulate_reads_mason(
@@ -74,26 +75,30 @@ class TestMason(TestPluginBase):
                 abundance_profile="uniform",
             )
         self.assertIsInstance(reads, CasavaOneEightSingleLanePerSampleDirFmt)
+
         p_process.assert_called_once_with(
             sample="sample1",
             genomes=mock_genomes_dir_fmt,
-            abundances=pd.DataFrame(
-                data={"sample1": [0.5, 0.5]},
-                index=pd.Index(["ref1", "ref2"], name="id")
-            ),
+            abundances=ANY,
             total_reads=2000000,
             results_dir=str(reads),
             threads=1,
             read_len=125,
             seed=42,
         )
+        exp_abundances = pd.DataFrame(
+            data={"sample1": [0.5, 0.5]}, index=pd.Index(["ref1", "ref2"], name="id")
+        )
+        pd.testing.assert_frame_equal(
+            p_process.call_args[1]["abundances"], exp_abundances
+        )
+
         expected_ft = pd.DataFrame(
-            data={"ref1": [0.5], "ref2": [0.5]},
-            index=pd.Index(["sample1"], name="id")
+            data={"ref1": [0.5], "ref2": [0.5]}, index=pd.Index(["sample1"], name="id")
         )
         pd.testing.assert_frame_equal(ft, expected_ft)
 
-    @patch("q2_assembly.mason.mason._process_sample")
+    @patch("q2_assembly.mason._process_sample")
     def test_simulate_reads_mason_helper_with_abundances(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
@@ -103,12 +108,11 @@ class TestMason(TestPluginBase):
 
         # Pre-calculated abundances
         abundances = pd.DataFrame(
-            data={"sample1": [0.7, 0.3]},
-            index=pd.Index(["ref1", "ref2"], name="id")
+            data={"sample1": [0.7, 0.3]}, index=pd.Index(["ref1", "ref2"], name="id")
         )
 
         with patch(
-            "q2_assembly.mason.mason.GenomeSequencesDirectoryFormat",
+            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
             reads, ft = _simulate_reads_mason(
@@ -116,22 +120,24 @@ class TestMason(TestPluginBase):
                 sample_name="sample1",
                 num_reads=2000000,
                 read_length=125,
-                abundances=abundances,
+                relative_abundances=abundances,
             )
         self.assertIsInstance(reads, CasavaOneEightSingleLanePerSampleDirFmt)
+
         p_process.assert_called_once_with(
             sample="sample1",
             genomes=mock_genomes_dir_fmt,
-            abundances=abundances,
+            abundances=ANY,
             total_reads=2000000,
             results_dir=str(reads),
             threads=1,
             read_len=125,
             seed=42,
         )
+        pd.testing.assert_frame_equal(p_process.call_args[1]["abundances"], abundances)
+
         expected_ft = pd.DataFrame(
-            data={"ref1": [0.7], "ref2": [0.3]},
-            index=pd.Index(["sample1"], name="id")
+            data={"ref1": [0.7], "ref2": [0.3]}, index=pd.Index(["sample1"], name="id")
         )
         pd.testing.assert_frame_equal(ft, expected_ft)
 
@@ -140,19 +146,17 @@ class TestMason(TestPluginBase):
             self.get_data_path("genomes-dir-format1"), "r"
         )
         abundances = pd.DataFrame(
-            data={"sample1": [0.7, 0.3]},
-            index=pd.Index(["ref1", "ref2"], name="id")
+            data={"sample1": [0.7, 0.3]}, index=pd.Index(["ref1", "ref2"], name="id")
         )
 
         with self.assertRaisesRegex(
-            ValueError,
-            "Cannot provide both 'abundance_profile' and 'abundances'"
+            ValueError, "Cannot provide both 'abundance_profile' and 'abundances'"
         ):
             _simulate_reads_mason(
                 reference_genomes=refs,
                 sample_name="sample1",
                 abundance_profile="uniform",
-                abundances=abundances,
+                relative_abundances=abundances,
             )
 
     def test_simulate_reads_mason_helper_mutual_exclusivity_neither(self):
@@ -161,8 +165,7 @@ class TestMason(TestPluginBase):
         )
 
         with self.assertRaisesRegex(
-            ValueError,
-            "Must provide either 'abundance_profile' or 'abundances'"
+            ValueError, "Must provide either 'abundance_profile' or 'abundances'"
         ):
             _simulate_reads_mason(
                 reference_genomes=refs,
@@ -243,15 +246,17 @@ class TestMason(TestPluginBase):
         mock_action = MagicMock(side_effect=[f1, f2, f3])
         mock_ctx = MagicMock(get_action=mock_action)
 
-        abundances = pd.DataFrame(
-            data={"sample1": [0.6, 0.4]},
-            index=pd.Index(["ref1", "ref2"], name="id")
+        abundances_df = pd.DataFrame(
+            data={"sample1": [0.6, 0.4]}, index=pd.Index(["ref1", "ref2"], name="id")
+        )
+        abundances = Artifact.import_data(
+            "FeatureTable[RelativeFrequency]", abundances_df
         )
 
         simulate_reads_mason(
             ctx=mock_ctx,
             reference_genomes=self.refs,
-            abundances=abundances,
+            relative_abundances=abundances,
             num_reads=[2000000],
             read_length=[125],
         )
@@ -262,9 +267,14 @@ class TestMason(TestPluginBase):
             sample_name="sample1",
             num_reads=2000000,
             read_length=125,
-            abundances=abundances[["sample1"]],
+            relative_abundances=ANY,
             random_seed=42,
             threads=1,
+        )
+        mock_ctx.make_artifact.has_calls(
+            [
+                call("FeatureTable[RelativeFrequency]", abundances_df[["sample1"]]),
+            ]
         )
         f2.assert_called_once_with(["reads"])
 
@@ -275,15 +285,18 @@ class TestMason(TestPluginBase):
         mock_action = MagicMock(side_effect=[f1, f2, f3])
         mock_ctx = MagicMock(get_action=mock_action)
 
-        abundances = pd.DataFrame(
+        abundances_df = pd.DataFrame(
             data={"sample1": [0.6, 0.4], "sample2": [0.3, 0.7]},
-            index=pd.Index(["ref1", "ref2"], name="id")
+            index=pd.Index(["ref1", "ref2"], name="id"),
+        )
+        abundances = Artifact.import_data(
+            "FeatureTable[RelativeFrequency]", abundances_df
         )
 
         simulate_reads_mason(
             ctx=mock_ctx,
             reference_genomes=self.refs,
-            abundances=abundances,
+            relative_abundances=abundances,
             num_reads=[2000, 4000],
             read_length=[125, 150],
         )
@@ -295,7 +308,7 @@ class TestMason(TestPluginBase):
                     sample_name="sample1",
                     num_reads=2000,
                     read_length=125,
-                    abundances=abundances[["sample1"]],
+                    relative_abundances=ANY,
                     random_seed=42,
                     threads=1,
                 ),
@@ -304,57 +317,46 @@ class TestMason(TestPluginBase):
                     sample_name="sample2",
                     num_reads=4000,
                     read_length=150,
-                    abundances=abundances[["sample2"]],
+                    relative_abundances=ANY,
                     random_seed=42,
                     threads=1,
                 ),
             ]
         )
+        mock_ctx.make_artifact.has_calls(
+            [
+                call("FeatureTable[RelativeFrequency]", abundances_df[["sample1"]]),
+                call("FeatureTable[RelativeFrequency]", abundances_df[["sample2"]]),
+            ]
+        )
         f2.assert_called_once_with(["reads1", "reads2"])
 
     def test_simulate_reads_mason_mutual_exclusivity_both(self):
-        abundances = pd.DataFrame(
-            data={"sample1": [0.6, 0.4]},
-            index=pd.Index(["ref1", "ref2"], name="id")
+        abundances_df = pd.DataFrame(
+            data={"sample1": [0.6, 0.4]}, index=pd.Index(["ref1", "ref2"], name="id")
+        )
+        abundances = Artifact.import_data(
+            "FeatureTable[RelativeFrequency]", abundances_df
         )
 
         with self.assertRaisesRegex(
-            ValueError,
-            "Cannot provide both 'abundance_profiles' and 'abundances'"
+            ValueError, "Cannot provide both 'abundance_profiles' and 'abundances'"
         ):
             simulate_reads_mason(
                 ctx=MagicMock(),
                 reference_genomes=self.refs,
                 abundance_profiles=["uniform"],
-                abundances=abundances,
+                relative_abundances=abundances,
             )
 
     def test_simulate_reads_mason_mutual_exclusivity_neither(self):
         with self.assertRaisesRegex(
-            ValueError,
-            "Must provide either 'abundance_profiles' or 'abundances'"
+            ValueError, "Must provide either 'abundance_profiles' or 'abundances'"
         ):
             simulate_reads_mason(
                 ctx=MagicMock(),
                 reference_genomes=self.refs,
                 sample_names=["sample1"],
-            )
-
-    def test_simulate_reads_mason_sample_names_with_abundances_error(self):
-        abundances = pd.DataFrame(
-            data={"sample1": [0.6, 0.4]},
-            index=pd.Index(["ref1", "ref2"], name="id")
-        )
-
-        with self.assertRaisesRegex(
-            ValueError,
-            "Cannot provide 'sample_names' when 'abundances' is provided"
-        ):
-            simulate_reads_mason(
-                ctx=MagicMock(),
-                reference_genomes=self.refs,
-                sample_names=["sample1"],
-                abundances=abundances,
             )
 
     def test_simulate_reads_mason_duplicate_sample_names(self):
@@ -458,26 +460,31 @@ class TestMason(TestPluginBase):
         f2.assert_called_once_with(["reads1", "reads2"])
 
     def test_simulate_reads_mason_abundances_extract_sample_names(self):
-        f1 = MagicMock(side_effect=(("reads1", "ft1"), ("reads2", "ft2"), ("reads3", "ft3")))
+        f1 = MagicMock(
+            side_effect=(("reads1", "ft1"), ("reads2", "ft2"), ("reads3", "ft3"))
+        )
         f2 = MagicMock(return_value=("collated_reads",))
         f3 = MagicMock(return_value=("merged_tables",))
         mock_action = MagicMock(side_effect=[f1, f2, f3])
         mock_ctx = MagicMock(get_action=mock_action)
 
         # Abundances with three samples
-        abundances = pd.DataFrame(
+        abundances_df = pd.DataFrame(
             data={
                 "sampleA": [0.5, 0.5],
                 "sampleB": [0.3, 0.7],
                 "sampleC": [0.8, 0.2],
             },
-            index=pd.Index(["ref1", "ref2"], name="id")
+            index=pd.Index(["ref1", "ref2"], name="id"),
+        )
+        abundances = Artifact.import_data(
+            "FeatureTable[RelativeFrequency]", abundances_df
         )
 
         simulate_reads_mason(
             ctx=mock_ctx,
             reference_genomes=self.refs,
-            abundances=abundances,
+            relative_abundances=abundances,
             num_reads=[1000],
             read_length=[100],
         )
@@ -490,7 +497,7 @@ class TestMason(TestPluginBase):
                     sample_name="sampleA",
                     num_reads=1000,
                     read_length=100,
-                    abundances=abundances[["sampleA"]],
+                    relative_abundances=ANY,
                     random_seed=42,
                     threads=1,
                 ),
@@ -499,7 +506,7 @@ class TestMason(TestPluginBase):
                     sample_name="sampleB",
                     num_reads=1000,
                     read_length=100,
-                    abundances=abundances[["sampleB"]],
+                    relative_abundances=ANY,
                     random_seed=42,
                     threads=1,
                 ),
@@ -508,10 +515,17 @@ class TestMason(TestPluginBase):
                     sample_name="sampleC",
                     num_reads=1000,
                     read_length=100,
-                    abundances=abundances[["sampleC"]],
+                    relative_abundances=ANY,
                     random_seed=42,
                     threads=1,
                 ),
+            ]
+        )
+        mock_ctx.make_artifact.has_calls(
+            [
+                call("FeatureTable[RelativeFrequency]", abundances_df[["sampleA"]]),
+                call("FeatureTable[RelativeFrequency]", abundances_df[["sampleB"]]),
+                call("FeatureTable[RelativeFrequency]", abundances_df[["sampleC"]]),
             ]
         )
         f2.assert_called_once_with(["reads1", "reads2", "reads3"])
@@ -521,35 +535,42 @@ class TestGenerateAbundances(TestPluginBase):
     package = "q2_assembly.tests"
 
     def test_uniform_profile(self):
-        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format4"), "r")
+        genomes = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format4"), "r"
+        )
         result = generate_abundances("uniform", genomes, "sample1")
         expected = pd.DataFrame(
             data={"sample1": [0.25, 0.25, 0.25, 0.25]},
-            index=pd.Index(["ref1", "ref2", "ref3", "ref4"], name="id")
+            index=pd.Index(["ref1", "ref2", "ref3", "ref4"], name="id"),
         )
         pd.testing.assert_frame_equal(result, expected)
 
     def test_exponential_profile(self):
-        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format3"), "r")
+        genomes = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format3"), "r"
+        )
         result = generate_abundances("exponential", genomes, "sample1", lambd=1.0)
         expected = pd.DataFrame(
             data={"sample1": [0.6652, 0.2447, 0.0900]},
-            index=pd.Index(["ref1", "ref2", "ref3"], name="id")
+            index=pd.Index(["ref1", "ref2", "ref3"], name="id"),
         )
         pd.testing.assert_frame_equal(result, expected, check_exact=False, rtol=0.001)
 
     def test_lognormal_profile(self):
-        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format5"), "r")
+        genomes = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format5"), "r"
+        )
         result = generate_abundances("lognormal", genomes, "sample1", mu=0, sigma=1)
         expected = pd.DataFrame(
             data={"sample1": [0.1676, 0.0888, 0.1950, 0.4678, 0.0807]},
-            index=pd.Index(["ref1", "ref2", "ref3", "ref4", "ref5"], name="id")
+            index=pd.Index(["ref1", "ref2", "ref3", "ref4", "ref5"], name="id"),
         )
         pd.testing.assert_frame_equal(result, expected, check_exact=False, rtol=0.001)
 
-
     def test_invalid_profile(self):
-        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format4"), "r")
+        genomes = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format4"), "r"
+        )
         with self.assertRaisesRegex(
             ValueError, "Invalid abundance profile option: 'invalid'"
         ):
@@ -588,10 +609,11 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
     @patch("q2_assembly.mason._combine_reads")
     def test_process_sample(self, mock_combine_reads, mock_run_command):
         sample = "sampleY"
-        genomes = GenomeSequencesDirectoryFormat(self.get_data_path("genomes-dir-format1"), "r")
+        genomes = GenomeSequencesDirectoryFormat(
+            self.get_data_path("genomes-dir-format1"), "r"
+        )
         abundances = pd.DataFrame(
-            data={sample: [0.6, 0.4]},
-            index=pd.Index(["ref1", "ref2"], name="id")
+            data={sample: [0.6, 0.4]}, index=pd.Index(["ref1", "ref2"], name="id")
         )
         total_reads = 1000
         tmp_dir = tempfile.mkdtemp()

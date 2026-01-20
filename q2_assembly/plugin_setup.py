@@ -346,21 +346,26 @@ plugin.methods.register_function(
     function=q2_assembly.mason._simulate_reads_mason,
     inputs={
         "reference_genomes": GenomeData[DNASequence],
-        "abundances": FeatureTable[RelativeFrequency],
+        "relative_abundances": FeatureTable[RelativeFrequency],
     },
     parameters=_mason_helper_params,
     outputs=[
         ("reads", SampleData[PairedEndSequencesWithQuality]),
-        ("abundances", FeatureTable[Frequency])
+        ("table", FeatureTable[Frequency]),
     ],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation.",
-        "abundances": "Pre-calculated abundance profiles to be used for read generation."
+        "relative_abundances": (
+            "Pre-calculated abundance profiles to be used for read generation."
+        ),
     },
     parameter_descriptions=mason_helper_param_descriptions,
     output_descriptions={
         "reads": "Simulated paired-end reads.",
-        "abundances": "Abundances of genomes from which the reads were simulated."
+        "table": (
+            "Abundances of genomes from which the reads were simulated "
+            "(expressed as read counts)."
+        ),
     },
     name="Simulate NGS reads using Mason.",
     description=(
@@ -373,7 +378,7 @@ plugin.pipelines.register_function(
     function=q2_assembly.mason.simulate_reads_mason,
     inputs={
         "reference_genomes": GenomeData[DNASequence],
-        "abundances": FeatureTable[RelativeFrequency],
+        "relative_abundances": FeatureTable[RelativeFrequency],
     },
     parameters={
         **mason_params,
@@ -381,11 +386,13 @@ plugin.pipelines.register_function(
     },
     outputs=[
         ("reads", SampleData[PairedEndSequencesWithQuality]),
-        ("table", FeatureTable[Frequency])
+        ("table", FeatureTable[Frequency]),
     ],
     input_descriptions={
         "reference_genomes": "Input reference genomes for read simulation.",
-        "abundances": "Pre-calculated abundance profiles to be used for read generation."
+        "relative_abundances": (
+            "Pre-calculated abundance profiles to be used for read generation."
+        ),
     },
     parameter_descriptions={
         **mason_param_descriptions,
@@ -393,7 +400,10 @@ plugin.pipelines.register_function(
     },
     output_descriptions={
         "reads": "Simulated paired-end reads.",
-        "table": "Abundances of genomes from which the reads were simulated."
+        "table": (
+            "Abundances of genomes from which the reads were simulated "
+            "(expressed as read counts)."
+        ),
     },
     name="Short read simulation with Mason.",
     description=(

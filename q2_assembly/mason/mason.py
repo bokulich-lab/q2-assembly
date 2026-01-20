@@ -9,6 +9,7 @@ import glob
 import os
 import shutil
 import subprocess
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -45,7 +46,7 @@ def _process_mason_arg(arg_key, arg_val):
 
 
 def generate_abundances(
-        profile, genomes, sample_name, mu=0, sigma=1, lambd=0.5, random_seed=42
+    profile, genomes, sample_name, mu=0, sigma=1, lambd=0.5, random_seed=42
 ) -> pd.DataFrame:
     np.random.seed(random_seed)
     genome_ids = sorted(list(genomes.file_dict().keys()))
@@ -87,10 +88,19 @@ def _combine_reads(sample_id, results_dir, orientation="forward"):
 
 
 def _process_sample(
-    sample, genomes, abundances: pd.DataFrame, total_reads, results_dir, threads, read_len, seed
+    sample,
+    genomes,
+    abundances: pd.DataFrame,
+    total_reads,
+    results_dir,
+    threads,
+    read_len,
+    seed,
 ):
-    genomes_dict = genomes.file_dict() # {genome1: path1, genome2: path2}
-    abundances_dict = abundances[sample].to_dict() # {genome1: abundance1, genome2: abundance2}
+    genomes_dict = genomes.file_dict()  # {genome1: path1, genome2: path2}
+    abundances_dict = abundances[
+        sample
+    ].to_dict()  # {genome1: abundance1, genome2: abundance2}
     genomes_final = {}
     for genome_id, abundance in abundances_dict.items():
         genomes_final[genome_id] = {
@@ -134,7 +144,7 @@ def _simulate_reads_mason(
     reference_genomes: GenomeSequencesDirectoryFormat,
     sample_name: str,
     abundance_profile: str = None,
-    abundances: pd.DataFrame = None,
+    relative_abundances: pd.DataFrame = None,
     num_reads: int = 1000000,
     read_length: int = 100,
     random_seed: int = 42,
@@ -142,15 +152,13 @@ def _simulate_reads_mason(
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, pd.DataFrame):
 
     # Validate mutual exclusivity
-    if abundance_profile is not None and abundances is not None:
+    if abundance_profile is not None and relative_abundances is not None:
         raise ValueError(
             "Cannot provide both 'abundance_profile' and 'abundances'. "
             "Please provide only one."
         )
-    if abundance_profile is None and abundances is None:
-        raise ValueError(
-            "Must provide either 'abundance_profile' or 'abundances'."
-        )
+    if abundance_profile is None and relative_abundances is None:
+        raise ValueError("Must provide either 'abundance_profile' or 'abundances'.")
 
     # we will copy the genomes to a temporary directory: mason generates fai
     # files that would interfere with validation
@@ -158,13 +166,13 @@ def _simulate_reads_mason(
     shutil.copytree(str(reference_genomes.path), str(tmp_refs.path), dirs_exist_ok=True)
 
     result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
-    if abundances is None:
-        abundances = generate_abundances(
+    if relative_abundances is None:
+        relative_abundances = generate_abundances(
             abundance_profile, tmp_refs, sample_name, random_seed=random_seed
         )
     # TODO: assert that all final read counts will be greater or equal to 1
-    read_counts = num_reads * abundances
-    abundances = abundances[read_counts > 1].dropna(inplace=False)
+    read_counts = num_reads * relative_abundances
+    abundances = relative_abundances[read_counts > 1].dropna(inplace=False)
 
     _process_sample(
         sample=sample_name,
@@ -179,7 +187,11 @@ def _simulate_reads_mason(
 
     del tmp_refs
 
-    return result_reads, abundances.T
+    abundances_out = abundances.copy().T
+    abundances_out.columns.name = None
+    abundances_out.index.name = "id"
+
+    return result_reads, abundances_out
 
 
 def simulate_reads_mason(
@@ -187,7 +199,7 @@ def simulate_reads_mason(
     reference_genomes,
     sample_names=None,
     abundance_profiles=None,
-    abundances=None,
+    relative_abundances=None,
     num_reads=[1000000],
     read_length=[100],
     random_seed=42,
@@ -195,24 +207,22 @@ def simulate_reads_mason(
     num_partitions=None,
 ):
     # Validate mutual exclusivity
-    if abundance_profiles is not None and abundances is not None:
+    if abundance_profiles is not None and relative_abundances is not None:
         raise ValueError(
             "Cannot provide both 'abundance_profiles' and 'abundances'. "
             "Please provide only one."
         )
-    if abundance_profiles is None and abundances is None:
-        raise ValueError(
-            "Must provide either 'abundance_profiles' or 'abundances'."
-        )
+    if abundance_profiles is None and relative_abundances is None:
+        raise ValueError("Must provide either 'abundance_profiles' or 'abundances'.")
 
     # Extract sample names from abundances if provided
-    if abundances is not None:
+    if relative_abundances is not None:
         if sample_names is not None:
-            raise ValueError(
-                "Cannot provide 'sample_names' when 'abundances' is provided. "
-                "Sample names will be extracted from the abundances DataFrame."
+            warnings.warn(
+                "Cannot provide 'sample_names' when 'relative_abundances' is provided. "
+                "Sample names will be extracted from the abundance DataFrame."
             )
-        sample_names = abundances.view(pd.DataFrame).index.tolist()
+        sample_names = relative_abundances.view(pd.DataFrame).columns.tolist()
     else:
         sample_names = sample_names or ["sample"]
 
@@ -228,7 +238,7 @@ def simulate_reads_mason(
             "abundance_profiles",
             "num_reads",
             "read_length",
-            "abundances",
+            "relative_abundances",
         ]
     }
 
@@ -239,7 +249,11 @@ def simulate_reads_mason(
             f'names: {", ".join(sorted(dupl))}'
         )
 
-    if abundance_profiles is not None and len(abundance_profiles) != len(sample_names) and len(abundance_profiles) != 1:
+    if (
+        abundance_profiles is not None
+        and len(abundance_profiles) != len(sample_names)
+        and len(abundance_profiles) != 1
+    ):
         raise ValueError(
             f"The length of abundance_profiles must be either 1 or equal to the "
             f"number of sample names. Provided: {len(abundance_profiles)}, "
@@ -276,19 +290,19 @@ def simulate_reads_mason(
 
     samples, abundance_tables = [], []
 
-    if abundances is not None:
+    if relative_abundances is not None:
         # Use pre-calculated abundances
-        abundances = abundances.view(pd.DataFrame)
+        relative_abundances = relative_abundances.view(pd.DataFrame)
         for sample_name, reads, length in zip(sample_names, num_reads, read_length):
             # Extract abundances for this sample as a DataFrame with single column
-            sample_abundances =  pd.DataFrame(abundances.loc[sample_name, :])
+            sample_abundances = relative_abundances[[sample_name]]
             sample_abundances = sample_abundances.dropna(inplace=False)
             sample_abundances = ctx.make_artifact(
                 "FeatureTable[RelativeFrequency]", sample_abundances
             )
             reads_result, abundance_table = _simulate(
                 reference_genomes=reference_genomes,
-                abundances=sample_abundances,
+                relative_abundances=sample_abundances,
                 sample_name=sample_name,
                 num_reads=reads,
                 read_length=length,
