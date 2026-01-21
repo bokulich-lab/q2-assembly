@@ -324,7 +324,7 @@ mason_params = {
 }
 
 _mason_common_param_descriptions = {
-    "num_reads": "Number of reads to simulate.",
+    "num_reads": "Number of reads to simulate (per sample).",
     "read_length": "Length of each simulated read.",
     "random_seed": "Random seed for reproducibility.",
     "threads": "Number of threads to use for read simulation.",

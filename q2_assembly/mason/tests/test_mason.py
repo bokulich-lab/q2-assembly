@@ -18,7 +18,6 @@ from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.mason.mason import (
-    _process_mason_arg,
     _simulate_reads_mason,
     generate_abundances,
     _combine_reads,
@@ -39,21 +38,6 @@ class TestMason(TestPluginBase):
         self.refs = GenomeSequencesDirectoryFormat(
             self.get_data_path("genomes-dir-format1"), "r"
         )
-
-    def test_process_mason_arg(self):
-        obs = _process_mason_arg("num_reads", 1000000)
-        exp = ["--num_reads", "1000000"]
-        self.assertListEqual(obs, exp)
-
-    def test_process_mason_arg_list(self):
-        obs = _process_mason_arg("k_list", [1, 2, 3])
-        exp = ["--k_list", "1", "2", "3"]
-        self.assertListEqual(obs, exp)
-
-    def test_process_mason_arg_bool(self):
-        obs = _process_mason_arg("k_bool", True)
-        exp = ["--k_bool"]
-        self.assertListEqual(obs, exp)
 
     @patch("q2_assembly.mason._process_sample")
     def test_simulate_reads_mason_helper(self, p_process):
@@ -487,6 +471,7 @@ class TestMason(TestPluginBase):
         simulate_reads_mason(
             ctx=mock_ctx,
             reference_genomes=self.refs,
+            sample_names=["s1", "s2", "s3"],
             relative_abundances=abundances,
             num_reads=[1000],
             read_length=[100],
@@ -524,6 +509,7 @@ class TestMason(TestPluginBase):
                 ),
             ]
         )
+        self.assertWarnsRegex(UserWarning, "Sample names will be extracted")
         mock_ctx.make_artifact.has_calls(
             [
                 call("FeatureTable[RelativeFrequency]", abundances_df[["sampleA"]]),

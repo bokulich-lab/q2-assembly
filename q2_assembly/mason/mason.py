@@ -19,32 +19,6 @@ from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFm
 from .._utils import run_command
 
 
-def _process_mason_arg(arg_key, arg_val):
-    """Creates a list with argument and its value.
-
-    Argument values represented by a list will be converted to a single
-    string joined by spaces, e.g.: [1, 2, 3] -> '1 2 3'.
-    Argument names will be converted to command line parameters by
-    appending a '--' prefix, e.g.: 'some_parameter' -> '--some_parameter'.
-
-    Args:
-        arg_key (str): Argument name.
-        arg_val: Argument value.
-
-    Returns:
-        [converted_arg, arg_value, ...]: List containing a prepared command
-            line parameter and its value(s).
-    """
-    if isinstance(arg_val, bool) and arg_val:
-        return [f"--{arg_key}"]
-    elif not isinstance(arg_val, list):
-        return [f"--{arg_key}", str(arg_val)]
-    else:
-        flags = [f"--{arg_key}"]
-        flags.extend([str(x) for x in arg_val])
-        return flags
-
-
 def generate_abundances(
     profile, genomes, sample_name, mu=0, sigma=1, lambd=0.5, random_seed=42
 ) -> pd.DataFrame:
