@@ -10,7 +10,7 @@ import importlib
 
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
-from q2_types.feature_table import FeatureTable, Frequency
+from q2_types.feature_table import FeatureTable, Frequency, RelativeFrequency
 from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
     AlignmentMap,
@@ -324,7 +324,7 @@ mason_params = {
 }
 
 _mason_common_param_descriptions = {
-    "num_reads": "Number of reads to simulate.",
+    "num_reads": "Number of reads to simulate (per sample).",
     "read_length": "Length of each simulated read.",
     "random_seed": "Random seed for reproducibility.",
     "threads": "Number of threads to use for read simulation.",
@@ -344,14 +344,29 @@ mason_param_descriptions = {
 
 plugin.methods.register_function(
     function=q2_assembly.mason._simulate_reads_mason,
-    inputs={"reference_genomes": GenomeData[DNASequence]},
+    inputs={
+        "reference_genomes": GenomeData[DNASequence],
+        "relative_abundances": FeatureTable[RelativeFrequency],
+    },
     parameters=_mason_helper_params,
-    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    outputs=[
+        ("reads", SampleData[PairedEndSequencesWithQuality]),
+        ("table", FeatureTable[Frequency]),
+    ],
     input_descriptions={
-        "reference_genomes": "Input reference genomes for read simulation."
+        "reference_genomes": "Input reference genomes for read simulation.",
+        "relative_abundances": (
+            "Pre-calculated abundance profiles to be used for read generation."
+        ),
     },
     parameter_descriptions=mason_helper_param_descriptions,
-    output_descriptions={"reads": "Simulated paired-end reads."},
+    output_descriptions={
+        "reads": "Simulated paired-end reads.",
+        "table": (
+            "Abundances of genomes from which the reads were simulated "
+            "(expressed as read counts)."
+        ),
+    },
     name="Simulate NGS reads using Mason.",
     description=(
         "This method uses Mason to generate paired-end reads simulated "
@@ -361,20 +376,35 @@ plugin.methods.register_function(
 
 plugin.pipelines.register_function(
     function=q2_assembly.mason.simulate_reads_mason,
-    inputs={"reference_genomes": GenomeData[DNASequence]},
+    inputs={
+        "reference_genomes": GenomeData[DNASequence],
+        "relative_abundances": FeatureTable[RelativeFrequency],
+    },
     parameters={
         **mason_params,
         **partition_params,
     },
-    outputs=[("reads", SampleData[PairedEndSequencesWithQuality])],
+    outputs=[
+        ("reads", SampleData[PairedEndSequencesWithQuality]),
+        ("table", FeatureTable[Frequency]),
+    ],
     input_descriptions={
-        "reference_genomes": "Input reference genomes for read simulation."
+        "reference_genomes": "Input reference genomes for read simulation.",
+        "relative_abundances": (
+            "Pre-calculated abundance profiles to be used for read generation."
+        ),
     },
     parameter_descriptions={
         **mason_param_descriptions,
         **partition_param_descriptions,
     },
-    output_descriptions={"reads": "Simulated paired-end reads."},
+    output_descriptions={
+        "reads": "Simulated paired-end reads.",
+        "table": (
+            "Abundances of genomes from which the reads were simulated "
+            "(expressed as read counts)."
+        ),
+    },
     name="Short read simulation with Mason.",
     description=(
         "This method uses Mason to generate reads simulated from given "
