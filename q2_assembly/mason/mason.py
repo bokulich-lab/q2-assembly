@@ -9,6 +9,7 @@ import glob
 import os
 import shutil
 import subprocess
+import warnings
 
 import numpy as np
 import pandas as pd
@@ -18,34 +19,12 @@ from q2_types.per_sample_sequences import CasavaOneEightSingleLanePerSampleDirFm
 from .._utils import run_command
 
 
-def _process_mason_arg(arg_key, arg_val):
-    """Creates a list with argument and its value.
-
-    Argument values represented by a list will be converted to a single
-    string joined by spaces, e.g.: [1, 2, 3] -> '1 2 3'.
-    Argument names will be converted to command line parameters by
-    appending a '--' prefix, e.g.: 'some_parameter' -> '--some_parameter'.
-
-    Args:
-        arg_key (str): Argument name.
-        arg_val: Argument value.
-
-    Returns:
-        [converted_arg, arg_value, ...]: List containing a prepared command
-            line parameter and its value(s).
-    """
-    if isinstance(arg_val, bool) and arg_val:
-        return [f"--{arg_key}"]
-    elif not isinstance(arg_val, list):
-        return [f"--{arg_key}", str(arg_val)]
-    else:
-        flags = [f"--{arg_key}"]
-        flags.extend([str(x) for x in arg_val])
-        return flags
-
-
-def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5, random_seed=42):
+def generate_abundances(
+    profile, genomes, sample_name, mu=0, sigma=1, lambd=0.5, random_seed=42
+) -> pd.DataFrame:
     np.random.seed(random_seed)
+    genome_ids = sorted(list(genomes.file_dict().keys()))
+    num_genomes = len(genome_ids)
 
     if profile == "uniform":
         abundances = [1 / num_genomes] * num_genomes
@@ -58,17 +37,9 @@ def generate_abundances(profile, num_genomes, mu=0, sigma=1, lambd=0.5, random_s
     else:
         raise ValueError(f"Invalid abundance profile option: '{profile}'")
 
-    return list(abundances)
-
-
-def abundances_to_df(abundances, genome_files, sample_id):
-    data = {
-        "id": [os.path.basename(f).split(".")[0] for f in genome_files],
-        sample_id: abundances,
-    }
-    df = pd.DataFrame(data)
-    df.set_index("id", inplace=True)
-    return df
+    return pd.DataFrame(
+        data={sample_name: abundances}, index=pd.Index(genome_ids, name="id")
+    )
 
 
 def _combine_reads(sample_id, results_dir, orientation="forward"):
@@ -91,12 +62,28 @@ def _combine_reads(sample_id, results_dir, orientation="forward"):
 
 
 def _process_sample(
-    sample, genome_files, abundances, total_reads, results_dir, threads, read_len, seed
+    sample,
+    genomes,
+    abundances: pd.DataFrame,
+    results_dir,
+    threads,
+    read_len,
+    seed,
 ):
-    for genome_file, abundance in zip(genome_files, abundances):
-        genome_reads = int(total_reads * abundance)
-        _id = os.path.splitext(os.path.basename(genome_file))[0]
-        print(f"[Sample: {sample}] Generating {genome_reads} reads for {_id}")
+    genomes_dict = genomes.file_dict()  # {genome1: path1, genome2: path2}
+    abundances_dict = abundances[
+        sample
+    ].to_dict()  # {genome1: abundance1, genome2: abundance2}
+    genomes_final = {}
+    for genome_id, abundance in abundances_dict.items():
+        genomes_final[genome_id] = {
+            "fp": genomes_dict[genome_id],
+            "reads": int(abundance),
+        }
+    for genome_id, genome_data in genomes_final.items():
+        reads_count = genome_data["reads"]
+        genome_fp = genome_data["fp"]
+        print(f"[Sample: {sample}] Generating {reads_count} reads for {genome_id}")
 
         cmd = [
             "mason_simulator",
@@ -110,13 +97,13 @@ def _process_sample(
             "--num-threads",
             str(threads),
             "--input-reference",
-            genome_file,
+            genome_fp,
             "--num-fragments",
-            str(genome_reads),
+            str(reads_count),
             "--out",
-            os.path.join(results_dir, f"{sample}_{_id}_00_L001_R1_001.fastq.gz"),
+            os.path.join(results_dir, f"{sample}_{genome_id}_00_L001_R1_001.fastq.gz"),
             "--out-right",
-            os.path.join(results_dir, f"{sample}_{_id}_00_L001_R2_001.fastq.gz"),
+            os.path.join(results_dir, f"{sample}_{genome_id}_00_L001_R2_001.fastq.gz"),
         ]
 
         run_command(cmd, verbose=True)
@@ -130,11 +117,21 @@ def _simulate_reads_mason(
     reference_genomes: GenomeSequencesDirectoryFormat,
     sample_name: str,
     abundance_profile: str = None,
+    relative_abundances: pd.DataFrame = None,
     num_reads: int = 1000000,
     read_length: int = 100,
     random_seed: int = 42,
     threads: int = 1,
-) -> CasavaOneEightSingleLanePerSampleDirFmt:
+) -> (CasavaOneEightSingleLanePerSampleDirFmt, pd.DataFrame):
+
+    # Validate mutual exclusivity
+    if abundance_profile is not None and relative_abundances is not None:
+        raise ValueError(
+            "Cannot provide both 'abundance_profile' and 'abundances'. "
+            "Please provide only one."
+        )
+    if abundance_profile is None and relative_abundances is None:
+        raise ValueError("Must provide either 'abundance_profile' or 'abundances'.")
 
     # we will copy the genomes to a temporary directory: mason generates fai
     # files that would interfere with validation
@@ -142,15 +139,18 @@ def _simulate_reads_mason(
     shutil.copytree(str(reference_genomes.path), str(tmp_refs.path), dirs_exist_ok=True)
 
     result_reads = CasavaOneEightSingleLanePerSampleDirFmt()
-    genome_files = list(tmp_refs.file_dict().values())
-    abundances = generate_abundances(
-        abundance_profile, len(genome_files), random_seed=random_seed
-    )
+    if relative_abundances is None:
+        relative_abundances = generate_abundances(
+            abundance_profile, tmp_refs, sample_name, random_seed=random_seed
+        )
+    # TODO: assert that all final read counts will be greater or equal to 1
+    read_counts = num_reads * relative_abundances
+    abundances = read_counts[read_counts > 1].dropna(inplace=False)
+
     _process_sample(
         sample=sample_name,
-        genome_files=genome_files,
+        genomes=tmp_refs,
         abundances=abundances,
-        total_reads=num_reads,
         results_dir=str(result_reads),
         threads=threads,
         read_len=read_length,
@@ -159,20 +159,45 @@ def _simulate_reads_mason(
 
     del tmp_refs
 
-    return result_reads
+    abundances_out = abundances.copy().T
+    abundances_out.columns.name = None
+    abundances_out.index.name = "id"
+
+    return result_reads, abundances_out
 
 
 def simulate_reads_mason(
     ctx,
     reference_genomes,
-    sample_names,
-    abundance_profiles,
+    sample_names=None,
+    abundance_profiles=None,
+    relative_abundances=None,
     num_reads=[1000000],
     read_length=[100],
     random_seed=42,
     threads=1,
     num_partitions=None,
 ):
+    # Validate mutual exclusivity
+    if abundance_profiles is not None and relative_abundances is not None:
+        raise ValueError(
+            "Cannot provide both 'abundance_profiles' and 'abundances'. "
+            "Please provide only one."
+        )
+    if abundance_profiles is None and relative_abundances is None:
+        raise ValueError("Must provide either 'abundance_profiles' or 'abundances'.")
+
+    # Extract sample names from abundances if provided
+    if relative_abundances is not None:
+        if sample_names is not None:
+            warnings.warn(
+                "Cannot provide 'sample_names' when 'relative_abundances' is provided. "
+                "Sample names will be extracted from the abundance DataFrame."
+            )
+        sample_names = relative_abundances.view(pd.DataFrame).columns.tolist()
+    else:
+        sample_names = sample_names or ["sample"]
+
     kwargs = {
         k: v
         for k, v in locals().items()
@@ -185,10 +210,10 @@ def simulate_reads_mason(
             "abundance_profiles",
             "num_reads",
             "read_length",
+            "relative_abundances",
         ]
     }
 
-    sample_names = sample_names or ["sample"]
     if len(set(sample_names)) < len(sample_names):
         dupl = {str(x) for x in sample_names if sample_names.count(x) > 1}
         raise ValueError(
@@ -196,7 +221,11 @@ def simulate_reads_mason(
             f'names: {", ".join(sorted(dupl))}'
         )
 
-    if len(abundance_profiles) != len(sample_names) and len(abundance_profiles) != 1:
+    if (
+        abundance_profiles is not None
+        and len(abundance_profiles) != len(sample_names)
+        and len(abundance_profiles) != 1
+    ):
         raise ValueError(
             f"The length of abundance_profiles must be either 1 or equal to the "
             f"number of sample names. Provided: {len(abundance_profiles)}, "
@@ -217,7 +246,8 @@ def simulate_reads_mason(
             f"Expected: 1 or {len(sample_names)}"
         )
 
-    if len(abundance_profiles) == 1:
+    # Expand single-value lists to match sample count
+    if abundance_profiles is not None and len(abundance_profiles) == 1:
         abundance_profiles = abundance_profiles * len(sample_names)
 
     if len(num_reads) == 1:
@@ -228,21 +258,47 @@ def simulate_reads_mason(
 
     _simulate = ctx.get_action("assembly", "_simulate_reads_mason")
     collate_reads = ctx.get_action("fondue", "combine_seqs")
+    merge_tables = ctx.get_action("feature_table", "merge")
 
-    samples = []
-    for sample_name, abundance_profile, reads, length in zip(
-        sample_names, abundance_profiles, num_reads, read_length
-    ):
-        (sample,) = _simulate(
-            reference_genomes=reference_genomes,
-            abundance_profile=abundance_profile,
-            sample_name=sample_name,
-            num_reads=reads,
-            read_length=length,
-            **kwargs,
-        )
-        samples.append(sample)
+    samples, abundance_tables = [], []
+
+    if relative_abundances is not None:
+        # Use pre-calculated abundances
+        relative_abundances = relative_abundances.view(pd.DataFrame)
+        for sample_name, reads, length in zip(sample_names, num_reads, read_length):
+            # Extract abundances for this sample as a DataFrame with single column
+            sample_abundances = relative_abundances[[sample_name]]
+            sample_abundances = sample_abundances.dropna(inplace=False)
+            sample_abundances = ctx.make_artifact(
+                "FeatureTable[RelativeFrequency]", sample_abundances
+            )
+            reads_result, abundance_table = _simulate(
+                reference_genomes=reference_genomes,
+                relative_abundances=sample_abundances,
+                sample_name=sample_name,
+                num_reads=reads,
+                read_length=length,
+                **kwargs,
+            )
+            samples.append(reads_result)
+            abundance_tables.append(abundance_table)
+    else:
+        # Generate abundances from profiles
+        for sample_name, abundance_profile, reads, length in zip(
+            sample_names, abundance_profiles, num_reads, read_length
+        ):
+            reads_result, abundance_table = _simulate(
+                reference_genomes=reference_genomes,
+                abundance_profile=abundance_profile,
+                sample_name=sample_name,
+                num_reads=reads,
+                read_length=length,
+                **kwargs,
+            )
+            samples.append(reads_result)
+            abundance_tables.append(abundance_table)
 
     (collated_samples,) = collate_reads(samples)
+    (merged_abundances,) = merge_tables(abundance_tables)
 
-    return collated_samples
+    return collated_samples, merged_abundances
