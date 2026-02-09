@@ -629,6 +629,8 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
                 str(seed),
                 "--illumina-read-length",
                 str(read_len),
+                "--read-name-prefix",
+                f"{sample}.{genome_id}.simulated.",
                 "--seq-technology",
                 "illumina",
                 "--num-threads",
