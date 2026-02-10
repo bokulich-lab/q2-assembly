@@ -1,0 +1,117 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "params": [
+    {
+      "name": "category_param",
+      "value": "group"
+    },
+    {
+      "name": "value_param",
+      "value": "All"
+    },
+    {
+      "name": "highlight_samples_param",
+      "value": []
+    }
+  ],
+  "description": "Nx curve per sample",
+  "data": {
+    "url": "data/nx_curve_data.arrow",
+    "format": {"type": "arrow"}
+  },
+  "transform": [
+    {
+      "filter": "value_param == 'All' || datum[category_param] == value_param"
+    },
+    {
+      "calculate": "datum[category_param]",
+      "as": "metadata_category_value"
+    },
+    {
+      "calculate": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1 ? 1 : 0",
+      "as": "selection_order"
+    }
+  ],
+  "mark": {
+    "type": "line",
+    "point": true
+  },
+  "width": "container",
+  "height": 350,
+  "selection": {
+    "grid": {
+      "type": "interval",
+      "bind": "scales"
+    }
+  },
+  "encoding": {
+    "x": {
+      "field": "percent",
+      "type": "quantitative",
+      "title": "Percent of assembly (Nx)"
+    },
+    "y": {
+      "field": "nx",
+      "type": "quantitative",
+      "title": "Contig size (bp)",
+      "axis": {
+        "format": "~s"
+      }
+    },
+    "order": {
+      "field": "selection_order",
+      "type": "quantitative",
+      "sort": "descending"
+    },
+    "color": {
+      "field": "sample",
+      "type": "nominal",
+      "scale": {
+        "scheme": "viridis"
+      },
+      "sort": "ascending",
+      "legend": null
+    },
+    "opacity": {
+      "condition": {
+        "test": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1",
+        "value": 0.8
+      },
+      "value": 0.1
+    },
+    "tooltip": [
+      {"field": "sample", "type": "nominal", "title": "Sample"},
+      {"field": "percent", "type": "quantitative", "title": "Nx"},
+      {"field": "lx", "type": "quantitative", "title": "Lx", "format": ",d"},
+      {"field": "nx", "type": "quantitative", "title": "Contig length (bp)", "format": ",d"}
+    ]
+  },
+  "config": {
+    "background": "#fff",
+    "font": "Open Sans, Arial, sans-serif",
+    "axis": {
+      "grid": true,
+      "gridColor": "#eaeaea",
+      "gridWidth": 1,
+      "tickColor": "#888",
+      "labelFont": "Open Sans, Arial, sans-serif",
+      "labelFontSize": 14,
+      "titleFont": "Open Sans, Arial, sans-serif",
+      "titleFontSize": 16,
+      "titleFontWeight": "bold",
+      "domain": false
+    },
+    "view": {
+      "stroke": "#eaeaea",
+      "strokeWidth": 1
+    },
+    "title": {
+      "font": "Open Sans, Arial, sans-serif",
+      "fontSize": 18,
+      "fontWeight": "bold",
+      "anchor": "middle",
+      "color": "#222"
+    }
+  },
+  "title": "Nx curve"
+} 

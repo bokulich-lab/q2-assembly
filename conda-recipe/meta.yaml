@@ -20,6 +20,7 @@ requirements:
   - insilicoseq
   - mason
   - megahit {{ megahit }}
+  - pyarrow
   - pysam {{ pysam }}
   - qiime2 >={{ qiime2 }}
   - q2-fondue >={{ q2_fondue }}
