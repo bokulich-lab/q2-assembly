@@ -13,15 +13,16 @@ import shutil
 import tempfile
 import unittest
 import uuid
+from pathlib import Path
 from unittest.mock import ANY, call, patch
 
 import shortuuid
 import skbio
 from parameterized import parameterized
-from q2_types.per_sample_sequences import ContigSequencesDirFmt
+from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.helpers.helpers import rename_contigs
+from q2_assembly.helpers.helpers import rename_contigs, sort_alignment_maps
 
 
 class TestUtils(TestPluginBase):
@@ -108,6 +109,33 @@ class TestUtils(TestPluginBase):
             calls.append(call(ANY, sample_id, uuid_type))
 
         p1.assert_has_calls(calls)
+
+    @patch("q2_assembly.helpers.run_command")
+    def test_sort_alignment_maps(self, p1):
+        maps = self.get_data_path("alignment_map", "r")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for map_fp in Path(maps).glob("*.bam"):
+                shutil.copyfile(map_fp, os.path.join(tmp, os.path.basename(map_fp)))
+
+            bam_dir = BAMDirFmt(tmp, "r")
+            out_dir = sort_alignment_maps(bam_dir)
+
+            calls = []
+            for map_fp in Path(tmp).glob("*.bam"):
+                samp_name = map_fp.stem.rsplit("_alignment", 1)[0]
+                sorted_bam = os.path.join(
+                    str(out_dir), f"{samp_name}_alignment_sorted.bam"
+                )
+                calls.append(
+                    call(
+                        ["samtools", "sort", str(map_fp), "-o", sorted_bam],
+                        verbose=True,
+                    )
+                )
+
+            p1.assert_has_calls(calls, any_order=True)
+            self.assertTrue(os.path.exists(str(out_dir)))
 
 
 if __name__ == "__main__":
