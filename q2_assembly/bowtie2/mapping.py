@@ -80,6 +80,7 @@ def map_reads(
     mm=False,
     seed=0,
     non_deterministic=False,
+    sort=True,
     num_partitions=None,
 ):
     kwargs = {
@@ -90,10 +91,12 @@ def map_reads(
             "ctx",
             "reads",
             "num_partitions",
+            "sort",
         ]
     }
 
     collate_alignments = ctx.get_action("assembly", "collate_alignments")
+    sort_alignment_maps = ctx.get_action("assembly", "sort_alignment_maps")
 
     if reads.type <= SampleData[SequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_single")
@@ -119,6 +122,8 @@ def map_reads(
         mapped_reads.append(mapped_read)
 
     (collated_mapped_reads,) = collate_alignments(mapped_reads)
+    if sort:
+        (collated_mapped_reads,) = sort_alignment_maps(collated_mapped_reads)
     return collated_mapped_reads
 
 
@@ -171,6 +176,7 @@ def _map_reads_to_contigs(
     mm: bool = False,
     seed: int = 0,
     non_deterministic: bool = False,
+    sort: bool = True,
 ) -> BAMDirFmt:
     if qupto == "unlimited":
         qupto = None
@@ -183,7 +189,7 @@ def _map_reads_to_contigs(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["index", "reads", "sensitivity", "mode"]
+        if k not in ["index", "reads", "sensitivity", "mode", "sort"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2_arg, params=kwargs
@@ -254,6 +260,7 @@ def _map_reads_to_mags(
     mm: bool = False,
     seed: int = 0,
     non_deterministic: bool = False,
+    sort: bool = True,
 ) -> BAMDirFmt:
     if qupto == "unlimited":
         qupto = None
@@ -266,7 +273,7 @@ def _map_reads_to_mags(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["index", "reads", "sensitivity", "mode"]
+        if k not in ["index", "reads", "sensitivity", "mode", "sort"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2_arg, params=kwargs
