@@ -296,6 +296,7 @@ bowtie2_mapping_params = {
     "mm": Bool,
     "seed": Int % Range(0, None),
     "non_deterministic": Bool,
+    "sort": Bool,
 }
 # fmt: off
 bowtie2_mapping_param_descriptions = {
