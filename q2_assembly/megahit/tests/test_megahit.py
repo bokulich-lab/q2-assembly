@@ -257,8 +257,8 @@ class TestMegahit(TestPluginBase):
                 "test_sample", "fwd_reads.fastq.gz", None, self.fake_common_args, result
             )
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     def test_assemble_megahit_paired(self, p1, p2):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
@@ -276,8 +276,8 @@ class TestMegahit(TestPluginBase):
         p1.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     def test_assemble_megahit_single(self, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -295,8 +295,8 @@ class TestMegahit(TestPluginBase):
         p1.assert_has_calls(exp_calls, any_order=False)
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     def test_assemble_megahit_paired_coassemble(self, p1, p2):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
@@ -315,8 +315,8 @@ class TestMegahit(TestPluginBase):
         p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     def test_assemble_megahit_single_coassemble(self, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -335,8 +335,8 @@ class TestMegahit(TestPluginBase):
         p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     def test_assemble_megahit_paired_single_sample_coassemble(self, p1, p2):
         input_files = self.get_data_path("reads/single-sample/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
@@ -355,8 +355,8 @@ class TestMegahit(TestPluginBase):
         p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     def test_assemble_megahit_single_single_sample_coassemble(self, p1, p2):
         input_files = self.get_data_path("reads/single-sample/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -375,8 +375,8 @@ class TestMegahit(TestPluginBase):
         p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit.assemble_megahit_helper")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit.assemble_megahit_helper")
     def test_assemble_megahit_process_params(self, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -446,8 +446,8 @@ class TestMegahit(TestPluginBase):
         self.assertIs(out.format, ContigSequencesDirFmt)
 
     @parameterized.expand([("shortuuid",), ("uuid3",), ("uuid4",), ("uuid5",)])
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     def test_assemble_megahit_different_uuids(self, uuid_type, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
@@ -463,8 +463,8 @@ class TestMegahit(TestPluginBase):
             [call(ANY, "sample1", uuid_type), call(ANY, "sample2", uuid_type)]
         )
 
-    @patch("q2_assembly.megahit.modify_contig_ids")
-    @patch("q2_assembly.megahit._process_sample")
+    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
+    @patch("q2_assembly.megahit.megahit._process_sample")
     @patch("builtins.print")
     @patch("sys.platform", "darwin")
     def test_macos_cpu_threads_warning(self, p1, p2, p3):

@@ -39,7 +39,7 @@ class TestMason(TestPluginBase):
             self.get_data_path("genomes-dir-format1"), "r"
         )
 
-    @patch("q2_assembly.mason._process_sample")
+    @patch("q2_assembly.mason.mason._process_sample")
     def test_simulate_reads_mason_helper(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
@@ -48,7 +48,7 @@ class TestMason(TestPluginBase):
         )
 
         with patch(
-            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
+            "q2_assembly.mason.mason.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
             reads, ft = _simulate_reads_mason(
@@ -83,7 +83,7 @@ class TestMason(TestPluginBase):
         )
         pd.testing.assert_frame_equal(ft, expected_ft)
 
-    @patch("q2_assembly.mason._process_sample")
+    @patch("q2_assembly.mason.mason._process_sample")
     def test_simulate_reads_mason_helper_with_abundances(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
@@ -97,7 +97,7 @@ class TestMason(TestPluginBase):
         )
 
         with patch(
-            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
+            "q2_assembly.mason.mason.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
             reads, ft = _simulate_reads_mason(
@@ -594,8 +594,8 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
             self.assertFalse(os.path.exists(f1))
             self.assertFalse(os.path.exists(f2))
 
-    @patch("q2_assembly.mason.run_command")
-    @patch("q2_assembly.mason._combine_reads")
+    @patch("q2_assembly.mason.mason.run_command")
+    @patch("q2_assembly.mason.mason._combine_reads")
     def test_process_sample(self, mock_combine_reads, mock_run_command):
         sample = "sampleY"
         genomes = GenomeSequencesDirectoryFormat(
