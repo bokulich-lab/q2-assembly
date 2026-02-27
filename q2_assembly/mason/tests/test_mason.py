@@ -9,7 +9,7 @@
 import os
 import tempfile
 import unittest
-from unittest.mock import ANY, MagicMock, call, patch
+from unittest.mock import call, patch, MagicMock, ANY
 
 import pandas as pd
 from q2_types.genome_data import GenomeSequencesDirectoryFormat
@@ -18,10 +18,10 @@ from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.mason.mason import (
-    _combine_reads,
-    _process_sample,
     _simulate_reads_mason,
     generate_abundances,
+    _combine_reads,
+    _process_sample,
     simulate_reads_mason,
 )
 
