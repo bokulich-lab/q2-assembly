@@ -8,6 +8,7 @@
 
 import importlib
 
+from q2_types.bowtie2 import Bowtie2Index
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency, RelativeFrequency
@@ -418,6 +419,7 @@ I_index, O_alignment = TypeMap(
     {
         SampleData[SingleBowtie2Index]: SampleData[AlignmentMap],
         FeatureData[SingleBowtie2Index]: FeatureData[AlignmentMap],
+        Bowtie2Index: SampleData[AlignmentMap]
     }
 )
 plugin.pipelines.register_function(
@@ -429,7 +431,7 @@ plugin.pipelines.register_function(
     parameters={**bowtie2_mapping_params, "sort": Bool, **partition_params},
     outputs=[("alignment_maps", O_alignment)],
     input_descriptions={
-        "index": "Bowtie 2 indices generated for contigs/MAGs of interest.",
+        "index": "Bowtie 2 indices generated for contigs/MAGs/reference of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
         "were assembled.",
     },
@@ -470,6 +472,7 @@ I_index, O_map = TypeMap(
     {
         SampleData[SingleBowtie2Index % Properties("mags")]: SampleData[AlignmentMap],
         FeatureData[SingleBowtie2Index % Properties("mags")]: FeatureData[AlignmentMap],
+        Bowtie2Index: SampleData[AlignmentMap]
     }
 )
 plugin.methods.register_function(
