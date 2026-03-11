@@ -226,9 +226,7 @@ class TestSpades(TestPluginBase):
         p2.assert_has_calls(
             [
                 call(
-                    os.path.join(str(obs), "sample1_contigs.fa"),
-                    "sample1",
-                    "shortuuid"
+                    os.path.join(str(obs), "sample1_contigs.fa"), "sample1", "shortuuid"
                 ),
                 call(
                     os.path.join(str(obs), "sample2_contigs.fa"),
@@ -264,8 +262,9 @@ class TestSpades(TestPluginBase):
         exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p4.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
-                                  "all_contigs", "shortuuid")])
+        p4.assert_has_calls(
+            [call(os.path.join(str(obs), "all_contigs.fa"), "all_contigs", "shortuuid")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.spades.spades.modify_contig_ids")
@@ -294,8 +293,9 @@ class TestSpades(TestPluginBase):
 
         exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
         p1.assert_has_calls(exp_calls, any_order=False)
-        p4.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
-                                  "all_contigs", "shortuuid")])
+        p4.assert_has_calls(
+            [call(os.path.join(str(obs), "all_contigs.fa"), "all_contigs", "shortuuid")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.spades.spades._process_sample")
