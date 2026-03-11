@@ -258,7 +258,7 @@ class TestMason(TestPluginBase):
             random_seed=42,
             threads=1,
         )
-        mock_ctx.make_artifact.has_calls(
+        mock_ctx.make_artifact.assert_has_calls(
             [
                 call("FeatureTable[RelativeFrequency]", abundances_df[["sample1"]]),
             ]
@@ -310,7 +310,7 @@ class TestMason(TestPluginBase):
                 ),
             ]
         )
-        mock_ctx.make_artifact.has_calls(
+        mock_ctx.make_artifact.assert_has_calls(
             [
                 call("FeatureTable[RelativeFrequency]", abundances_df[["sample1"]]),
                 call("FeatureTable[RelativeFrequency]", abundances_df[["sample2"]]),
@@ -510,7 +510,7 @@ class TestMason(TestPluginBase):
             ]
         )
         self.assertWarnsRegex(UserWarning, "Sample names will be extracted")
-        mock_ctx.make_artifact.has_calls(
+        mock_ctx.make_artifact.assert_has_calls(
             [
                 call("FeatureTable[RelativeFrequency]", abundances_df[["sampleA"]]),
                 call("FeatureTable[RelativeFrequency]", abundances_df[["sampleB"]]),
