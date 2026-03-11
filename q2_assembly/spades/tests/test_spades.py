@@ -223,6 +223,20 @@ class TestSpades(TestPluginBase):
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="paired")
 
         p1.assert_has_calls(exp_calls, any_order=False)
+        p2.assert_has_calls(
+            [
+                call(
+                    os.path.join(str(obs), "sample1_contigs.fa"),
+                    "sample1",
+                    "shortuuid"
+                ),
+                call(
+                    os.path.join(str(obs), "sample2_contigs.fa"),
+                    "sample2",
+                    "shortuuid",
+                ),
+            ]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.spades.spades.modify_contig_ids")
@@ -250,7 +264,8 @@ class TestSpades(TestPluginBase):
         exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p4.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
+        p4.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
+                                  "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.spades.spades.modify_contig_ids")
@@ -279,7 +294,8 @@ class TestSpades(TestPluginBase):
 
         exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
         p1.assert_has_calls(exp_calls, any_order=False)
-        p4.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
+        p4.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
+                                  "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.spades.spades._process_sample")
@@ -368,7 +384,7 @@ class TestSpades(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        _assemble_spades(
+        obs = _assemble_spades(
             reads=input,
             meta=False,
             coassemble=False,
@@ -377,7 +393,14 @@ class TestSpades(TestPluginBase):
         )
 
         p2.assert_has_calls(
-            [call(ANY, "sample1", uuid_type), call(ANY, "sample2", uuid_type)]
+            [
+                call(
+                    os.path.join(str(obs), "sample1_contigs.fa"), "sample1", uuid_type
+                ),
+                call(
+                    os.path.join(str(obs), "sample2_contigs.fa"), "sample2", uuid_type
+                ),
+            ]
         )
 
 

@@ -274,6 +274,10 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
+        p2.assert_has_calls(
+            [call(os.path.join(str(obs), "sample1_contigs.fa"), "sample1", "shortuuid"),
+             call(os.path.join(str(obs), "sample2_contigs.fa"), "sample2", "shortuuid")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -293,6 +297,10 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
+        p2.assert_has_calls(
+            [call(os.path.join(str(obs), "sample1_contigs.fa"), "sample1", "shortuuid"),
+             call(os.path.join(str(obs), "sample2_contigs.fa"), "sample2", "shortuuid")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -312,7 +320,8 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
+        p2.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
+                                  "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -332,7 +341,8 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
+        p2.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
+                                  "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -352,7 +362,8 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
+        p2.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
+                                  "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -372,12 +383,12 @@ class TestMegahit(TestPluginBase):
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([call(ANY, "all_contigs", "shortuuid")])
+        p2.assert_has_calls([call(os.path.join(str(obs), "all_contigs.fa"),
+                                  "all_contigs", "shortuuid")])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
-    @patch("q2_assembly.megahit.megahit.modify_contig_ids")
     @patch("q2_assembly.megahit.megahit.assemble_megahit_helper")
-    def test_assemble_megahit_process_params(self, p1, p2):
+    def test_assemble_megahit_process_params(self, p1):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
@@ -452,7 +463,7 @@ class TestMegahit(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        _ = assemble_megahit_helper(
+        obs = assemble_megahit_helper(
             reads=input,
             coassemble=False,
             uuid_type=uuid_type,
@@ -460,7 +471,8 @@ class TestMegahit(TestPluginBase):
         )
 
         p2.assert_has_calls(
-            [call(ANY, "sample1", uuid_type), call(ANY, "sample2", uuid_type)]
+            [call(os.path.join(str(obs), "sample1_contigs.fa"), "sample1", uuid_type),
+             call(os.path.join(str(obs), "sample2_contigs.fa"), "sample2", uuid_type)]
         )
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")

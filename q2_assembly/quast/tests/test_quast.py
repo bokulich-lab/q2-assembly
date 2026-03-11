@@ -830,7 +830,7 @@ class TestQuast(TestPluginBase):
             action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
             with patch(
-                "q2_assembly.quast.quast.GenomeSequencesDirectoryFormat"
+                "q2_types.genome_data.GenomeSequencesDirectoryFormat"
             ) as MockGenomeSequencesDirectoryFormat:
                 MockGenomeSequencesDirectoryFormat.return_value = (
                     GenomeSequencesDirectoryFormat(
@@ -861,7 +861,7 @@ class TestQuast(TestPluginBase):
             action, export_data, make_artifact, mock_ctx = self.create_mock_ctx()
 
             with patch(
-                "q2_assembly.quast.quast.GenomeSequencesDirectoryFormat"
+                "q2_types.genome_data.GenomeSequencesDirectoryFormat"
             ) as MockGenomeSequencesDirectoryFormat:
 
                 with warnings.catch_warnings(record=True) as w:
