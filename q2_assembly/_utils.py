@@ -175,7 +175,13 @@ def concatenate_files(input_files, output_file):
     subprocess.run(cmd, stdout=open(output_file, "w"), check=True)
 
 
-def modify_contig_ids(contig_file: str, sample: str, uuid_type: str, sample_id: Optional[str] = None, separator: str = ":"):
+def modify_contig_ids(
+    contig_file: str,
+    sample: str,
+    uuid_type: str,
+    sample_id: Optional[str] = None,
+    separator: str = ":",
+):
     """Modifies the contig IDs to include the sample name and UUID.
 
     Args:
