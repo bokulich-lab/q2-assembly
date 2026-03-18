@@ -123,7 +123,7 @@ class TestUtils(TestPluginBase):
 
             calls = []
             for map_fp in Path(tmp).glob("*.bam"):
-                samp_name = map_fp.stem.rsplit("_alignment", 1)[0]
+                samp_name = map_fp.stem
                 sorted_bam = os.path.join(
                     str(out_dir), f"{samp_name}_alignment_sorted.bam"
                 )
