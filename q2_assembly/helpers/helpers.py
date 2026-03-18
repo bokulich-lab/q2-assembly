@@ -13,7 +13,7 @@ from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
-from q2_assembly._utils import modify_contig_ids
+from q2_assembly._utils import modify_contig_ids, run_command
 
 
 def rename_contigs(
@@ -57,3 +57,18 @@ def collate_alignments(alignment_maps: BAMDirFmt) -> BAMDirFmt:
             duplicate(_alignment, os.path.join(collated_alignments.path, filename))
 
     return collated_alignments
+
+
+def sort_alignment_maps(
+    alignment_maps: BAMDirFmt,
+) -> BAMDirFmt:
+    file_dict = alignment_maps.file_dict(relative=True)
+    out_dir = BAMDirFmt()
+
+    for samp_name, rel_fp in file_dict.items():
+        fp = os.path.join(str(alignment_maps), rel_fp)
+
+        sorted_bam = os.path.join(str(out_dir), f"{samp_name}_alignment_sorted.bam")
+        run_command(["samtools", "sort", str(fp), "-o", sorted_bam], verbose=True)
+
+    return out_dir

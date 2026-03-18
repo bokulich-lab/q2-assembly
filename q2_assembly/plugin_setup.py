@@ -491,6 +491,31 @@ plugin.methods.register_function(
     citations=[citations["Langmead2012"]],
 )
 
+I_unsorted_maps, O_sorted_maps = TypeMap(
+    {
+        FeatureData[AlignmentMap]: FeatureData[AlignmentMap % Properties("sorted")],
+        SampleData[AlignmentMap]: SampleData[AlignmentMap % Properties("sorted")],
+    }
+)
+plugin.methods.register_function(
+    function=q2_assembly.helpers.sort_alignment_maps,
+    inputs={"alignment_maps": I_unsorted_maps},
+    parameters={},
+    outputs={"sorted_alignment_maps": O_sorted_maps},
+    name="Sort reads-to-contig alignment maps",
+    description=(
+        "Sort reads-to-contigs alignment maps into a sorted format required "
+        "for metagenomic binning. The sorted alignment maps can be used as "
+        "input for binning tools such as MetaBAT."
+    ),
+    input_descriptions={
+        "alignment_maps": "Reads-to-contig alignment maps to be sorted."
+    },
+    parameter_descriptions={},
+    output_descriptions={"sorted_alignment_maps": "Sorted alignment maps."},
+    citations=[],
+)
+
 I_maps, O_maps = TypeMap(
     {
         SampleData[AlignmentMap]: SampleData[AlignmentMap],
