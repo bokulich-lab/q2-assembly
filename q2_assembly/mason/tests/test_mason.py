@@ -39,7 +39,7 @@ class TestMason(TestPluginBase):
             self.get_data_path("genomes-dir-format1"), "r"
         )
 
-    @patch("q2_assembly.mason._process_sample")
+    @patch("q2_assembly.mason.mason._process_sample")
     def test_simulate_reads_mason_helper(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
@@ -48,7 +48,7 @@ class TestMason(TestPluginBase):
         )
 
         with patch(
-            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
+            "q2_assembly.mason.mason.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
             reads, ft = _simulate_reads_mason(
@@ -83,7 +83,7 @@ class TestMason(TestPluginBase):
         )
         pd.testing.assert_frame_equal(ft, expected_ft)
 
-    @patch("q2_assembly.mason._process_sample")
+    @patch("q2_assembly.mason.mason._process_sample")
     def test_simulate_reads_mason_helper_with_abundances(self, p_process):
         mock_genomes_dir_fmt = GenomeSequencesDirectoryFormat()
 
@@ -97,7 +97,7 @@ class TestMason(TestPluginBase):
         )
 
         with patch(
-            "q2_assembly.mason.GenomeSequencesDirectoryFormat",
+            "q2_assembly.mason.mason.GenomeSequencesDirectoryFormat",
             return_value=mock_genomes_dir_fmt,
         ):
             reads, ft = _simulate_reads_mason(
@@ -247,7 +247,7 @@ class TestMason(TestPluginBase):
             num_reads=[2000000],
             read_length=[125],
         )
-
+        self.assertEqual(f1.call_count, 1)
         # Verify that abundances for sample1 were passed
         f1.assert_called_once_with(
             reference_genomes=self.refs,
@@ -258,11 +258,11 @@ class TestMason(TestPluginBase):
             random_seed=42,
             threads=1,
         )
-        mock_ctx.make_artifact.has_calls(
-            [
-                call("FeatureTable[RelativeFrequency]", abundances_df[["sample1"]]),
-            ]
-        )
+        self.assertEqual(mock_ctx.make_artifact.call_count, 1)
+        expected_df = abundances_df[["sample1"]]
+        artifact_type, artifact_df = mock_ctx.make_artifact.call_args.args
+        self.assertEqual(artifact_type, "FeatureTable[RelativeFrequency]")
+        pd.testing.assert_frame_equal(artifact_df, expected_df, check_names=False)
         f2.assert_called_once_with(["reads"])
 
     def test_simulate_reads_mason_with_abundances_multiple_samples(self):
@@ -287,7 +287,7 @@ class TestMason(TestPluginBase):
             num_reads=[2000, 4000],
             read_length=[125, 150],
         )
-
+        self.assertEqual(f1.call_count, 2)
         f1.assert_has_calls(
             [
                 call(
@@ -310,12 +310,17 @@ class TestMason(TestPluginBase):
                 ),
             ]
         )
-        mock_ctx.make_artifact.has_calls(
-            [
-                call("FeatureTable[RelativeFrequency]", abundances_df[["sample1"]]),
-                call("FeatureTable[RelativeFrequency]", abundances_df[["sample2"]]),
-            ]
-        )
+        self.assertEqual(mock_ctx.make_artifact.call_count, 2)
+        expected_dfs = [
+            abundances_df[["sample1"]],
+            abundances_df[["sample2"]],
+        ]
+        for expected_df, actual_call in zip(
+            expected_dfs, mock_ctx.make_artifact.call_args_list
+        ):
+            artifact_type, artifact_df = actual_call.args
+            self.assertEqual(artifact_type, "FeatureTable[RelativeFrequency]")
+            pd.testing.assert_frame_equal(artifact_df, expected_df, check_names=False)
         f2.assert_called_once_with(["reads1", "reads2"])
 
     def test_simulate_reads_mason_mutual_exclusivity_both(self):
@@ -468,15 +473,17 @@ class TestMason(TestPluginBase):
             "FeatureTable[RelativeFrequency]", abundances_df
         )
 
-        simulate_reads_mason(
-            ctx=mock_ctx,
-            reference_genomes=self.refs,
-            sample_names=["s1", "s2", "s3"],
-            relative_abundances=abundances,
-            num_reads=[1000],
-            read_length=[100],
-        )
+        with self.assertWarnsRegex(UserWarning, "Sample names will be extracted"):
+            simulate_reads_mason(
+                ctx=mock_ctx,
+                reference_genomes=self.refs,
+                sample_names=["s1", "s2", "s3"],
+                relative_abundances=abundances,
+                num_reads=[1000],
+                read_length=[100],
+            )
 
+        self.assertEqual(f1.call_count, 3)
         # Should extract sample names from columns
         f1.assert_has_calls(
             [
@@ -509,14 +516,18 @@ class TestMason(TestPluginBase):
                 ),
             ]
         )
-        self.assertWarnsRegex(UserWarning, "Sample names will be extracted")
-        mock_ctx.make_artifact.has_calls(
-            [
-                call("FeatureTable[RelativeFrequency]", abundances_df[["sampleA"]]),
-                call("FeatureTable[RelativeFrequency]", abundances_df[["sampleB"]]),
-                call("FeatureTable[RelativeFrequency]", abundances_df[["sampleC"]]),
-            ]
-        )
+        self.assertEqual(mock_ctx.make_artifact.call_count, 3)
+        expected_dfs = [
+            abundances_df[["sampleA"]],
+            abundances_df[["sampleB"]],
+            abundances_df[["sampleC"]],
+        ]
+        for expected_df, actual_call in zip(
+            expected_dfs, mock_ctx.make_artifact.call_args_list
+        ):
+            artifact_type, artifact_df = actual_call.args
+            self.assertEqual(artifact_type, "FeatureTable[RelativeFrequency]")
+            pd.testing.assert_frame_equal(artifact_df, expected_df, check_names=False)
         f2.assert_called_once_with(["reads1", "reads2", "reads3"])
 
 
@@ -594,8 +605,8 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
             self.assertFalse(os.path.exists(f1))
             self.assertFalse(os.path.exists(f2))
 
-    @patch("q2_assembly.mason.run_command")
-    @patch("q2_assembly.mason._combine_reads")
+    @patch("q2_assembly.mason.mason.run_command")
+    @patch("q2_assembly.mason.mason._combine_reads")
     def test_process_sample(self, mock_combine_reads, mock_run_command):
         sample = "sampleY"
         genomes = GenomeSequencesDirectoryFormat(
@@ -629,6 +640,8 @@ class TestCombineReadsAndProcessSample(TestPluginBase):
                 str(seed),
                 "--illumina-read-length",
                 str(read_len),
+                "--read-name-prefix",
+                f"{sample}.{genome_id}.simulated.",
                 "--seq-technology",
                 "illumina",
                 "--num-threads",

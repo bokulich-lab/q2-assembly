@@ -99,7 +99,7 @@ class TestUtils(TestPluginBase):
                 self.assertTrue(all(regex.match(new_id) for new_id in new_contig_ids))
 
     @parameterized.expand(["shortuuid", "uuid3", "uuid4", "uuid5"])
-    @patch("q2_assembly.helpers.modify_contig_ids")
+    @patch("q2_assembly.helpers.helpers.modify_contig_ids")
     def test_rename_contigs_method_call(self, uuid_type, p1):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         _ = rename_contigs(contigs, uuid_type)

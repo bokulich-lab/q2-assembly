@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import glob
+import importlib
 import json
 import os
 import platform
@@ -18,7 +19,6 @@ from warnings import warn
 from zipfile import ZipFile
 
 import pandas as pd
-import pkg_resources
 import q2templates
 import skbio
 from q2_types.feature_data import DNAFASTAFormat, DNAIterator
@@ -42,7 +42,7 @@ from .._utils import (
     run_command,
 )
 
-TEMPLATES = pkg_resources.resource_filename("q2_assembly", "assets")
+TEMPLATES = importlib.resources.files("q2_assembly") / "assets"
 
 
 def _process_quast_arg(arg_key, arg_val):
