@@ -14,7 +14,7 @@ ENV PATH=/opt/conda/envs/${PLUGIN_NAME}/bin:$PATH \
 WORKDIR /home/qiime2
 COPY environment.yml .
 
-RUN apt-get install -y --no-install-recommends wget procps \
+RUN apt-get update && apt-get install -y --no-install-recommends wget procps make \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -35,6 +35,8 @@ RUN echo "source tab-qiime" >> $HOME/.bashrc
 
 
 FROM base AS test
+
+LABEL quay.expires-after=4w
 
 RUN mamba run -n ${PLUGIN_NAME} pip install pytest pytest-cov coverage parameterized pytest-xdist
 CMD mamba run -n ${PLUGIN_NAME} make -f ./plugin/Makefile test-cov
