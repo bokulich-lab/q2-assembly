@@ -86,13 +86,7 @@ def map_reads(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k
-        not in [
-            "ctx",
-            "reads",
-            "num_partitions",
-            "sort"
-        ]
+        if k not in ["ctx", "reads", "num_partitions", "sort"]
     }
 
     collate_alignments = ctx.get_action("assembly", "collate_alignments")

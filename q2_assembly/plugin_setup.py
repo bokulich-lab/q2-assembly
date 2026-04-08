@@ -426,11 +426,7 @@ plugin.pipelines.register_function(
         "index": I_index,
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
-    parameters={
-        **bowtie2_mapping_params,
-        "sort": Bool,
-        **partition_params
-    },
+    parameters={**bowtie2_mapping_params, "sort": Bool, **partition_params},
     outputs=[("alignment_maps", O_alignment)],
     input_descriptions={
         "index": "Bowtie 2 indices generated for contigs/MAGs of interest.",
@@ -509,9 +505,7 @@ plugin.methods.register_function(
     parameters={},
     outputs={"sorted_alignment_maps": O_sorted_maps},
     name="Sort reads-to-contig alignment maps",
-    description=(
-        "Sort reads-to-contigs alignment maps by genomic coordinates."
-    ),
+    description=("Sort reads-to-contigs alignment maps by genomic coordinates."),
     input_descriptions={
         "alignment_maps": "Reads-to-contig alignment maps to be sorted."
     },
