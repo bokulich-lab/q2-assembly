@@ -91,7 +91,7 @@ def map_reads(
             "ctx",
             "reads",
             "num_partitions",
-            "sort",
+            "sort"
         ]
     }
 
@@ -176,7 +176,6 @@ def _map_reads_to_contigs(
     mm: bool = False,
     seed: int = 0,
     non_deterministic: bool = False,
-    sort: bool = True,
 ) -> BAMDirFmt:
     if qupto == "unlimited":
         qupto = None
@@ -189,7 +188,7 @@ def _map_reads_to_contigs(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["index", "reads", "sensitivity", "mode", "sort"]
+        if k not in ["index", "reads", "sensitivity", "mode"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2_arg, params=kwargs
@@ -260,7 +259,6 @@ def _map_reads_to_mags(
     mm: bool = False,
     seed: int = 0,
     non_deterministic: bool = False,
-    sort: bool = True,
 ) -> BAMDirFmt:
     if qupto == "unlimited":
         qupto = None
@@ -273,7 +271,7 @@ def _map_reads_to_mags(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["index", "reads", "sensitivity", "mode", "sort"]
+        if k not in ["index", "reads", "sensitivity", "mode"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_bowtie2_arg, params=kwargs
