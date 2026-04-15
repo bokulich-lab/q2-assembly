@@ -426,7 +426,7 @@ plugin.pipelines.register_function(
         "index": I_index,
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
-    parameters={**bowtie2_mapping_params, **partition_params},
+    parameters={**bowtie2_mapping_params, "sort": Bool, **partition_params},
     outputs=[("alignment_maps", O_alignment)],
     input_descriptions={
         "index": "Bowtie 2 indices generated for contigs/MAGs of interest.",
@@ -435,6 +435,7 @@ plugin.pipelines.register_function(
     },
     parameter_descriptions={
         **bowtie2_mapping_param_descriptions,
+        "sort": "Sort reads-to-contigs alignment maps by genomic coordinates",
         **partition_param_descriptions,
     },
     output_descriptions={"alignment_maps": "Reads-to-contigs mapping."},
@@ -490,6 +491,27 @@ plugin.methods.register_function(
     description="This method uses Bowtie2 to map provided reads to "
     "the respective MAGs.",
     citations=[citations["Langmead2012"]],
+)
+
+I_unsorted_maps, O_sorted_maps = TypeMap(
+    {
+        FeatureData[AlignmentMap]: FeatureData[AlignmentMap % Properties("sorted")],
+        SampleData[AlignmentMap]: SampleData[AlignmentMap % Properties("sorted")],
+    }
+)
+plugin.methods.register_function(
+    function=q2_assembly.helpers.sort_alignment_maps,
+    inputs={"alignment_maps": I_unsorted_maps},
+    parameters={},
+    outputs={"sorted_alignment_maps": O_sorted_maps},
+    name="Sort reads-to-contig alignment maps",
+    description=("Sort reads-to-contigs alignment maps by genomic coordinates."),
+    input_descriptions={
+        "alignment_maps": "Reads-to-contig alignment maps to be sorted."
+    },
+    parameter_descriptions={},
+    output_descriptions={"sorted_alignment_maps": "Sorted alignment maps."},
+    citations=[],
 )
 
 I_maps, O_maps = TypeMap(
