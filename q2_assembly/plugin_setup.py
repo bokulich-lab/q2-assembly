@@ -516,8 +516,14 @@ plugin.methods.register_function(
 
 I_maps, O_maps = TypeMap(
     {
-        SampleData[AlignmentMap]: SampleData[AlignmentMap],
-        FeatureData[AlignmentMap]: FeatureData[AlignmentMap],
+        SampleData[AlignmentMap % Properties("sorted")]:
+            SampleData[AlignmentMap % Properties("sorted")],
+        FeatureData[AlignmentMap % Properties("sorted")]:
+            FeatureData[AlignmentMap % Properties("sorted")],
+        SampleData[AlignmentMap]:
+            SampleData[AlignmentMap],
+        FeatureData[AlignmentMap]:
+            FeatureData[AlignmentMap],
     }
 )
 plugin.methods.register_function(

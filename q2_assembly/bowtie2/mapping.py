@@ -113,11 +113,11 @@ def map_reads(
     mapped_reads = []
     for read in partitioned_reads.values():
         (mapped_read,) = _map_reads(reads=read, **kwargs)
+        if sort:
+            (mapped_read,) = sort_alignment_maps(mapped_read)
         mapped_reads.append(mapped_read)
 
     (collated_mapped_reads,) = collate_alignments(mapped_reads)
-    if sort:
-        (collated_mapped_reads,) = sort_alignment_maps(collated_mapped_reads)
     return collated_mapped_reads
 
 

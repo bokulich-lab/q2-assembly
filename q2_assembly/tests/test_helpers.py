@@ -110,7 +110,7 @@ class TestUtils(TestPluginBase):
 
         p1.assert_has_calls(calls)
 
-    @patch("q2_assembly.helpers.run_command")
+    @patch("q2_assembly.helpers.helpers.run_command")
     def test_sort_alignment_maps(self, p1):
         maps = self.get_data_path("alignment_map", "r")
 
