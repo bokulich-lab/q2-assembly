@@ -507,7 +507,7 @@ plugin.methods.register_function(
     name="Sort reads-to-contig alignment maps",
     description=("Sort reads-to-contigs alignment maps by genomic coordinates."),
     input_descriptions={
-        "alignment_maps": "Reads-to-contig alignment maps to be sorted."
+        "alignment_maps": "Alignment maps to be sorted."
     },
     parameter_descriptions={},
     output_descriptions={"sorted_alignment_maps": "Sorted alignment maps."},
