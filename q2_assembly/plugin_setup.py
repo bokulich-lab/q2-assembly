@@ -506,9 +506,7 @@ plugin.methods.register_function(
     outputs={"sorted_alignment_maps": O_sorted_maps},
     name="Sort reads-to-contig alignment maps",
     description=("Sort reads-to-contigs alignment maps by genomic coordinates."),
-    input_descriptions={
-        "alignment_maps": "Alignment maps to be sorted."
-    },
+    input_descriptions={"alignment_maps": "Alignment maps to be sorted."},
     parameter_descriptions={},
     output_descriptions={"sorted_alignment_maps": "Sorted alignment maps."},
     citations=[],
@@ -516,14 +514,14 @@ plugin.methods.register_function(
 
 I_maps, O_maps = TypeMap(
     {
-        SampleData[AlignmentMap % Properties("sorted")]:
-            SampleData[AlignmentMap % Properties("sorted")],
-        FeatureData[AlignmentMap % Properties("sorted")]:
-            FeatureData[AlignmentMap % Properties("sorted")],
-        SampleData[AlignmentMap]:
-            SampleData[AlignmentMap],
-        FeatureData[AlignmentMap]:
-            FeatureData[AlignmentMap],
+        SampleData[AlignmentMap % Properties("sorted")]: SampleData[
+            AlignmentMap % Properties("sorted")
+        ],
+        FeatureData[AlignmentMap % Properties("sorted")]: FeatureData[
+            AlignmentMap % Properties("sorted")
+        ],
+        SampleData[AlignmentMap]: SampleData[AlignmentMap],
+        FeatureData[AlignmentMap]: FeatureData[AlignmentMap],
     }
 )
 plugin.methods.register_function(
