@@ -80,20 +80,17 @@ def map_reads(
     mm=False,
     seed=0,
     non_deterministic=False,
+    sort=True,
     num_partitions=None,
 ):
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k
-        not in [
-            "ctx",
-            "reads",
-            "num_partitions",
-        ]
+        if k not in ["ctx", "reads", "num_partitions", "sort"]
     }
 
     collate_alignments = ctx.get_action("assembly", "collate_alignments")
+    sort_alignment_maps = ctx.get_action("assembly", "sort_alignment_maps")
 
     if reads.type <= SampleData[SequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_single")
@@ -116,6 +113,8 @@ def map_reads(
     mapped_reads = []
     for read in partitioned_reads.values():
         (mapped_read,) = _map_reads(reads=read, **kwargs)
+        if sort:
+            (mapped_read,) = sort_alignment_maps(mapped_read)
         mapped_reads.append(mapped_read)
 
     (collated_mapped_reads,) = collate_alignments(mapped_reads)
