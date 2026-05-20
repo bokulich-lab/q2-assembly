@@ -124,9 +124,7 @@ class TestUtils(TestPluginBase):
             calls = []
             for map_fp in Path(tmp).glob("*.bam"):
                 samp_name = map_fp.stem
-                sorted_bam = os.path.join(
-                    str(out_dir), f"{samp_name}_alignment_sorted.bam"
-                )
+                sorted_bam = os.path.join(str(out_dir), f"{samp_name}.bam")
                 calls.append(
                     call(
                         ["samtools", "sort", str(map_fp), "-o", sorted_bam],
