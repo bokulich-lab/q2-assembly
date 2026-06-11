@@ -1,0 +1,9 @@
+channels:
+- https://packages.qiime2.org/qiime2/2026.4/moshpit/released
+- conda-forge
+- bioconda
+dependencies:
+  - rachis-moshpit
+  - pip
+  - pip:
+    - q2-assembly@git+https://github.com/bokulich-lab/q2-assembly.git@2026.4.0
