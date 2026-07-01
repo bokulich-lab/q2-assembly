@@ -109,9 +109,18 @@ plugin.methods.register_function(
 plugin.methods.register_function(
     function=q2_assembly.helpers.rename_contigs,
     inputs={"contigs": SampleData[Contigs]},
-    parameters={"uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"])},
+    parameters={
+        "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
+        "include_sample_id": Bool,
+        "separator": Str,
+    },
     outputs={"renamed_contigs": SampleData[Contigs]},
     input_descriptions={"contigs": "The contigs to be renamed."},
+    parameter_descriptions={
+        "uuid_type": "The type of UUID to use as the new contig names.",
+        "include_sample_id": "Whether to include the sample ID in the new contig names.",
+        "separator": "The separator to use between the sample ID and the contig ID.",
+    },
     name="Rename contigs using unique IDs.",
     description="Takes contigs for each samples in SampleData[Contigs] "
     "and renames them by changing their IDs using one of the following "
