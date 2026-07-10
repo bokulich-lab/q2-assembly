@@ -700,7 +700,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
     def test_map_reads_bowtie2_index_paired_parallel(self):
         """map_reads dispatches to _map_reads_to_mags for a
-            plain Bowtie2Index (paired)."""
+        plain Bowtie2Index (paired)."""
         input_index = self.get_data_path("indices/from_mags_derep")
         input_reads = get_relative_data_path(
             self.root_test_package, "formatted-reads/paired-end"
@@ -729,7 +729,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
     def test_map_reads_bowtie2_index_single_parallel(self):
         """map_reads dispatches to _map_reads_to_mags for a
-            plain Bowtie2Index (single)."""
+        plain Bowtie2Index (single)."""
         input_index = self.get_data_path("indices/from_mags_derep")
         input_reads = get_relative_data_path(
             self.root_test_package, "formatted-reads/single-end"
