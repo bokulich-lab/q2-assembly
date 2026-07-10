@@ -419,7 +419,7 @@ I_index, O_alignment = TypeMap(
     {
         SampleData[SingleBowtie2Index]: SampleData[AlignmentMap],
         FeatureData[SingleBowtie2Index]: FeatureData[AlignmentMap],
-        Bowtie2Index: SampleData[AlignmentMap]
+        Bowtie2Index: SampleData[AlignmentMap],
     }
 )
 plugin.pipelines.register_function(
@@ -472,7 +472,7 @@ I_index, O_map = TypeMap(
     {
         SampleData[SingleBowtie2Index % Properties("mags")]: SampleData[AlignmentMap],
         FeatureData[SingleBowtie2Index % Properties("mags")]: FeatureData[AlignmentMap],
-        Bowtie2Index: SampleData[AlignmentMap]
+        Bowtie2Index: SampleData[AlignmentMap],
     }
 )
 plugin.methods.register_function(
