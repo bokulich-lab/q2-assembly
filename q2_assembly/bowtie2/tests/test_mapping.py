@@ -189,7 +189,10 @@ class TestBowtie2Mapping(TestPluginBase):
         for s_props in obs.values():
             self.assertTrue(
                 s_props["index"].endswith("/genome"),
-                msg=f"Expected index path ending with '/genome', got: {s_props['index']}",
+                msg=(
+                    "Expected index path ending with '/genome', "
+                    f"got: {s_props['index']}"
+                ),
             )
 
     def test_gather_feature_data_empty_index_raises(self):
@@ -696,7 +699,8 @@ class TestBowtie2Mapping(TestPluginBase):
         self.assertIs(out.format, BAMDirFmt)
 
     def test_map_reads_bowtie2_index_paired_parallel(self):
-        """map_reads dispatches to _map_reads_to_mags for a plain Bowtie2Index (paired)."""
+        """map_reads dispatches to _map_reads_to_mags for a
+            plain Bowtie2Index (paired)."""
         input_index = self.get_data_path("indices/from_mags_derep")
         input_reads = get_relative_data_path(
             self.root_test_package, "formatted-reads/paired-end"
@@ -724,7 +728,8 @@ class TestBowtie2Mapping(TestPluginBase):
         self.assertIs(out.format, BAMDirFmt)
 
     def test_map_reads_bowtie2_index_single_parallel(self):
-        """map_reads dispatches to _map_reads_to_mags for a plain Bowtie2Index (single)."""
+        """map_reads dispatches to _map_reads_to_mags for a
+            plain Bowtie2Index (single)."""
         input_index = self.get_data_path("indices/from_mags_derep")
         input_reads = get_relative_data_path(
             self.root_test_package, "formatted-reads/single-end"
