@@ -151,9 +151,7 @@ class TestBowtie2Mapping(TestPluginBase):
         input_index = self.get_data_path("indices/from_mags_derep")
         index = Bowtie2IndexDirFmt(input_index, mode="r")
 
-        obs = _gather_feature_data(
-            index=index, reads_manifest=manifest, paired=True
-        )
+        obs = _gather_feature_data(index=index, reads_manifest=manifest, paired=True)
         exp = {
             s: {
                 "fwd": self.test_samples_for_features[s]["fwd"],
@@ -169,9 +167,7 @@ class TestBowtie2Mapping(TestPluginBase):
         input_index = self.get_data_path("indices/from_mags_derep")
         index = Bowtie2IndexDirFmt(input_index, mode="r")
 
-        obs = _gather_feature_data(
-            index=index, reads_manifest=manifest, paired=False
-        )
+        obs = _gather_feature_data(index=index, reads_manifest=manifest, paired=False)
         exp = {
             s: {
                 "fwd": self.test_samples_for_features[s]["fwd"],
@@ -189,9 +185,7 @@ class TestBowtie2Mapping(TestPluginBase):
         for suffix in ["1.bt2", "2.bt2", "3.bt2", "4.bt2", "rev.1.bt2", "rev.2.bt2"]:
             open(os.path.join(str(index), f"genome.{suffix}"), "w").close()
 
-        obs = _gather_feature_data(
-            index=index, reads_manifest=manifest, paired=True
-        )
+        obs = _gather_feature_data(index=index, reads_manifest=manifest, paired=True)
         for s_props in obs.values():
             self.assertTrue(
                 s_props["index"].endswith("/genome"),
@@ -204,9 +198,7 @@ class TestBowtie2Mapping(TestPluginBase):
         index = Bowtie2IndexDirFmt()  # no files added
 
         with self.assertRaises(IndexError):
-            _gather_feature_data(
-                index=index, reads_manifest=manifest, paired=True
-            )
+            _gather_feature_data(index=index, reads_manifest=manifest, paired=True)
 
     @patch("shutil.move")
     @patch("subprocess.run")
@@ -702,7 +694,6 @@ class TestBowtie2Mapping(TestPluginBase):
 
         out.validate()
         self.assertIs(out.format, BAMDirFmt)
-
 
     def test_map_reads_bowtie2_index_paired_parallel(self):
         """map_reads dispatches to _map_reads_to_mags for a plain Bowtie2Index (paired)."""
