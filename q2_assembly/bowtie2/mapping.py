@@ -421,9 +421,7 @@ def _gather_feature_data(
         full_set (dict): Dictionary with read and index information per sample.
     """
     full_set = {}
-    index_prefix = os.path.basename(glob.glob(os.path.join(str(index), "*"))[0]).split(
-        ".", 1
-    )[0]
+    index_prefix = index.get_basename()
     for samp in list(reads_manifest.index):
         full_set[samp] = {
             "fwd": reads_manifest.loc[samp, "forward"],

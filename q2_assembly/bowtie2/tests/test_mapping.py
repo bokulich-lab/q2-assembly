@@ -195,14 +195,6 @@ class TestBowtie2Mapping(TestPluginBase):
                 ),
             )
 
-    def test_gather_feature_data_empty_index_raises(self):
-        """An empty index directory raises IndexError from the glob lookup."""
-        manifest = self.read_manifest_file("paired")
-        index = Bowtie2IndexDirFmt()  # no files added
-
-        with self.assertRaises(IndexError):
-            _gather_feature_data(index=index, reads_manifest=manifest, paired=True)
-
     @patch("shutil.move")
     @patch("subprocess.run")
     @patch("tempfile.TemporaryDirectory")
