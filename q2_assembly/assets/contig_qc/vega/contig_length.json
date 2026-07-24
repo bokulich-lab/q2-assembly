@@ -1,0 +1,134 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "params": [
+    {
+      "name": "category_param",
+      "value": "group"
+    },
+    {
+      "name": "value_param",
+      "value": "All"
+    },
+    {
+      "name": "highlight_samples_param",
+      "value": []
+    }
+  ],
+  "description": "Contig length distribution",
+  "data": {
+    "url": "data/contig_length_data.arrow",
+    "format": {"type": "arrow"}
+  },
+  "transform": [
+    {
+      "filter": "value_param == 'All' || datum[category_param] == value_param"
+    },
+    {
+      "calculate": "log(datum.contig_length)/log(10)",
+      "as": "log_x"
+    },
+    {
+      "bin": {
+        "binned": true,
+        "maxbin": 10,
+        "nice": true
+      },
+      "field": "log_x",
+      "as": "bin_log_x"
+    },
+    {
+      "calculate": "pow(10, datum.bin_log_x)",
+      "as": "x1"
+    },
+    {
+      "calculate": "pow(10, datum.bin_log_x_end)",
+      "as": "x2"
+    },
+    {
+      "calculate": "datum[category_param]",
+      "as": "metadata_category_value"
+    },
+    {
+      "calculate": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1 ? 1 : 0",
+      "as": "selection_order"
+    }
+  ],
+  "mark": "bar",
+  "width": "container",
+  "height": 350,
+  "encoding": {
+    "x": {
+      "field": "x1",
+      "title": "Contig length",
+      "axis": {
+        "format": ".1s",
+        "labelAngle": 0
+      }
+    },
+    "x2": {
+      "field": "x2"
+    },
+    "y": {
+      "aggregate": "count",
+      "title": "Count",
+      "axis": {
+        "format": "~s"
+      }
+    },
+    "order": {
+      "field": "selection_order",
+      "type": "quantitative",
+      "sort": "descending"
+    },
+    "color": {
+      "field": "sample",
+      "type": "nominal",
+      "scale": {
+        "scheme": "viridis"
+      },
+      "sort": "ascending",
+      "legend": null
+    },
+    "opacity": {
+      "condition": {
+        "test": "indexof(pluck(highlight_samples_param, 'sample'), datum.sample) !== -1",
+        "value": 1
+      },
+      "value": 0.1
+    },
+    "tooltip": [
+      {"field": "sample", "type": "nominal", "title": "Sample"},
+      {"field": "x1", "type": "quantitative", "title": "Min contig length (bin)", "format": ".1s"},
+      {"field": "x2", "type": "quantitative", "title": "Max contig length (bin)", "format": ".1s"},
+      {"aggregate": "count", "type": "quantitative", "title": "Count in bin"}
+    ]
+  },
+  "config": {
+    "background": "#fff",
+    "font": "Open Sans, Arial, sans-serif",
+    "axis": {
+      "grid": true,
+      "gridColor": "#eaeaea",
+      "gridWidth": 1,
+      "tickColor": "#888",
+      "labelFont": "Open Sans, Arial, sans-serif",
+      "labelFontSize": 14,
+      "titleFont": "Open Sans, Arial, sans-serif",
+      "titleFontSize": 16,
+      "titleFontWeight": "bold",
+      "domain": false
+    },
+    "view": {
+      "stroke": "#eaeaea",
+      "strokeWidth": 1
+    },
+    "title": {
+      "font": "Open Sans, Arial, sans-serif",
+      "fontSize": 18,
+      "fontWeight": "bold",
+      "anchor": "middle",
+      "color": "#222"
+    }
+  },
+  "title": "Contig length distribution"
+} 

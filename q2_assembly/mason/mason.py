@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2025, QIIME 2 development team.
+# Copyright (c) 2026, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -92,6 +92,8 @@ def _process_sample(
             str(seed),
             "--illumina-read-length",
             str(read_len),
+            "--read-name-prefix",
+            f"{sample}.{genome_id}.simulated.",
             "--seq-technology",
             "illumina",
             "--num-threads",

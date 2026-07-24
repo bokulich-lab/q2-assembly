@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2025, QIIME 2 development team.
+# Copyright (c) 2026, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 from .bowtie2 import indexing, mapping
+from .contig_qc import qc
 from .filter import filter
 from .helpers import helpers
 from .iss import iss
@@ -21,6 +22,7 @@ except ModuleNotFoundError:
     __version__ = "0.0.0+notfound"
 
 __all__ = [
+    "abundance",
     "indexing",
     "mapping",
     "iss",
@@ -30,4 +32,5 @@ __all__ = [
     "spades",
     "helpers",
     "filter",
+    "qc",
 ]

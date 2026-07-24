@@ -1,11 +1,10 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2025, QIIME 2 development team.
+# Copyright (c) 2026, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
-
 import os
 import shutil
 import subprocess
@@ -14,7 +13,7 @@ from copy import deepcopy
 from typing import Union
 
 import pandas as pd
-from q2_types.bowtie2 import Bowtie2IndexDirFmt
+from q2_types.bowtie2 import Bowtie2IndexDirFmt, Bowtie2Index
 from q2_types.feature_data import FeatureData
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
@@ -80,20 +79,17 @@ def map_reads(
     mm=False,
     seed=0,
     non_deterministic=False,
+    sort=True,
     num_partitions=None,
 ):
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k
-        not in [
-            "ctx",
-            "reads",
-            "num_partitions",
-        ]
+        if k not in ["ctx", "reads", "num_partitions", "sort"]
     }
 
     collate_alignments = ctx.get_action("assembly", "collate_alignments")
+    sort_alignment_maps = ctx.get_action("assembly", "sort_alignment_maps")
 
     if reads.type <= SampleData[SequencesWithQuality]:
         partition_method = ctx.get_action("demux", "partition_samples_single")
@@ -108,6 +104,8 @@ def map_reads(
         _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
     elif index.type <= FeatureData[SingleBowtie2Index % Properties("mags")]:
         _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
+    elif index.type <= Bowtie2Index:
+        _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
     else:
         raise NotImplementedError()
 
@@ -116,6 +114,8 @@ def map_reads(
     mapped_reads = []
     for read in partitioned_reads.values():
         (mapped_read,) = _map_reads(reads=read, **kwargs)
+        if sort:
+            (mapped_read,) = sort_alignment_maps(mapped_read)
         mapped_reads.append(mapped_read)
 
     (collated_mapped_reads,) = collate_alignments(mapped_reads)
@@ -420,11 +420,12 @@ def _gather_feature_data(
         full_set (dict): Dictionary with read and index information per sample.
     """
     full_set = {}
+    index_prefix = index.get_basename()
     for samp in list(reads_manifest.index):
         full_set[samp] = {
             "fwd": reads_manifest.loc[samp, "forward"],
             "rev": reads_manifest.loc[samp, "reverse"] if paired else None,
         }
-        full_set[samp]["index"] = os.path.join(str(index), "index")
+        full_set[samp]["index"] = os.path.join(str(index), index_prefix)
 
     return full_set

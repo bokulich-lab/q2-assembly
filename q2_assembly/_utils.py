@@ -1,17 +1,17 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2025, QIIME 2 development team.
+# Copyright (c) 2026, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
+import importlib
 import os
 import subprocess
 import tempfile
 from typing import List
 from uuid import NAMESPACE_OID, uuid3, uuid4, uuid5
 
-import pkg_resources
 import shortuuid
 from bs4 import BeautifulSoup as BS
 from skbio import io
@@ -140,7 +140,7 @@ def get_relative_data_path(package, filename):
         package (str): The package we are getting the data path under
         filename (str): The name of the file/dir we are trying to get
     """
-    return pkg_resources.resource_filename(package, f"data/{filename}")
+    return importlib.resources.files(package) / "data" / filename
 
 
 def get_file_extension(filepath):

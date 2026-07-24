@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2025, QIIME 2 development team.
+# Copyright (c) 2026, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -8,10 +8,12 @@
 
 import importlib
 
+from q2_types.bowtie2 import Bowtie2Index
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
 from q2_types.feature_table import FeatureTable, Frequency, RelativeFrequency
 from q2_types.genome_data import DNASequence, GenomeData
+from q2_types.metadata import ImmutableMetadata
 from q2_types.per_sample_sequences import (
     AlignmentMap,
     Contigs,
@@ -22,7 +24,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
-from qiime2.plugin import Citations, Int, List, Plugin, Range
+from qiime2.plugin import Citations, Int, List, Plugin, Range, Metadata
 
 import q2_assembly
 from q2_assembly import __version__
@@ -417,6 +419,7 @@ I_index, O_alignment = TypeMap(
     {
         SampleData[SingleBowtie2Index]: SampleData[AlignmentMap],
         FeatureData[SingleBowtie2Index]: FeatureData[AlignmentMap],
+        Bowtie2Index: SampleData[AlignmentMap],
     }
 )
 plugin.pipelines.register_function(
@@ -425,15 +428,16 @@ plugin.pipelines.register_function(
         "index": I_index,
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
-    parameters={**bowtie2_mapping_params, **partition_params},
+    parameters={**bowtie2_mapping_params, "sort": Bool, **partition_params},
     outputs=[("alignment_maps", O_alignment)],
     input_descriptions={
-        "index": "Bowtie 2 indices generated for contigs/MAGs of interest.",
+        "index": "Bowtie 2 indices generated for contigs/MAGs/reference of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
         "were assembled.",
     },
     parameter_descriptions={
         **bowtie2_mapping_param_descriptions,
+        "sort": "Sort reads-to-contigs alignment maps by genomic coordinates",
         **partition_param_descriptions,
     },
     output_descriptions={"alignment_maps": "Reads-to-contigs mapping."},
@@ -468,6 +472,7 @@ I_index, O_map = TypeMap(
     {
         SampleData[SingleBowtie2Index % Properties("mags")]: SampleData[AlignmentMap],
         FeatureData[SingleBowtie2Index % Properties("mags")]: FeatureData[AlignmentMap],
+        Bowtie2Index: SampleData[AlignmentMap],
     }
 )
 plugin.methods.register_function(
@@ -491,8 +496,33 @@ plugin.methods.register_function(
     citations=[citations["Langmead2012"]],
 )
 
+I_unsorted_maps, O_sorted_maps = TypeMap(
+    {
+        FeatureData[AlignmentMap]: FeatureData[AlignmentMap % Properties("sorted")],
+        SampleData[AlignmentMap]: SampleData[AlignmentMap % Properties("sorted")],
+    }
+)
+plugin.methods.register_function(
+    function=q2_assembly.helpers.sort_alignment_maps,
+    inputs={"alignment_maps": I_unsorted_maps},
+    parameters={},
+    outputs={"sorted_alignment_maps": O_sorted_maps},
+    name="Sort reads-to-contig alignment maps",
+    description=("Sort reads-to-contigs alignment maps by genomic coordinates."),
+    input_descriptions={"alignment_maps": "Alignment maps to be sorted."},
+    parameter_descriptions={},
+    output_descriptions={"sorted_alignment_maps": "Sorted alignment maps."},
+    citations=[],
+)
+
 I_maps, O_maps = TypeMap(
     {
+        SampleData[AlignmentMap % Properties("sorted")]: SampleData[
+            AlignmentMap % Properties("sorted")
+        ],
+        FeatureData[AlignmentMap % Properties("sorted")]: FeatureData[
+            AlignmentMap % Properties("sorted")
+        ],
         SampleData[AlignmentMap]: SampleData[AlignmentMap],
         FeatureData[AlignmentMap]: FeatureData[AlignmentMap],
     }
@@ -521,6 +551,101 @@ plugin.methods.register_function(
     parameter_descriptions=filter_contigs_param_descriptions,
     name="Filter contigs.",
     description="Filter contigs based on metadata.",
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.qc._evaluate_contigs,
+    inputs={
+        "contigs": SampleData[Contigs],
+    },
+    parameters={
+        "n_cpus": Int % Range(1, None),
+    },
+    outputs={
+        "per_sample_results": ImmutableMetadata,
+        "nx": ImmutableMetadata,
+        "gc": ImmutableMetadata,
+        "lengths": ImmutableMetadata,
+        "cumulative": ImmutableMetadata,
+    },
+    input_descriptions={
+        "contigs": "Assembled contigs to be analyzed.",
+    },
+    parameter_descriptions={
+        "n_cpus": "Number of CPUs to use for the analysis.",
+    },
+    output_descriptions={
+        "per_sample_results": "Per-sample contig quality control results.",
+        "nx": "N(x) values for each contig.",
+        "gc": "GC content for each contig.",
+        "lengths": "Length for each contig.",
+        "cumulative": "Cumulative contig lengths for each sample.",
+    },
+    name="Calculate contig quality metrics",
+    description="Calculates quality metrics (e.g., length, GC content, "
+    "N(x) values, cumulative length) of assembled contigs.",
+    citations=[],
+)
+
+plugin.visualizers.register_function(
+    function=q2_assembly.qc._visualize_contig_qc,
+    inputs={
+        "per_sample_metrics": ImmutableMetadata,
+        "nx": ImmutableMetadata,
+        "gc": ImmutableMetadata,
+        "lengths": ImmutableMetadata,
+        "cumulative": ImmutableMetadata,
+    },
+    parameters={
+        "metadata": Metadata,
+    },
+    input_descriptions={
+        "per_sample_metrics": "Per-sample contig quality control results.",
+        "nx": "N(x) values for each contig.",
+        "gc": "GC content for each contig.",
+        "lengths": "Length for each contig.",
+        "cumulative": "Cumulative contig lengths for each sample.",
+    },
+    parameter_descriptions={
+        "metadata": "Sample metadata.",
+    },
+    name="Calculate contig quality metrics",
+    description="Calculates quality metrics (e.g., length, GC content, "
+    "N(x) values, cumulative length) of assembled contigs.",
+    citations=[],
+)
+
+plugin.pipelines.register_function(
+    function=q2_assembly.qc.evaluate_contigs,
+    inputs={
+        "contigs": SampleData[Contigs],
+    },
+    parameters={
+        "metadata": Metadata,
+        "n_cpus": Int % Range(1, None),
+        "num_partitions": Int % Range(1, None),
+    },
+    outputs={
+        "results": ImmutableMetadata,
+        "visualization": Visualization,
+    },
+    input_descriptions={
+        "contigs": "Assembled contigs to be analyzed.",
+    },
+    parameter_descriptions={
+        "metadata": "Sample metadata.",
+        "n_cpus": "Number of CPUs to use for the analysis.",
+        "num_partitions": "Number of partitions to use for parallelization.",
+    },
+    output_descriptions={
+        "results": "Contig quality control results.",
+        "visualization": "Interactive visualization of contig quality metrics.",
+    },
+    name="Visualize contig quality metrics",
+    description="Generates an interactive visualization to assess and visualize "
+    "quality metrics (e.g., length, GC content, N(x) values, cumulative "
+    "length) of assembled contigs.",
+    citations=[],
 )
 
 plugin.register_semantic_types(QUASTResults)
