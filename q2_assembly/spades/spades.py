@@ -13,6 +13,7 @@ import tempfile
 from typing import List, Union
 
 import pandas as pd
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
     PairedEndSequencesWithQuality,
@@ -194,6 +195,7 @@ def assemble_spades_helper(
 def assemble_spades(
     ctx,
     reads,
+    trusted_contigs=None,
     isolate=False,
     sc=False,
     meta=False,
@@ -217,6 +219,11 @@ def assemble_spades(
     separator=":",
 ):
     params = locals().copy()
+    if trusted_contigs is not None and not isolate:
+        raise ValueError(
+            "The trusted_contigs input can only be used when isolate=True."
+        )
+
     if isolate:
         incompatible = sorted(key for key in ISOLATE_INCOMPATIBLE_PARAMS if params[key])
         if incompatible:
@@ -229,6 +236,8 @@ def assemble_spades(
     excluded = {"ctx", "reads", "isolate", "num_partitions"}
     if isolate:
         excluded.update(ISOLATE_INCOMPATIBLE_PARAMS)
+    else:
+        excluded.add("trusted_contigs")
     kwargs = {key: value for key, value in params.items() if key not in excluded}
 
     if isolate:
@@ -305,6 +314,7 @@ def _assemble_spades_isolate(
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
+    trusted_contigs: DNAFASTAFormat = None,
     disable_rr: bool = False,
     threads: int = 1,
     memory: int = 250,

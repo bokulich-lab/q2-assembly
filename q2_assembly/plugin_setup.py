@@ -154,7 +154,10 @@ spades_isolate_param_descriptions = {
 
 plugin.pipelines.register_function(
     function=q2_assembly.spades.assemble_spades,
-    inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    inputs={
+        "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
+        "trusted_contigs": FeatureData[Sequence],
+    },
     parameters={
         **spades_params,
         "coassemble": P_spades_partition_coassemble,
@@ -163,7 +166,12 @@ plugin.pipelines.register_function(
     },
     outputs=[("contigs", T_spades_partition_seqs)],
     input_descriptions={
-        "reads": "The paired- or single-end sequences to be assembled."
+        "reads": "The paired- or single-end sequences to be assembled.",
+        "trusted_contigs": (
+            "Optional high-quality contigs from the same genome, used by SPAdes "
+            "for graph construction, gap closure, and repeat resolution. Only "
+            "accepted in isolate mode."
+        ),
     },
     parameter_descriptions={
         **spades_param_descriptions,
@@ -198,14 +206,21 @@ plugin.methods.register_function(
 
 plugin.methods.register_function(
     function=q2_assembly.spades._assemble_spades_isolate,
-    inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    inputs={
+        "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
+        "trusted_contigs": FeatureData[Sequence],
+    },
     parameters={
         **spades_isolate_params,
         "coassemble": P_spades_partition_coassemble,
     },
     outputs=[("contigs", T_spades_partition_seqs)],
     input_descriptions={
-        "reads": "The paired- or single-end isolate sequences to be assembled."
+        "reads": "The paired- or single-end isolate sequences to be assembled.",
+        "trusted_contigs": (
+            "Optional high-quality contigs from the same genome, used by SPAdes "
+            "for graph construction, gap closure, and repeat resolution."
+        ),
     },
     parameter_descriptions=spades_isolate_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled isolate contigs."},
