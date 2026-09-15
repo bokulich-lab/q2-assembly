@@ -9,6 +9,8 @@
 from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
 from qiime2.plugin import Metadata
 
+ALLOWED_SEPARATORS = [":", ";", "_", "|", ".", "C"]
+
 megahit_params = {
     "presets": Str % Choices(["meta-sensitive", "meta-large", "disabled"]),
     "min_count": Int % Range(1, None),

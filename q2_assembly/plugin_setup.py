@@ -29,6 +29,7 @@ from qiime2.plugin import Citations, Int, List, Plugin, Range, Metadata
 import q2_assembly
 from q2_assembly import __version__
 from q2_assembly._action_params import (
+    ALLOWED_SEPARATORS,
     bowtie2_indexing_param_descriptions,
     bowtie2_indexing_params,
     bowtie2_mapping_param_descriptions,
@@ -113,7 +114,7 @@ plugin.methods.register_function(
     parameters={
         "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
         "include_sample_id": Bool,
-        "separator": Str,
+        "separator": Str % Choices(ALLOWED_SEPARATORS),
     },
     outputs={"renamed_contigs": SampleData[Contigs]},
     input_descriptions={"contigs": "The contigs to be renamed."},
