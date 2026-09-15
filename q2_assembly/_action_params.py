@@ -72,7 +72,6 @@ megahit_param_descriptions = {
 }
 # fmt: on
 spades_params = {
-    "isolate": Bool,
     "sc": Bool,
     "meta": Bool,
     "bio": Bool,

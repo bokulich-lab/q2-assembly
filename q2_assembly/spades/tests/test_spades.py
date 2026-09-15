@@ -24,8 +24,10 @@ from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.spades.spades import (
     _assemble_spades,
+    _assemble_spades_isolate,
     _process_sample,
     _process_spades_arg,
+    assemble_spades,
     assemble_spades_helper,
 )
 
@@ -409,6 +411,36 @@ class TestSpades(TestPluginBase):
             separator=":",
             common_args=exp_args,
         )
+
+    @patch("q2_assembly.spades.spades.assemble_spades_helper")
+    def test_assemble_spades_isolate_process_params(self, helper):
+        input_files = self.get_data_path("reads/single-end")
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+
+        _assemble_spades_isolate(reads=reads, threads=14, k=[1, 2])
+
+        common_args = helper.call_args.kwargs["common_args"]
+        self.assertIn("--isolate", common_args)
+        self.assertNotIn("--meta", common_args)
+        self.assertNotIn("--careful", common_args)
+        self.assertNotIn("--only-assembler", common_args)
+
+    @parameterized.expand(
+        [
+            ("sc",),
+            ("meta",),
+            ("bio",),
+            ("corona",),
+            ("plasmid",),
+            ("metaviral",),
+            ("metaplasmid",),
+            ("only_assembler",),
+            ("careful",),
+        ]
+    )
+    def test_assemble_spades_rejects_incompatible_isolate_params(self, parameter):
+        with self.assertRaisesRegex(ValueError, parameter.replace("_", "-")):
+            assemble_spades(None, None, isolate=True, **{parameter: True})
 
     def test_assemble_spades_parallel_paired(self):
         input_files = self.get_data_path("formatted-reads/paired-end")
