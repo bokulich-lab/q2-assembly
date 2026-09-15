@@ -15,9 +15,12 @@ from typing import List, Union
 import pandas as pd
 from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
+    PairedEndSequencesWithQuality,
+    SequencesWithQuality,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from q2_types.sample_data import SampleData
 
 from .._utils import (
     _construct_param,
@@ -96,9 +99,14 @@ def _process_sample(sample, fwd, rev, common_args, out):
         )
 
 
-def _assemble_spades(
-    reads, meta, common_args, uuid_type, separator, coassemble=False
-) -> ContigSequencesDirFmt:
+def assemble_spades_helper(
+    reads,
+    meta,
+    common_args,
+    uuid_type,
+    separator,
+    coassemble=False,
+):
     """Runs the assembly for all available samples.
 
     Both, paired- and single-end reads can be processed - the output will
@@ -172,6 +180,61 @@ def _assemble_spades(
 
 
 def assemble_spades(
+    ctx,
+    reads,
+    isolate=False,
+    sc=False,
+    meta=False,
+    bio=False,
+    corona=False,
+    plasmid=False,
+    metaviral=False,
+    metaplasmid=False,
+    only_assembler=False,
+    careful=False,
+    disable_rr=False,
+    threads=1,
+    memory=250,
+    k=["auto"],
+    cov_cutoff="off",
+    phred_offset="auto-detect",
+    debug=False,
+    num_partitions=None,
+    coassemble=False,
+    uuid_type="shortuuid",
+    separator=":",
+):
+    kwargs = {
+        key: value
+        for key, value in locals().items()
+        if key not in ["ctx", "reads", "num_partitions"]
+    }
+
+    _assemble_spades = ctx.get_action("assembly", "_assemble_spades")
+
+    if coassemble:
+        (contigs,) = _assemble_spades(reads, **kwargs)
+        return contigs
+
+    if reads.type <= SampleData[SequencesWithQuality]:
+        partition_method = ctx.get_action("demux", "partition_samples_single")
+    elif reads.type <= SampleData[PairedEndSequencesWithQuality]:
+        partition_method = ctx.get_action("demux", "partition_samples_paired")
+    else:
+        raise NotImplementedError()
+
+    (partitioned_seqs,) = partition_method(reads, num_partitions)
+    contigs = []
+    for seqs in partitioned_seqs.values():
+        (partition_contigs,) = _assemble_spades(seqs, **kwargs)
+        contigs.append(partition_contigs)
+
+    collate = ctx.get_action("types", "collate_contigs")
+    (collated_contigs,) = collate(contigs)
+    return collated_contigs
+
+
+def _assemble_spades(
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
@@ -205,7 +268,7 @@ def assemble_spades(
         processing_func=_process_spades_arg, params=kwargs
     )
 
-    return _assemble_spades(
+    return assemble_spades_helper(
         reads=reads,
         meta=meta,
         coassemble=coassemble,

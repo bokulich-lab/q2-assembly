@@ -6,6 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .spades import assemble_spades
+from .spades import _assemble_spades, assemble_spades
 
-__all__ = ["assemble_spades"]
+__all__ = ["assemble_spades", "_assemble_spades"]

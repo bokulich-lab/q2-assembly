@@ -134,19 +134,49 @@ plugin.methods.register_function(
     ),
 )
 
-plugin.methods.register_function(
+P_spades_partition_coassemble, T_spades_partition_seqs = TypeMap(
+    {
+        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(False): SampleData[Contigs],
+    }
+)
+
+plugin.pipelines.register_function(
     function=q2_assembly.spades.assemble_spades,
     inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
-    parameters={**spades_params, "coassemble": P_coassemble},
-    outputs=[("contigs", T_coassembled_seqs)],
+    parameters={
+        **spades_params,
+        "coassemble": P_spades_partition_coassemble,
+        **partition_params,
+    },
+    outputs=[("contigs", T_spades_partition_seqs)],
+    input_descriptions={
+        "reads": "The paired- or single-end sequences to be assembled."
+    },
+    parameter_descriptions={
+        **spades_param_descriptions,
+        **partition_param_descriptions,
+    },
+    output_descriptions={"contigs": "The resulting assembled contigs."},
+    name="Assemble contigs using SPAdes.",
+    description="This method uses SPAdes to assemble provided paired- or "
+    "single-end NGS reads into contigs.",
+    citations=[citations["Clark2021"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.spades._assemble_spades,
+    inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    parameters={**spades_params, "coassemble": P_spades_partition_coassemble},
+    outputs=[("contigs", T_spades_partition_seqs)],
     input_descriptions={
         "reads": "The paired- or single-end sequences to be assembled."
     },
     parameter_descriptions=spades_param_descriptions,
     output_descriptions={"contigs": "The resulting assembled contigs."},
-    name="Assemble contigs using SPAdes.",
-    description="This method uses SPAdes to assemble provided paired- or "
-    "single-end NGS reads into contigs.",
+    name="Assemble a partition of reads using SPAdes.",
+    description="This method supports parallel execution of assemble-spades by "
+    "assembling one partition of paired- or single-end NGS reads.",
     citations=[citations["Clark2021"]],
 )
 
