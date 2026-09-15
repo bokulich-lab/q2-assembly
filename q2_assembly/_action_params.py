@@ -34,7 +34,7 @@ megahit_params = {
     "no_hw_accel": Bool,
     "min_contig_len": Int,
     "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
-    "separator": Str,
+    "separator": Str % Choices(ALLOWED_SEPARATORS),
 }
 # fmt: off
 megahit_param_descriptions = {
@@ -91,7 +91,7 @@ spades_params = {
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
     "debug": Bool,
     "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
-    "separator": Str,
+    "separator": Str % Choices(ALLOWED_SEPARATORS),
 }
 # fmt: off
 spades_param_descriptions = {
