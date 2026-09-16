@@ -489,6 +489,27 @@ class TestSpades(TestPluginBase):
         out.validate()
         self.assertIs(out.format, ContigSequencesDirFmt)
 
+    def test_assemble_spades_parallel_coassemble(self):
+        input_files = self.get_data_path("formatted-reads/paired-end")
+        input_format = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data(
+            "SampleData[PairedEndSequencesWithQuality]", input_format
+        )
+
+        with patch(
+            "q2_assembly.spades.spades._process_sample",
+            side_effect=self.mock_process_sample,
+        ) as process_sample:
+            with self.test_config:
+                (out,) = self.assemble_spades.parallel(
+                    samples, coassemble=True
+                )._result()
+
+        process_sample.assert_called_once()
+        self.assertEqual(process_sample.call_args.args[0], "pooled")
+        out.validate()
+        self.assertEqual(str(out.type), "FeatureData[Contig]")
+
     def test_assemble_spades_parallel_isolate(self):
         input_files = self.get_data_path("formatted-reads/paired-end")
         input_format = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
