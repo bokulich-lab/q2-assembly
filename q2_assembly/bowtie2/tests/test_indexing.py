@@ -267,7 +267,8 @@ class TestBowtie2Indexing(TestPluginBase):
 
     def test_index_coassembled_contigs_pipeline(self):
         input_artifact = Artifact.import_data(
-            "FeatureData[Contig]", self.get_data_path("coassembled-contigs")
+            "FeatureData[Contig % Properties('coassembled')]",
+            self.get_data_path("coassembled-contigs"),
         )
 
         with self.test_config:
@@ -276,7 +277,7 @@ class TestBowtie2Indexing(TestPluginBase):
         out.validate()
         self.assertEqual(
             str(out.type),
-            "FeatureData[SingleBowtie2Index % Properties('contigs')]",
+            "FeatureData[SingleBowtie2Index % " "Properties('contigs', 'coassembled')]",
         )
         self.assertIs(out.format, Bowtie2IndexDirFmt)
         self.assertTrue(out.view(Bowtie2IndexDirFmt).get_basename())
@@ -298,6 +299,10 @@ class TestBowtie2Indexing(TestPluginBase):
             )._result()
 
         out.validate()
+        self.assertEqual(
+            str(out.type),
+            "SampleData[SingleBowtie2Index % Properties('contigs')]",
+        )
         self.assertIs(out.format, Bowtie2IndexDirFmt)
 
     def test_index_contigs_parallel_too_many_partitions(self):

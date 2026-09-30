@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 
 import importlib
+from itertools import combinations
 
 from q2_types.bowtie2 import Bowtie2Index
 from q2_types.feature_data import FeatureData, Sequence
@@ -23,7 +24,14 @@ from q2_types.per_sample_sequences import (
     SingleBowtie2Index,
 )
 from q2_types.sample_data import SampleData
-from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
+from qiime2.core.type import (
+    Bool,
+    Choices,
+    Properties,
+    Str,
+    TypeMap,
+    Visualization,
+)
 from qiime2.plugin import Citations, Int, List, Plugin, Range, Metadata
 
 import q2_assembly
@@ -68,7 +76,7 @@ plugin = Plugin(
 
 P_coassemble, T_coassembled_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembled")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -136,7 +144,7 @@ plugin.methods.register_function(
 
 P_spades_partition_coassemble, T_spades_partition_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembled")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -296,8 +304,16 @@ plugin.pipelines.register_function(
 
 I_contigs, O_contig_index = TypeMap(
     {
+        FeatureData[Contig % Properties(["coassembled", "pooled"])]: FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled", "pooled"])
+        ],
         SampleData[Contigs]: SampleData[SingleBowtie2Index % Properties("contigs")],
-        FeatureData[Contig]: FeatureData[SingleBowtie2Index % Properties("contigs")],
+        FeatureData[Contig % Properties("coassembled")]: FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled"])
+        ],
+        FeatureData[Contig % Properties("pooled")]: FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "pooled"])
+        ],
     }
 )
 
@@ -330,11 +346,25 @@ plugin.methods.register_function(
     citations=[citations["Langmead2012"]],
 )
 
+I_contigs, O_contig_index = TypeMap(
+    {
+        FeatureData[Contig % Properties(["coassembled", "pooled"])]: FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled", "pooled"])
+        ],
+        FeatureData[Contig % Properties("coassembled")]: FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled"])
+        ],
+        FeatureData[Contig % Properties("pooled")]: FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "pooled"])
+        ],
+    }
+)
+
 plugin.methods.register_function(
     function=q2_assembly.indexing._index_coassembled_contigs,
-    inputs={"contigs": FeatureData[Contig]},
+    inputs={"contigs": I_contigs},
     parameters=bowtie2_indexing_params,
-    outputs=[("index", FeatureData[SingleBowtie2Index % Properties("contigs")])],
+    outputs=[("index", O_contig_index)],
     input_descriptions={"contigs": "Co-assembled contigs to be indexed."},
     parameter_descriptions=bowtie2_indexing_param_descriptions,
     output_descriptions={"index": "Bowtie2 index generated for input sequences."},
@@ -532,14 +562,39 @@ plugin.pipelines.register_function(
 
 I_index, O_alignment = TypeMap(
     {
-        SampleData[SingleBowtie2Index]: SampleData[AlignmentMap],
-        FeatureData[SingleBowtie2Index % Properties(["contigs", "mags"])]: FeatureData[
-            AlignmentMap
+        FeatureData[
+            SingleBowtie2Index
+            % Properties(["contigs", "mags", "coassembled", "pooled"])
+        ]: SampleData[
+            AlignmentMap % Properties(["contigs", "mags", "coassembled", "pooled"])
         ],
-        FeatureData[SingleBowtie2Index % Properties("contigs")]: SampleData[
-            AlignmentMap
+        FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "mags", "pooled"])
+        ]: SampleData[AlignmentMap % Properties(["contigs", "mags", "pooled"])],
+        FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled", "pooled"])
+        ]: SampleData[AlignmentMap % Properties(["contigs", "coassembled", "pooled"])],
+        FeatureData[SingleBowtie2Index % Properties(["contigs", "pooled"])]: SampleData[
+            AlignmentMap % Properties(["contigs", "pooled"])
         ],
-        FeatureData[SingleBowtie2Index % Properties("mags")]: FeatureData[AlignmentMap],
+        FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "mags", "coassembled"])
+        ]: SampleData[AlignmentMap % Properties(["contigs", "mags", "coassembled"])],
+        FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled"])
+        ]: SampleData[AlignmentMap % Properties(["contigs", "coassembled"])],
+        FeatureData[SingleBowtie2Index % Properties("mags")]: SampleData[
+            AlignmentMap % Properties(["mags", "dereplicated"])
+        ],
+        SampleData[SingleBowtie2Index % Properties(["contigs", "mags"])]: SampleData[
+            AlignmentMap % Properties(["contigs", "mags"])
+        ],
+        SampleData[SingleBowtie2Index % Properties("contigs")]: SampleData[
+            AlignmentMap % Properties("contigs")
+        ],
+        SampleData[SingleBowtie2Index % Properties("mags")]: SampleData[
+            AlignmentMap % Properties("mags")
+        ],
         Bowtie2Index: SampleData[AlignmentMap],
     }
 )
@@ -568,15 +623,30 @@ plugin.pipelines.register_function(
     citations=[citations["Langmead2012"]],
 )
 
+I_contig_index, O_contig_alignment = TypeMap(
+    {
+        FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled", "pooled"])
+        ]: SampleData[AlignmentMap % Properties(["contigs", "coassembled", "pooled"])],
+        FeatureData[SingleBowtie2Index % Properties(["contigs", "pooled"])]: SampleData[
+            AlignmentMap % Properties(["contigs", "pooled"])
+        ],
+        FeatureData[
+            SingleBowtie2Index % Properties(["contigs", "coassembled"])
+        ]: SampleData[AlignmentMap % Properties(["contigs", "coassembled"])],
+        SampleData[SingleBowtie2Index % Properties("contigs")]: SampleData[
+            AlignmentMap % Properties("contigs")
+        ],
+    }
+)
 plugin.methods.register_function(
     function=q2_assembly.mapping._map_reads_to_contigs,
     inputs={
-        "index": SampleData[SingleBowtie2Index % Properties("contigs")]
-        | FeatureData[SingleBowtie2Index % Properties("contigs")],
+        "index": I_contig_index,
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
     parameters=bowtie2_mapping_params,
-    outputs=[("alignment_maps", SampleData[AlignmentMap])],
+    outputs=[("alignment_maps", O_contig_alignment)],
     input_descriptions={
         "index": "Bowtie 2 indices generated for contigs of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
@@ -592,8 +662,12 @@ plugin.methods.register_function(
 
 I_index, O_map = TypeMap(
     {
-        SampleData[SingleBowtie2Index % Properties("mags")]: SampleData[AlignmentMap],
-        FeatureData[SingleBowtie2Index % Properties("mags")]: FeatureData[AlignmentMap],
+        SampleData[SingleBowtie2Index % Properties("mags")]: SampleData[
+            AlignmentMap % Properties("mags")
+        ],
+        FeatureData[SingleBowtie2Index % Properties("mags")]: SampleData[
+            AlignmentMap % Properties(["mags", "dereplicated"])
+        ],
         Bowtie2Index: SampleData[AlignmentMap],
     }
 )
@@ -618,12 +692,32 @@ plugin.methods.register_function(
     citations=[citations["Langmead2012"]],
 )
 
-I_unsorted_maps, O_sorted_maps = TypeMap(
-    {
-        FeatureData[AlignmentMap]: FeatureData[AlignmentMap % Properties("sorted")],
-        SampleData[AlignmentMap]: SampleData[AlignmentMap % Properties("sorted")],
-    }
-)
+# Order specific property combinations before their broader subsets so TypeMap
+# resolves overlaps without dropping properties.
+_alignment_properties = ("contigs", "mags", "coassembled", "pooled", "dereplicated")
+
+
+def _alignment_type_map(add_sorted=False):
+    properties = (
+        _alignment_properties if add_sorted else (*_alignment_properties, "sorted")
+    )
+    mapping = {}
+    for size in range(len(properties), -1, -1):
+        for combination in combinations(properties, size):
+            input_map = (
+                AlignmentMap % Properties(combination) if combination else AlignmentMap
+            )
+            output_properties = (*combination, "sorted") if add_sorted else combination
+            output_map = (
+                AlignmentMap % Properties(output_properties)
+                if output_properties
+                else AlignmentMap
+            )
+            mapping[SampleData[input_map]] = SampleData[output_map]
+    return TypeMap(mapping)
+
+
+I_unsorted_maps, O_sorted_maps = _alignment_type_map(add_sorted=True)
 plugin.methods.register_function(
     function=q2_assembly.helpers.sort_alignment_maps,
     inputs={"alignment_maps": I_unsorted_maps},
@@ -637,18 +731,7 @@ plugin.methods.register_function(
     citations=[],
 )
 
-I_maps, O_maps = TypeMap(
-    {
-        SampleData[AlignmentMap % Properties("sorted")]: SampleData[
-            AlignmentMap % Properties("sorted")
-        ],
-        FeatureData[AlignmentMap % Properties("sorted")]: FeatureData[
-            AlignmentMap % Properties("sorted")
-        ],
-        SampleData[AlignmentMap]: SampleData[AlignmentMap],
-        FeatureData[AlignmentMap]: FeatureData[AlignmentMap],
-    }
-)
+I_maps, O_maps = _alignment_type_map()
 plugin.methods.register_function(
     function=q2_assembly.helpers.collate_alignments,
     inputs={"alignment_maps": List[I_maps]},
