@@ -147,6 +147,43 @@ class TestQuast(TestPluginBase):
         self.assertListEqual(obs_samples, ["sample1", "sample2"])
         p.assert_called_once_with(exp_command, check=True)
 
+    @patch("q2_assembly.quast.quast.run_command")
+    def test_evaluate_quast_bam_order(self, run):
+        contigs = Mock()
+        contigs.sample_dict.return_value = {
+            "patient_A": "/contigs/patient_A.fa",
+            "patient_B": "/contigs/patient_B_contigs.fasta",
+        }
+        maps = Mock()
+        maps.file_dict.return_value = {
+            "patient_B_alignment": "/maps/patient_B_alignment.bam",
+            "patient_A": "/maps/patient_A.bam",
+        }
+        samples = _evaluate_quast("results", contigs, {}, False, None, maps, [])
+        self.assertListEqual(samples, ["patient_A", "patient_B"])
+        run.assert_called_once_with(
+            [
+                "metaquast.py",
+                "-o",
+                "results",
+                "/contigs/patient_A.fa",
+                "/contigs/patient_B_contigs.fasta",
+                "--bam",
+                "/maps/patient_A.bam,/maps/patient_B_alignment.bam",
+            ],
+            verbose=True,
+        )
+
+    @patch("q2_assembly.quast.quast.run_command")
+    def test_evaluate_quast_missing_bam(self, run):
+        contigs = Mock()
+        contigs.sample_dict.return_value = {"patient_A": "/contigs/patient_A.fa"}
+        maps = Mock()
+        maps.file_dict.return_value = {}
+        with self.assertRaisesRegex(ValueError, "missing for samples: patient_A"):
+            _evaluate_quast("results", contigs, {}, False, None, maps, [])
+        run.assert_not_called()
+
     @patch("subprocess.run")
     def test_evaluate_quast_more_params(self, p):
         contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
@@ -499,6 +536,9 @@ class TestQuast(TestPluginBase):
                 {"title": "Contig browser", "url": "q2_icarus.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
+            "report_labels": json.dumps(
+                {"sample1": "sample1_contigs", "sample2": "sample2_contigs"}
+            ),
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
@@ -578,6 +618,9 @@ class TestQuast(TestPluginBase):
                 {"title": "Krona charts", "url": "q2_krona_charts.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
+            "report_labels": json.dumps(
+                {"sample1": "sample1_contigs", "sample2": "sample2_contigs"}
+            ),
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
@@ -655,6 +698,9 @@ class TestQuast(TestPluginBase):
                 {"title": "Contig browser", "url": "q2_icarus.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
+            "report_labels": json.dumps(
+                {"sample1": "sample1_contigs", "sample2": "sample2_contigs"}
+            ),
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
@@ -730,6 +776,9 @@ class TestQuast(TestPluginBase):
                 {"title": "QC report", "url": "index.html"},
             ],
             "samples": json.dumps(["sample1", "sample2"]),
+            "report_labels": json.dumps(
+                {"sample1": "sample1_contigs", "sample2": "sample2_contigs"}
+            ),
         }
         p2.assert_called_once_with(ANY, self._tmp, context=exp_context)
 
@@ -743,7 +792,7 @@ class TestQuast(TestPluginBase):
         _ = _create_tabular_results(self.temp_dir.name, [1000, 5000, 25000, 50000])
 
         p2.assert_called_once_with(report_path, sep="\t", header=0)
-        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
+        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000], None)
 
     @patch("pandas.read_csv")
     @patch("q2_assembly.quast.quast._parse_columns")
@@ -758,7 +807,7 @@ class TestQuast(TestPluginBase):
         _ = _create_tabular_results(self.temp_dir.name, [1000, 5000, 25000, 50000])
 
         p2.assert_called_once_with(report_path, sep="\t", header=0)
-        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000])
+        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000], None)
 
     def test_evaluate_quast_pipeline_with_refs(self):
         def _copy_references(refs_dir, tmp):
