@@ -165,6 +165,19 @@ class TestISS(TestPluginBase):
         with self.assertRaisesRegex(Exception, r".*provided 2 kingdom\(s\) but 1.*"):
             generate_reads(ncbi=["bacteria", "archaea"], n_genomes_ncbi=[5])
 
+    def test_abundances_to_biom_preserves_sample_ids(self):
+        source = self.get_data_path("abundances/samp1_abundance.txt")
+        sample_ids = ["patient_A", "patient_B_abundance", "patient_C_00_L001"]
+        for suffix in ("abundance", "coverage"):
+            with tempfile.TemporaryDirectory() as tmp:
+                paths = []
+                for sample_id in sample_ids:
+                    path = os.path.join(tmp, f"{sample_id}_00_L001_{suffix}.txt")
+                    shutil.copyfile(source, path)
+                    paths.append(path)
+                table = _abundances_to_biom(paths)
+                self.assertListEqual(table.ids(axis="sample").tolist(), sample_ids)
+
     def test_generate_reads_duplicated_samples(self):
         with self.assertRaisesRegex(Exception, r".*duplicated names\: s1\, s2.*"):
             generate_reads(sample_names=["s1", "s2", "s3", "s1", "s2"])

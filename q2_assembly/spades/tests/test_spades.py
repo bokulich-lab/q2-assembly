@@ -104,7 +104,7 @@ class TestSpades(TestPluginBase):
     def mock_process_sample(self, sample, fwd, rev, common_args, out):
         shutil.copy(
             self.get_data_path("sample_contigs.fa"),
-            os.path.join(str(out), f"{sample}_contigs.fa"),
+            os.path.join(str(out), f"{sample}.fa"),
         )
 
     def test_process_spades_arg_simple1(self):
