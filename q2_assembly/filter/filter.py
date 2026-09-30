@@ -30,7 +30,7 @@ def _filter_by_length(
         f"be retained."
     )
     for sample_id, sample_fp in contigs.sample_dict().items():
-        out_fp = os.path.join(str(results), f"{sample_id}_contigs.fa")
+        out_fp = os.path.join(str(results), f"{sample_id}.fa")
         keep, remove = 0, 0
         with open(out_fp, "w") as f_out:
             for contig in skbio.io.read(sample_fp, format="fasta"):
@@ -87,7 +87,7 @@ def filter_contigs(
 
     try:
         for _id in ids_to_keep:
-            duplicate(samples[_id], os.path.join(str(results), f"{_id}_contigs.fa"))
+            duplicate(samples[_id], os.path.join(str(results), f"{_id}.fa"))
     except KeyError:
         raise ValueError(f"{_id!r} is not a sample present in the contig data.")
 

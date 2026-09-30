@@ -91,7 +91,7 @@ def _process_sample(sample, fwd, rev, common_args, out):
 
         shutil.move(
             os.path.join(results_dir, "final.contigs.fa"),
-            os.path.join(str(out), f"{sample}_contigs.fa"),
+            os.path.join(str(out), f"{sample}.fa"),
         )
 
 
@@ -268,7 +268,7 @@ def assemble_megahit_helper(
 
         _process_sample("pooled", fwd, rev, common_args, result)
         modify_contig_ids(
-            os.path.join(str(result), "pooled_contigs.fa"),
+            os.path.join(str(result), "pooled.fa"),
             "pooled",
             uuid_type,
             separator,
@@ -280,7 +280,7 @@ def assemble_megahit_helper(
 
             _process_sample(samp, fwd, rev, common_args, result)
             modify_contig_ids(
-                os.path.join(str(result), f"{samp}_contigs.fa"),
+                os.path.join(str(result), f"{samp}.fa"),
                 samp,
                 uuid_type,
                 separator,

@@ -14,6 +14,7 @@ import platform
 import subprocess
 import tempfile
 from distutils.dir_util import copy_tree
+from pathlib import Path
 from typing import List, Union
 from warnings import warn
 from zipfile import ZipFile
@@ -35,7 +36,6 @@ from q2_assembly.quast.utils import _parse_columns
 
 from .._utils import (
     _construct_param,
-    _get_sample_from_path,
     _modify_links,
     _process_common_input_params,
     _remove_html_element,
@@ -123,14 +123,22 @@ def _evaluate_quast(
         reads = None
         print("Both reads and mapped reads are provided. Reads will be ignored.")
 
-    for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
+    for sample, fp in sorted(contigs.sample_dict().items(), key=lambda x: x[0]):
         cmd.append(fp)
-        samples.append(_get_sample_from_path(fp))
+        samples.append(sample)
 
     if alignment_maps:
-        bam_fps = sorted(
-            glob.glob(os.path.join(str(alignment_maps), "*_alignment.bam"))
-        )
+        maps = alignment_maps.file_dict()
+        maps = {
+            sample: maps.get(sample, maps.get(sample + "_alignment"))
+            for sample in samples
+        }
+        missing = {sample for sample, fp in maps.items() if fp is None}
+        if missing:
+            raise ValueError(
+                "Alignment maps are missing for samples: " + ", ".join(sorted(missing))
+            )
+        bam_fps = [maps[sample] for sample in samples]
         cmd.extend(["--bam", ",".join(bam_fps)])
     elif reads:
         rev_count = sum([True if x["rev"] else False for _, x in reads.items()])
@@ -296,7 +304,14 @@ def _visualize_quast(
             common_args,
         )
 
-        tabular_results = _create_tabular_results(results_dir, contig_thresholds)
+        report_labels = {
+            sample: Path(fp).stem for sample, fp in contigs.sample_dict().items()
+        }
+        tabular_results = _create_tabular_results(
+            results_dir,
+            contig_thresholds,
+            {label: sample for sample, label in report_labels.items()},
+        )
         tabular_results.to_csv(os.path.join(results_dir, "quast_results.tsv"), sep="\t")
 
         # fix/remove some URLs
@@ -330,6 +345,7 @@ def _visualize_quast(
                 {"title": "QC report", "url": "index.html"},
             ],
             "samples": json.dumps(samples),
+            "report_labels": json.dumps(report_labels),
         }
 
         templates = [
@@ -347,13 +363,16 @@ def _visualize_quast(
         q2templates.render(templates, output_dir, context=context)
 
 
-def _create_tabular_results(results_dir: str, contig_thresholds: list) -> pd.DataFrame:
+def _create_tabular_results(
+    results_dir: str, contig_thresholds: list, sample_ids: dict = None
+) -> pd.DataFrame:
     """
     This function will create the tabular results after QUAST has run.
 
     Args:
         - results_dir(str): The directory were the results of QUAST are saved.
         - contig_thresholds(list): list of contig thresholds
+        - sample_ids(dict): QUAST report labels mapped to sample IDs.
 
     Returns:
         a Pandas dataframe with the tabular data.
@@ -365,7 +384,9 @@ def _create_tabular_results(results_dir: str, contig_thresholds: list) -> pd.Dat
         report_fp = os.path.join(results_dir, "transposed_report.tsv")
 
     transposed_report = pd.read_csv(report_fp, sep="\t", header=0)
-    transposed_report_parsed = _parse_columns(transposed_report, contig_thresholds)
+    transposed_report_parsed = _parse_columns(
+        transposed_report, contig_thresholds, sample_ids
+    )
     return transposed_report_parsed
 
 

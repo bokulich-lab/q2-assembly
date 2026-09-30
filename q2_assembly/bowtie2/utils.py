@@ -8,7 +8,7 @@
 
 import os
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import MultiMAGSequencesDirFmt
@@ -199,14 +199,14 @@ def _merge_mags_helper(mags: dict, merged_fp: str):
 
 def _merge_mags(
     mags: Union[MAGSequencesDirFmt, MultiMAGSequencesDirFmt], result_dir: str
-) -> List[str]:
+) -> dict:
     """
     Merge multiple MAG sequences into a single FASTA file.
 
     This function iterates over all the MAGs provided, reads each sequence,
     modifies its ID to include the MAG ID, and writes the sequence to a new
     merged FASTA file. Depending on whether dereplicated MAGs or MAGs per
-    sample were provided, a list with a single file path or multi file paths
+    sample were provided, a mapping with an empty ID or per-sample IDs
     will be returned.
 
     Args:
@@ -214,20 +214,21 @@ def _merge_mags(
         result_dir (str): The directory where the merged MAGs will be saved.
 
     Returns:
-        List(str): The list of file path(s) of the merged FASTA file(s).
+        dict: Sample IDs mapped to merged FASTA paths. Dereplicated MAGs
+            use an empty ID so their index is written to the output root.
     """
     if isinstance(mags, MAGSequencesDirFmt):
         merged_fp = os.path.join(result_dir, "merged.fasta")
         _merge_mags_helper(mags.feature_dict(), merged_fp)
-        return [merged_fp]
+        return {"": merged_fp}
     elif isinstance(mags, MultiMAGSequencesDirFmt):
-        all_fps = []
+        all_fps = {}
         for sample_id, mags_dict in mags.sample_dict().items():
             sample_dir = os.path.join(result_dir, sample_id)
             os.makedirs(sample_dir, exist_ok=True)
             merged_fp = os.path.join(sample_dir, "merged.fasta")
             _merge_mags_helper(mags_dict, merged_fp)
-            all_fps.append(merged_fp)
+            all_fps[sample_id] = merged_fp
         return all_fps
 
 

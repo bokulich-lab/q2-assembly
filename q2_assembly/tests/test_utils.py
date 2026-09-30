@@ -243,6 +243,11 @@ class TestUtils(TestPluginBase):
         exp = "sample_1"
         self.assertEqual(obs, exp)
 
+    def test_get_sample_from_path_new_naming(self):
+        obs = _get_sample_from_path("test/path/sample_1.fasta")
+        exp = "sample_1"
+        self.assertEqual(obs, exp)
+
 
 if __name__ == "__main__":
     unittest.main()

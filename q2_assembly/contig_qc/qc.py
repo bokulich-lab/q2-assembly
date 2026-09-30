@@ -11,7 +11,7 @@ import shutil
 from importlib import resources
 from multiprocessing import Pool
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -27,7 +27,7 @@ TEMPLATES = resources.files("q2_assembly") / "assets"
 MAX_CUMULATIVE_POINTS = 500
 
 
-def _process_single_fasta(fp: Path):
+def _process_single_fasta(fp: Path, sample_id: Optional[str] = None):
     """
     Processes a single FASTA file to extract contig statistics.
 
@@ -43,7 +43,8 @@ def _process_single_fasta(fp: Path):
                - "gc": List of GC content percentages for each contig.
                - "sorted_lengths": List of contig lengths, sorted in descending order.
     """
-    sample_id = fp.stem.replace("_contigs", "")
+    if sample_id is None:
+        sample_id = fp.stem.removesuffix("_contigs")
 
     gc_vals, lengths = [], []
 
@@ -301,7 +302,9 @@ def generate_plotting_data(
               - "cumulative_df": DataFrame for cumulative length plots.
               - "nx_df": DataFrame for N(x) plots.
     """
-    fasta_files = [Path(x) for x in contigs_dir.sample_dict().values()]
+    samples = [
+        (Path(fp), sample_id) for sample_id, fp in contigs_dir.sample_dict().items()
+    ]
 
     all_seq_gc_rows = []
     all_seq_len_rows = []
@@ -310,7 +313,7 @@ def generate_plotting_data(
 
     with Pool(processes=n_cpus) as pool:
         # Step 1: Process individual FASTA files to get raw data
-        raw_sample_results = pool.map(_process_single_fasta, fasta_files)
+        raw_sample_results = pool.starmap(_process_single_fasta, samples)
 
         # Step 2: Calculate all derived metrics per sample in parallel
         args_for_derived_metrics = [

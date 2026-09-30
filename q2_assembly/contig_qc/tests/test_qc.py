@@ -70,6 +70,11 @@ class TestCoreCalculations(TestPluginBase):
         }
         self.assertDictEqual(data, expected_data)
 
+    def test_process_single_fasta_uses_explicit_sample_id(self):
+        fp = Path(self.get_data_path("contigs/s1_eval_contigs.fa"))
+        sample_id, _ = _process_single_fasta(fp, "sample_contigs_name")
+        self.assertEqual(sample_id, "sample_contigs_name")
+
     def test_get_gc_content_ok(self):
         rows = _get_gc_content("sampleD", self.raw_data_sampleD)
         expected_rows = [

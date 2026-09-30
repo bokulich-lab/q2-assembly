@@ -82,7 +82,13 @@ def _generate_reads(samples, args, result_fp):
 def _abundances_to_biom(abundance_fps):
     abundances = []
     for f in abundance_fps:
-        sample = os.path.splitext(os.path.basename(f))[0].split("_")[0]
+        sample = os.path.splitext(os.path.basename(f))[0]
+        for suffix in ("_abundance", "_coverage"):
+            if sample.endswith(suffix):
+                sample = sample.removesuffix(suffix)
+                break
+        # _generate_reads adds this CASAVA prefix after the full sample ID.
+        sample = sample.removesuffix("_00_L001")
         abundances.append(
             pd.read_csv(f, sep="\t", index_col=0, header=None, names=[sample])
         )

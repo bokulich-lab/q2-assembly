@@ -173,21 +173,25 @@ class TestBowtie2Utils(TestPluginBase):
 
         obs_fps = _merge_mags(mags, self.temp_dir.name)
 
-        self.assertListEqual(
+        self.assertDictEqual(
             obs_fps,
-            [
-                f"{self.temp_dir.name}/sample1/merged.fasta",
-                f"{self.temp_dir.name}/sample2/merged.fasta",
-            ],
+            {
+                "sample1": f"{self.temp_dir.name}/sample1/merged.fasta",
+                "sample2": f"{self.temp_dir.name}/sample2/merged.fasta",
+            },
         )
         self.assertTrue(
             filecmp.cmp(
-                obs_fps[0], self.get_data_path("mags-merged/sample1.fa"), shallow=False
+                obs_fps["sample1"],
+                self.get_data_path("mags-merged/sample1.fa"),
+                shallow=False,
             )
         )
         self.assertTrue(
             filecmp.cmp(
-                obs_fps[1], self.get_data_path("mags-merged/sample2.fa"), shallow=False
+                obs_fps["sample2"],
+                self.get_data_path("mags-merged/sample2.fa"),
+                shallow=False,
             )
         )
 
@@ -196,10 +200,12 @@ class TestBowtie2Utils(TestPluginBase):
 
         obs_fps = _merge_mags(mags, self.temp_dir.name)
 
-        self.assertEqual(obs_fps[0], f"{self.temp_dir.name}/merged.fasta")
+        self.assertDictEqual(obs_fps, {"": f"{self.temp_dir.name}/merged.fasta"})
         self.assertTrue(
             filecmp.cmp(
-                obs_fps[0], self.get_data_path("mags-derep-merged.fasta"), shallow=False
+                obs_fps[""],
+                self.get_data_path("mags-derep-merged.fasta"),
+                shallow=False,
             )
         )
 

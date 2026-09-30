@@ -53,10 +53,12 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("os.makedirs")
     def test_index_seqs_contigs(self, p1, p2, p3):
         _index_seqs(
-            fasta_fps=["/here/samp1_contigs.fa", "/here/samp2_contigs.fa"],
+            fasta_fps={
+                "samp1": "/here/samp1_contigs.fa",
+                "samp2": "/here/samp2_contigs.fa",
+            },
             result_fp="/there/",
             common_args=self.test_params_list,
-            input_type="contigs",
         )
 
         p1.assert_has_calls(
@@ -114,10 +116,12 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("os.makedirs")
     def test_index_seqs_mags(self, p1, p2, p3):
         _index_seqs(
-            fasta_fps=["/here/smp1/merged.fasta", "/here/smp2/merged.fasta"],
+            fasta_fps={
+                "smp1": "/here/smp1/merged.fasta",
+                "smp2": "/here/smp2/merged.fasta",
+            },
             result_fp="/there/",
             common_args=self.test_params_list,
-            input_type="mags",
         )
 
         p1.assert_has_calls(
@@ -178,10 +182,9 @@ class TestBowtie2Indexing(TestPluginBase):
     @patch("os.makedirs")
     def test_index_seqs_mags_derep(self, p1, p2, p3):
         _index_seqs(
-            fasta_fps=["/here/merged.fasta"],
+            fasta_fps={"": "/here/merged.fasta"},
             result_fp="/there/",
             common_args=self.test_params_list,
-            input_type="mags-derep",
         )
 
         p1.assert_called_once_with("/there/", exist_ok=True)
@@ -217,10 +220,9 @@ class TestBowtie2Indexing(TestPluginBase):
             Exception, "An error.*while running Bowtie2.*code 123"
         ):
             _index_seqs(
-                fasta_fps=["/here/samp1/mag1.fa"],
+                fasta_fps={"samp1": "/here/samp1/mag1.fa"},
                 result_fp="/there/",
                 common_args=self.test_params_list,
-                input_type="mags",
             )
 
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
@@ -237,8 +239,39 @@ class TestBowtie2Indexing(TestPluginBase):
             threads=1,
         )
 
-        exp_contigs = [f"{str(input_contigs)}/sample{x+1}_contigs.fa" for x in range(2)]
-        p.assert_called_with(exp_contigs, ANY, self.test_params_list, "contigs")
+        exp_contigs = input_contigs.sample_dict()
+        p.assert_called_with(
+            exp_contigs,
+            ANY,
+            self.test_params_list,
+        )
+
+    @patch("q2_assembly.bowtie2.indexing._assert_inputs_not_empty")
+    @patch("q2_assembly.bowtie2.indexing.run_command")
+    @patch("os.makedirs")
+    def test_index_seqs_preserves_explicit_sample_ids(self, mkdir, run, check):
+        samples = {
+            "patient_contigs_A": "/here/legacy_contigs.fa",
+            "patient_B": "/here/new.fasta",
+        }
+        _index_seqs(samples, "/there", [])
+        check.assert_called_once_with(list(samples.values()))
+        run.assert_has_calls(
+            [
+                call(
+                    [
+                        "bowtie2-build",
+                        "/here/legacy_contigs.fa",
+                        "/there/patient_contigs_A/index",
+                    ],
+                    verbose=True,
+                ),
+                call(
+                    ["bowtie2-build", "/here/new.fasta", "/there/patient_B/index"],
+                    verbose=True,
+                ),
+            ]
+        )
 
     def test_index_contigs_parallel(self):
         input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
@@ -297,15 +330,16 @@ class TestBowtie2Indexing(TestPluginBase):
             threads=1,
         )
 
-        p.assert_called_with(ANY, ANY, self.test_params_list, "mags")
+        p.assert_called_with(ANY, ANY, self.test_params_list)
+        self.assertListEqual(list(p.call_args.args[0]), ["sample1", "sample2"])
         self.assertListEqual(
-            ["/".join(x.split("/")[-2:]) for x in p.call_args.args[0]],
+            ["/".join(x.split("/")[-2:]) for x in p.call_args.args[0].values()],
             ["sample1/merged.fasta", "sample2/merged.fasta"],
         )
 
     @patch(
         "q2_assembly.bowtie2.indexing._merge_mags",
-        return_value=["/path/to/merged.fasta"],
+        return_value={"": "/path/to/merged.fasta"},
     )
     @patch("q2_assembly.bowtie2.indexing._index_seqs")
     def test_index_mags_derep(self, p1, p2):
@@ -322,7 +356,7 @@ class TestBowtie2Indexing(TestPluginBase):
         )
 
         p1.assert_called_once_with(
-            ["/path/to/merged.fasta"], ANY, self.test_params_list, "mags-derep"
+            {"": "/path/to/merged.fasta"}, ANY, self.test_params_list
         )
         p2.assert_called_once_with(input_mags, ANY)
 
@@ -332,18 +366,19 @@ class TestBowtie2Indexing(TestPluginBase):
         ):
             with tempfile.TemporaryDirectory() as tempdir:
                 _index_seqs(
-                    fasta_fps=[
-                        self.get_data_path(
+                    fasta_fps={
+                        "sample1": self.get_data_path(
                             Path("empty_contigs") / "sample1_contigs.fa"
                         ),
-                        self.get_data_path(Path("empty_contigs") / "empty_contigs.fa"),
-                        self.get_data_path(
+                        "empty": self.get_data_path(
+                            Path("empty_contigs") / "empty_contigs.fa"
+                        ),
+                        "second_empty": self.get_data_path(
                             Path("empty_contigs") / "second_empty_contigs.fa"
                         ),
-                    ],
+                    },
                     result_fp=Path(tempdir) / "out",
                     common_args=self.test_params_list,
-                    input_type="contigs",
                 )
 
 

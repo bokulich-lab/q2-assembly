@@ -202,7 +202,7 @@ class TestMegahit(TestPluginBase):
         ]
         p2.assert_called_once_with(exp_cmd, check=True)
 
-        exp_contigs = os.path.join(str(result), "test_sample_contigs.fa")
+        exp_contigs = os.path.join(str(result), "test_sample.fa")
         self.assertTrue(os.path.isfile(exp_contigs))
 
     @patch("subprocess.run")
@@ -240,7 +240,7 @@ class TestMegahit(TestPluginBase):
         ]
         p2.assert_called_once_with(exp_cmd, check=True)
 
-        exp_contigs = os.path.join(str(result), "test_sample_contigs.fa")
+        exp_contigs = os.path.join(str(result), "test_sample.fa")
         self.assertTrue(os.path.isfile(exp_contigs))
 
     @patch(
@@ -277,11 +277,11 @@ class TestMegahit(TestPluginBase):
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
             call(
-                os.path.join(str(obs), "sample1_contigs.fa"),
+                os.path.join(str(obs), "sample1.fa"),
                 "sample1", "shortuuid", ":"
             ),
             call(
-                os.path.join(str(obs), "sample2_contigs.fa"),
+                os.path.join(str(obs), "sample2.fa"),
                 "sample2", "shortuuid", ":"
             )
         ])
@@ -308,11 +308,11 @@ class TestMegahit(TestPluginBase):
         p2.assert_has_calls(
             [
                 call(
-                    os.path.join(str(obs), "sample1_contigs.fa"),
+                    os.path.join(str(obs), "sample1.fa"),
                     "sample1", "shortuuid", ":"
                 ),
                 call(
-                    os.path.join(str(obs), "sample2_contigs.fa"),
+                    os.path.join(str(obs), "sample2.fa"),
                     "sample2", "shortuuid", ":"
                 )
             ]
@@ -338,7 +338,7 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled_contigs.fa"),
+            call(os.path.join(str(obs), "pooled.fa"),
                  "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
@@ -362,7 +362,7 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled_contigs.fa"),
+            call(os.path.join(str(obs), "pooled.fa"),
                  "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
@@ -386,7 +386,7 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled_contigs.fa"),
+            call(os.path.join(str(obs), "pooled.fa"),
                  "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
@@ -410,7 +410,7 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled_contigs.fa"),
+            call(os.path.join(str(obs), "pooled.fa"),
                  "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
@@ -502,10 +502,10 @@ class TestMegahit(TestPluginBase):
 
         p2.assert_has_calls(
               [
-                  call(os.path.join(str(obs), "sample1_contigs.fa"),
+                  call(os.path.join(str(obs), "sample1.fa"),
                        "sample1", uuid_type, ":"
                        ),
-                  call(os.path.join(str(obs), "sample2_contigs.fa"),
+                  call(os.path.join(str(obs), "sample2.fa"),
                        "sample2", uuid_type, ":"
                        )
               ]

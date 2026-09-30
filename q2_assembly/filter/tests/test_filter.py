@@ -38,8 +38,8 @@ class TestFilterContigs(TestPluginBase):
         self.assertDictEqual(
             obs.sample_dict(),
             {
-                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
-                "sample3": os.path.join(obs.path, "sample3_contigs.fa"),
+                "sample1": os.path.join(obs.path, "sample1.fa"),
+                "sample3": os.path.join(obs.path, "sample3.fa"),
             },
         )
 
@@ -52,7 +52,7 @@ class TestFilterContigs(TestPluginBase):
         )
 
         self.assertDictEqual(
-            obs.sample_dict(), {"sample2": os.path.join(obs.path, "sample2_contigs.fa")}
+            obs.sample_dict(), {"sample2": os.path.join(obs.path, "sample2.fa")}
         )
 
     def test_filter_metadata_no_query_no_metadata(self):
@@ -69,9 +69,9 @@ class TestFilterContigs(TestPluginBase):
         self.assertDictEqual(
             obs.sample_dict(),
             {
-                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
-                "sample2": os.path.join(obs.path, "sample2_contigs.fa"),
-                "sample3": os.path.join(obs.path, "sample3_contigs.fa"),
+                "sample1": os.path.join(obs.path, "sample1.fa"),
+                "sample2": os.path.join(obs.path, "sample2.fa"),
+                "sample3": os.path.join(obs.path, "sample3.fa"),
             },
         )
 
@@ -88,8 +88,8 @@ class TestFilterContigs(TestPluginBase):
         self.assertDictEqual(
             obs.sample_dict(),
             {
-                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
-                "sample2": os.path.join(obs.path, "sample2_contigs.fa"),
+                "sample1": os.path.join(obs.path, "sample1.fa"),
+                "sample2": os.path.join(obs.path, "sample2.fa"),
             },
         )
 
@@ -109,8 +109,8 @@ class TestFilterContigs(TestPluginBase):
         self.assertDictEqual(
             obs.sample_dict(),
             {
-                "sample1": os.path.join(obs.path, "sample1_contigs.fa"),
-                "sample2": os.path.join(obs.path, "sample2_contigs.fa"),
+                "sample1": os.path.join(obs.path, "sample1.fa"),
+                "sample2": os.path.join(obs.path, "sample2.fa"),
             },
         )
 
@@ -121,7 +121,7 @@ class TestFilterContigs(TestPluginBase):
 
         self.assertEqual(len(obs.sample_dict()), 1)
 
-        with open(os.path.join(obs.path, "sample1_contigs.fa")) as f:
+        with open(os.path.join(obs.path, "sample1.fa")) as f:
             self.assertEqual(len(list(skbio.io.read(f, format="fasta"))), 2)
 
     def test_filter_everything(self):

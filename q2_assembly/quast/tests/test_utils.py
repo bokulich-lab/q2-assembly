@@ -58,6 +58,29 @@ class TestQuastUtils(TestPluginBase):
 
         assert set(true_columns) == set(refined_reports_cols)
 
+    def test_parse_columns_preserves_sample_ids(self):
+        report = pd.read_csv(
+            self.get_data_path("quast-results/transposed_report_sample_ids.tsv"),
+            sep="\t",
+        )
+        result = _parse_columns(
+            report,
+            [],
+            {
+                "patient_contigs_A": "patient_contigs_A",
+                "patient_A_contigs": "patient_A",
+            },
+        )
+        self.assertListEqual(result.index.tolist(), ["patient_contigs_A", "patient_A"])
+
+    def test_parse_columns_unknown_label(self):
+        report = pd.read_csv(
+            self.get_data_path("quast-results/transposed_report_sample_ids.tsv"),
+            sep="\t",
+        )
+        with self.assertRaises(KeyError):
+            _parse_columns(report, [], {})
+
     def test_parse_columns_all_cols(self):
         quast_results_path = self.get_data_path("quast-results")
         transposed_report_path = os.path.join(
