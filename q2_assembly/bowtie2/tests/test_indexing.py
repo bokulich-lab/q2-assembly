@@ -19,6 +19,7 @@ from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.bowtie2.indexing import (
+    _index_coassembled_contigs,
     _index_contigs,
     _index_seqs,
     index_derep_mags,
@@ -240,6 +241,47 @@ class TestBowtie2Indexing(TestPluginBase):
         exp_contigs = [f"{str(input_contigs)}/sample{x+1}_contigs.fa" for x in range(2)]
         p.assert_called_with(exp_contigs, ANY, self.test_params_list, "contigs")
 
+    @patch("q2_assembly.bowtie2.indexing._index_seqs")
+    def test_index_coassembled_contigs(self, p):
+        input_contigs = ContigSequencesDirFmt(
+            self.get_data_path("coassembled-contigs"), "r"
+        )
+
+        _index_coassembled_contigs(
+            input_contigs,
+            large_index=True,
+            bmax=11,
+            bmaxdivn=4,
+            dcv=1024,
+            offrate=5,
+            ftabchars=10,
+            threads=1,
+        )
+
+        p.assert_called_once_with(
+            [f"{str(input_contigs)}/all_contigs.fa"],
+            ANY,
+            self.test_params_list,
+            "contigs-coassembled",
+        )
+
+    def test_index_coassembled_contigs_pipeline(self):
+        input_artifact = Artifact.import_data(
+            "FeatureData[Contig % Properties('coassembled')]",
+            self.get_data_path("coassembled-contigs"),
+        )
+
+        with self.test_config:
+            (out,) = self.index_contigs(input_artifact)
+
+        out.validate()
+        self.assertEqual(
+            str(out.type),
+            "FeatureData[SingleBowtie2Index % " "Properties('contigs', 'coassembled')]",
+        )
+        self.assertIs(out.format, Bowtie2IndexDirFmt)
+        self.assertTrue(out.view(Bowtie2IndexDirFmt).get_basename())
+
     def test_index_contigs_parallel(self):
         input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         input_artifact = Artifact.import_data("SampleData[Contigs]", input_contigs)
@@ -257,6 +299,10 @@ class TestBowtie2Indexing(TestPluginBase):
             )._result()
 
         out.validate()
+        self.assertEqual(
+            str(out.type),
+            "SampleData[SingleBowtie2Index % Properties('contigs')]",
+        )
         self.assertIs(out.format, Bowtie2IndexDirFmt)
 
     def test_index_contigs_parallel_too_many_partitions(self):

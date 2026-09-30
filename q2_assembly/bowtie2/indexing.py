@@ -9,10 +9,9 @@ import os
 import subprocess
 import tempfile
 from copy import deepcopy
-
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types.feature_data import DNAFASTAFormat
-from q2_types.feature_data_mag import MAGSequencesDirFmt
+from q2_types.feature_data import DNAFASTAFormat, FeatureData
+from q2_types.feature_data_mag import Contig, MAGSequencesDirFmt
 from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
 
 from q2_assembly._utils import _process_common_input_params, run_command
@@ -87,8 +86,15 @@ def index_contigs(
     }
 
     _index_contigs = ctx.get_action("assembly", "_index_contigs")
+    _index_coassembled_contigs = ctx.get_action(
+        "assembly", "_index_coassembled_contigs"
+    )
     partition_contigs = ctx.get_action("types", "partition_contigs")
     collate_indices = ctx.get_action("assembly", "collate_indices")
+
+    if contigs.type <= FeatureData[Contig]:
+        (index,) = _index_coassembled_contigs(contigs=contigs, **kwargs)
+        return index
 
     (partitioned_contigs,) = partition_contigs(contigs, num_partitions)
     indices = []
@@ -126,10 +132,47 @@ def _index_contigs(
     result = Bowtie2IndexDirFmt()
 
     contig_fps = sorted(
-        map(lambda v: str(v[1].path), contigs.sequences.iter_views(DNAFASTAFormat))
+        str(view.path) for _, view in contigs.sequences.iter_views(DNAFASTAFormat)
     )
 
     _index_seqs(contig_fps, str(result), common_args, "contigs")
+
+    return result
+
+
+def _index_coassembled_contigs(
+    contigs: ContigSequencesDirFmt,
+    large_index: bool = False,
+    debug: bool = False,
+    sanitized: bool = False,
+    verbose: bool = False,
+    noauto: bool = False,
+    packed: bool = False,
+    bmax: int = "auto",
+    bmaxdivn: int = 4,
+    dcv: int = 1024,
+    nodc: bool = False,
+    offrate: int = 5,
+    ftabchars: int = 10,
+    threads: int = 1,
+    seed: int = 0,
+) -> Bowtie2IndexDirFmt:
+    if bmax == "auto":
+        bmax = None
+    kwargs = {k: v for k, v in locals().items() if k != "contigs"}
+    common_args = _process_common_input_params(
+        processing_func=_process_bowtie2build_arg, params=kwargs
+    )
+    result = Bowtie2IndexDirFmt()
+    contig_fps = sorted(
+        str(view.path) for _, view in contigs.sequences.iter_views(DNAFASTAFormat)
+    )
+    if len(contig_fps) != 1:
+        raise ValueError(
+            "FeatureData[Contig] must contain exactly one co-assembled FASTA file."
+        )
+
+    _index_seqs(contig_fps, str(result), common_args, "contigs-coassembled")
 
     return result
 

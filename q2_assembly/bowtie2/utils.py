@@ -150,7 +150,7 @@ def _get_subdir_from_path(fp: str, input_type: str = "contigs"):
         return _get_sample_from_path(fp)
     elif input_type.lower() == "mags":
         return os.path.splitext(fp)[0].split("/")[-2]
-    elif input_type.lower() == "mags-derep":
+    elif input_type.lower() in {"mags-derep", "contigs-coassembled"}:
         return ""
     else:
         raise NotImplementedError(f'Input type "{input_type}" is not supported.')
