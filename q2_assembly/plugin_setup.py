@@ -68,7 +68,7 @@ plugin = Plugin(
 
 P_coassemble, T_coassembled_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembly")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -136,7 +136,7 @@ plugin.methods.register_function(
 
 P_spades_partition_coassemble, T_spades_partition_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembly")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -637,15 +637,77 @@ plugin.methods.register_function(
     description="Not to be called directly. Used by map_reads.",
 )
 
-plugin.methods.register_function(
+# 'None' (string) is the default - Python None cannot be resolved by the TypeMap
+_on_any = Str % Choices(["None", "sample", "contig"])
+_on_contig = Str % Choices(["None", "contig"])
+_no_remove_empty = Bool % Choices(False)
+T_filter_in, P_filter_on, P_filter_remove_empty, T_filter_out = TypeMap(
+    {
+        (SampleData[Contigs], _on_any, Bool): SampleData[Contigs],
+        (
+            FeatureData[Contig % Properties("pooled", "coassembly")],
+            _on_contig,
+            _no_remove_empty,
+        ): FeatureData[Contig % Properties("pooled", "coassembly")],
+        (
+            FeatureData[Contig % Properties("pooled")],
+            _on_any,
+            _no_remove_empty,
+        ): FeatureData[Contig % Properties("pooled")],
+        (
+            FeatureData[Contig % Properties("coassembly")],
+            _on_contig,
+            _no_remove_empty,
+        ): FeatureData[Contig % Properties("coassembly")],
+    }
+)
+plugin.pipelines.register_function(
     function=q2_assembly.filter.filter_contigs,
-    inputs={"contigs": SampleData[Contigs]},
-    parameters=filter_contigs_params,
-    outputs={"filtered_contigs": SampleData[Contigs]},
+    inputs={"contigs": T_filter_in},
+    parameters={
+        **filter_contigs_params,
+        "on": P_filter_on,
+        "remove_empty": P_filter_remove_empty,
+    },
+    outputs={"filtered_contigs": T_filter_out},
     input_descriptions={"contigs": "The contigs to filter."},
     parameter_descriptions=filter_contigs_param_descriptions,
     name="Filter contigs.",
-    description="Filter contigs based on metadata.",
+    description="Filter contigs by length and by sample or contig IDs, "
+    "provided directly or selected from metadata. Co-assembled contigs "
+    "can only be filtered by contig ID.",
+)
+
+T_contigs_in, T_contigs_out = TypeMap(
+    {
+        SampleData[Contigs]: SampleData[Contigs],
+        FeatureData[Contig % Properties("pooled", "coassembly")]: FeatureData[
+            Contig % Properties("pooled", "coassembly")
+        ],
+        FeatureData[Contig % Properties("pooled")]: FeatureData[
+            Contig % Properties("pooled")
+        ],
+        FeatureData[Contig % Properties("coassembly")]: FeatureData[
+            Contig % Properties("coassembly")
+        ],
+    }
+)
+plugin.methods.register_function(
+    function=q2_assembly.filter._filter_contigs,
+    inputs={"contigs": T_contigs_in},
+    parameters={
+        **filter_contigs_params,
+        "on": Str % Choices(["sample", "contig", "sample_prefix"]),
+    },
+    outputs={"filtered_contigs": T_contigs_out},
+    input_descriptions={"contigs": "The contigs to filter."},
+    parameter_descriptions={
+        **filter_contigs_param_descriptions,
+        "on": "Whether to filter based on sample, contig or sample prefix "
+        "(pooled contigs) IDs.",
+    },
+    name="Filter contigs helper.",
+    description="Used by the filter-contigs pipeline.",
 )
 
 plugin.methods.register_function(
