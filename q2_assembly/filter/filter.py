@@ -62,9 +62,7 @@ def _filter_fasta(
     exclude_ids: bool,
 ) -> tuple:
 
-    match_ids = (
-        _match_sample_prefix_ids if on == "sample_prefix" else _match_contig_ids
-    )
+    match_ids = _match_sample_prefix_ids if on == "sample_prefix" else _match_contig_ids
     kept, removed, found_ids = 0, 0, set()
     with open(out_fp, "w") as f_out:
         for contig in skbio.io.read(in_fp, format="fasta"):
@@ -221,10 +219,7 @@ def filter_contigs(
             "Either 'ids' or metadata must be provided if 'exclude_ids' is True."
         )
 
-    if (
-        contigs.type <= FeatureData[Contig % Properties("pooled")]
-        and on == "sample"
-    ):
+    if contigs.type <= FeatureData[Contig % Properties("pooled")] and on == "sample":
         # sample IDs are matched against the contig ID prefix
         on = "sample_prefix"
 

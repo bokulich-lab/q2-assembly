@@ -304,8 +304,17 @@ class TestFilterContigsByContig(FilterContigsTestBase):
         )
         self.assertListEqual(
             self._read_all_contig_ids(obs),
-            ["k141_9", "k141_6", "k141_7", "k141_8", "k141_5",
-             "k145_4", "k145_6", "k145_7", "k145_8"],
+            [
+                "k141_9",
+                "k141_6",
+                "k141_7",
+                "k141_8",
+                "k141_5",
+                "k145_4",
+                "k145_6",
+                "k145_7",
+                "k145_8",
+            ],
         )
 
     def test_filter_metadata_where(self):
@@ -375,9 +384,7 @@ class TestFilterContigsByContig(FilterContigsTestBase):
 
     def test_filter_metadata_with_sample_ids(self):
         metadata = q2.Metadata(
-            pd.DataFrame(
-                data={"col1": ["yes"]}, index=pd.Index(["sample1"], name="id")
-            )
+            pd.DataFrame(data={"col1": ["yes"]}, index=pd.Index(["sample1"], name="id"))
         )
         with self.assertRaisesRegex(ValueError, "No contigs remain after filtering"):
             _filter_contigs(
@@ -551,9 +558,7 @@ class TestFilterContigsBySamplePrefix(FilterContigsTestBase):
         with self.assertRaisesRegex(
             ValueError, "not present in the contig data: sample3"
         ):
-            _filter_contigs(
-                contigs=self.contigs, on="sample_prefix", ids=["sample3"]
-            )
+            _filter_contigs(contigs=self.contigs, on="sample_prefix", ids=["sample3"])
 
     def test_sample_prefix_any_separator(self):
         uuid = "mtjebimcR24S9DZ62TY6Fh"
@@ -573,17 +578,13 @@ class TestFilterContigsBySamplePrefix(FilterContigsTestBase):
 
     def test_sample_prefix_not_matched_by_shorter_sample_id(self):
         self.assertEqual(
-            _match_sample_prefix_ids(
-                "sample10:mtjebimcR24S9DZ62TY6Fh", {"sample1"}
-            ),
+            _match_sample_prefix_ids("sample10:mtjebimcR24S9DZ62TY6Fh", {"sample1"}),
             set(),
         )
 
     def test_contig_matched_by_whole_id_or_shortuuid(self):
         contig_id = "sample1:mtjebimcR24S9DZ62TY6Fh"
-        self.assertEqual(
-            _match_contig_ids(contig_id, {contig_id}), {contig_id}
-        )
+        self.assertEqual(_match_contig_ids(contig_id, {contig_id}), {contig_id})
         self.assertEqual(
             _match_contig_ids(contig_id, {"mtjebimcR24S9DZ62TY6Fh"}),
             {"mtjebimcR24S9DZ62TY6Fh"},
@@ -709,9 +710,7 @@ class TestFilterContigsPipeline(FilterContigsTestBase):
 
     def test_coassembled_contigs_requires_explicit_on(self):
         with self.assertRaisesRegex(ValueError, "No solution for inputs"):
-            self.filter_contigs(
-                contigs=self.coassembled_contigs, length_threshold=300
-            )
+            self.filter_contigs(contigs=self.coassembled_contigs, length_threshold=300)
 
     def test_coassembled_contigs_on_contig(self):
         (obs,) = self.filter_contigs(
