@@ -12,8 +12,7 @@ import shortuuid
 import skbio
 from q2_types.feature_data import FeatureData
 from q2_types.feature_data_mag import Contig
-from q2_types.per_sample_sequences import ContigSequencesDirFmt, Contigs
-from q2_types.sample_data import SampleData
+from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from qiime2 import Metadata
 from qiime2.plugin import Properties
 from qiime2.util import duplicate
@@ -22,49 +21,36 @@ from qiime2.util import duplicate
 def _get_metadata_ids(metadata: Metadata = None, where: str = None) -> set:
     if metadata is None:
         return set()
-    metadata_ids = set(metadata.get_ids(where=where))
+    metadata_ids = metadata.get_ids(where=where)
     if not metadata_ids:
         print("The filter query returned no IDs to filter out.")
     return metadata_ids
 
 
-def _check_missing_ids(ids: list, metadata_ids: set, present_ids: set):
+def _check_missing_ids(ids: list, present_ids: set):
     missing_ids = set(ids or []) - present_ids
     if missing_ids:
         raise ValueError(
             "The following IDs are not present in the contig data: "
             f"{', '.join(sorted(missing_ids))}"
         )
-    if metadata_ids and not metadata_ids & present_ids:
-        raise ValueError(
-            "None of the metadata IDs are present in the contig data. Check "
-            "that `on` parameter matches the metadata ID type (sample or contig)."
-        )
 
 
 # Renamed contig IDs are assumed to be '<sample_id><separator><shortuuid>',
-# Contigs renamed with uuid3/uuid4/uuid5 are not matched correctly.
 SHORTUUID_LENGTH = shortuuid.ShortUUID().encoded_length()
 
 
-def _matched_ids(contig_id: str, on: str, selected_ids: set) -> set:
-
-    if on == "sample_prefix":
-        return {
-            _id
-            for _id in selected_ids
-            if contig_id.startswith(_id)
-            and len(contig_id) == len(_id) + 1 + SHORTUUID_LENGTH
-        }
-    return {
-        _id
-        for _id in selected_ids
-        if contig_id.endswith(_id) and len(_id) in (len(contig_id), SHORTUUID_LENGTH)
-    }
+def _match_contig_ids(contig_id: str, selected_ids: set[str]) -> set[str]:
+    candidates = {contig_id, contig_id[-SHORTUUID_LENGTH:]}
+    return candidates & selected_ids
 
 
-def _is_selected(_ids: set, selected_ids: set, exclude_ids: bool) -> bool:
-    return selected_ids is None or bool(_ids & selected_ids) != exclude_ids
+def _match_sample_prefix_ids(contig_id: str, selected_ids: set[str]) -> set[str]:
+    suffix_length = 1 + SHORTUUID_LENGTH
+    if len(contig_id) < suffix_length:
+        return set()
+    candidates = {contig_id[:-suffix_length]}
+    return candidates & selected_ids
 
 
 def _filter_fasta(
@@ -76,16 +62,22 @@ def _filter_fasta(
     exclude_ids: bool,
 ) -> tuple:
 
+    match_ids = (
+        _match_sample_prefix_ids if on == "sample_prefix" else _match_contig_ids
+    )
     kept, removed, found_ids = 0, 0, set()
     with open(out_fp, "w") as f_out:
         for contig in skbio.io.read(in_fp, format="fasta"):
-            # no selection by contig IDs, only the length filter applies
+            # do not filter contigs by ID, length threshold only applies
             if selected_ids is None:
                 contig_selected = True
             else:
-                _ids = _matched_ids(contig.metadata["id"], on, selected_ids)
+                _ids = match_ids(contig.metadata["id"], selected_ids)
                 found_ids.update(_ids)
-                contig_selected = _is_selected(_ids, selected_ids, exclude_ids)
+                if exclude_ids:
+                    contig_selected = not bool(_ids)
+                else:
+                    contig_selected = bool(_ids)
 
             if contig_selected and len(contig) >= length_threshold:
                 skbio.io.write(contig, format="fasta", into=f_out)
@@ -93,6 +85,48 @@ def _filter_fasta(
             else:
                 removed += 1
     return kept, removed, found_ids
+
+
+def _write_filtered_contig_file(
+    file_id: str,
+    in_fp: str,
+    out_fp: str,
+    on: str,
+    length_threshold: int,
+    selected_ids: set[str] | None,
+    exclude_ids: bool,
+) -> set[str]:
+
+    if on == "sample" and length_threshold == 0:
+        duplicate(in_fp, out_fp)
+        return set()
+
+    # on-sample remaining part is only length filtering
+    contig_ids = None if on == "sample" else selected_ids
+    kept, removed, found_ids = _filter_fasta(
+        in_fp, out_fp, on, length_threshold, contig_ids, exclude_ids
+    )
+    print(
+        f"File {file_id}: {removed + kept} contigs\n  {removed} "
+        f"contigs removed\n  {kept} contigs retained"
+    )
+    return found_ids
+
+
+def _validate_filtered_contigs(contigs: ContigSequencesDirFmt, on: str):
+    contig_files = contigs.sample_dict()
+    # only reachable for SampleData[Contig] branch
+    if not contig_files:
+        if on == "sample":
+            raise ValueError("No samples remain after filtering.")
+        raise ValueError("No contigs remain after filtering.")
+
+    if all(os.path.getsize(fp) == 0 for fp in contig_files.values()):
+        warnings.warn(
+            "No contigs remain after filtering - the output contains only "
+            "empty files.",
+            UserWarning,
+        )
 
 
 def _filter_contigs(
@@ -110,11 +144,18 @@ def _filter_contigs(
     contig_files = contigs.sample_dict()
 
     if on == "sample":
-        _check_missing_ids(ids, metadata_ids, set(contig_files))
+        samples_to_keep = set(contig_files)
+        _check_missing_ids(ids, samples_to_keep)
 
     selected_ids = None
     if ids is not None or metadata is not None:
         selected_ids = metadata_ids.union(ids or [])
+
+    if on == "sample" and selected_ids is not None:
+        if exclude_ids:
+            samples_to_keep -= selected_ids
+        else:
+            samples_to_keep &= selected_ids
 
     if length_threshold > 0:
         print(
@@ -126,57 +167,31 @@ def _filter_contigs(
     empty_files = []
     found_ids = set()
     for file_id, file_fp in contig_files.items():
-        # non-selected samples are skipped
-        if on == "sample" and not _is_selected(
-            {file_id}, selected_ids, exclude_ids
-        ):
+        if on == "sample" and file_id not in samples_to_keep:
             continue
 
-        out_fp = os.path.join(str(results), f"{file_id}.fa")
-        # the only case where contig files are ignored       
-        if on == "sample" and length_threshold == 0:
-            is_empty = os.path.getsize(file_fp) == 0
-            # empty samples to be removed are not copied at all
-            if remove_empty and is_empty:
-                empty_files.append(file_id)
-                continue
-            duplicate(file_fp, out_fp)
-        # filtering applied inside contig files > _filter_fasta
-        else:
-            # on="sample": samples were already selected above, so only the
-            # length filter applies within the file
-            contig_ids = None if on == "sample" else selected_ids
-            kept, removed, file_found_ids = _filter_fasta(
-                file_fp, out_fp, on, length_threshold, contig_ids, exclude_ids
-            )
-            found_ids.update(file_found_ids)
-            print(
-                f"Sample {file_id}: {removed + kept} contigs\n  {removed} "
-                f"contigs removed\n  {kept} contigs retained"
-            )
-            # emptiness is only known after filtering, so the file is removed
-            if remove_empty and kept == 0:
-                os.remove(out_fp)
-                empty_files.append(file_id)
+        out_fp = os.path.join(str(results), os.path.basename(file_fp))
+        file_found_ids = _write_filtered_contig_file(
+            file_id,
+            file_fp,
+            out_fp,
+            on=on,
+            length_threshold=length_threshold,
+            selected_ids=selected_ids,
+            exclude_ids=exclude_ids,
+        )
+        found_ids.update(file_found_ids)
+        if remove_empty and os.path.getsize(out_fp) == 0:
+            os.remove(out_fp)
+            empty_files.append(file_id)
 
+    # Missing IDs can only be determined after reading all input FASTA files.
     if on != "sample":
-        _check_missing_ids(ids, metadata_ids, found_ids)
+        _check_missing_ids(ids, found_ids)
 
-    # samples excluded or removed as empty - only reachable for SampleData
     if empty_files:
         print(f"Removing empty samples: {', '.join(sorted(empty_files))}")
-    if not results.sample_dict():
-        if on == "sample":
-            raise ValueError("No samples remain after filtering.")
-        raise ValueError("No contigs remain after filtering.")
-
-    # empty files were kept (remove_empty=False)
-    if all(os.path.getsize(fp) == 0 for fp in results.sample_dict().values()):
-        warnings.warn(
-            "No contigs remain after filtering - the output contains only "
-            "empty files.",
-            UserWarning,
-        )
+    _validate_filtered_contigs(results, on)
 
     return results
 
@@ -184,7 +199,7 @@ def _filter_contigs(
 def filter_contigs(
     ctx,
     contigs,
-    on="None",
+    on="sample",
     ids=None,
     metadata=None,
     where=None,
@@ -206,16 +221,12 @@ def filter_contigs(
             "Either 'ids' or metadata must be provided if 'exclude_ids' is True."
         )
 
-    if contigs.type <= SampleData[Contigs]:
-        on = "sample" if on == "None" else on
-
-    elif contigs.type <= FeatureData[Contig % Properties("pooled")]:
+    if (
+        contigs.type <= FeatureData[Contig % Properties("pooled")]
+        and on == "sample"
+    ):
         # sample IDs are matched against the contig ID prefix
-        on = "sample_prefix" if on == "sample" else "contig"
-
-    else:  # FeatureData[Contig % Properties("coassembly")]
-        # `on="sample"` is not allowed by the TypeMap
-        on = "contig"
+        on = "sample_prefix"
 
     _filter_contigs = ctx.get_action("assembly", "_filter_contigs")
     (filtered_contigs,) = _filter_contigs(

@@ -477,16 +477,18 @@ filter_contigs_params = {
 # fmt: off
 filter_contigs_param_descriptions = {
     "on": "Whether `ids` and `metadata` refer to sample or contig IDs. "
-          "If 'None', 'sample' is used for SampleData[Contigs] and 'contig' "
-          "for FeatureData[Contig]." 
+          "Defaults to 'sample': selects sample files for SampleData[Contigs] "
+          "and matches sample prefixes for pooled FeatureData[Contig%pooled]. "
+          "Co-assembled contigs require explicit on 'contig'selection.",
     "ids": "Sample or contig IDs (see `on`) used when selecting samples or "
            "contigs to retain, or with `exclude_ids` when selecting them to "
-           "discard. Combined with the IDs selected by `q`.",
+           "discard. Combined with the IDs selected from `metadata`.",
     "metadata": "Metadata indicating which sample or contig IDs (see `on`) "
                 "to filter. The optional `where` parameter may be used to filter ids "
                 "based on specified conditions in the metadata. The "
                 "optional `exclude_ids` parameter may be used to exclude "
-                "the ids specified in the metadata from the filter.",
+                "the ids specified in the metadata from the filter. "
+                "Metadata IDs absent from the contig data are ignored.",
     "where": "Optional SQLite WHERE clause specifying metadata "
              "criteria that must be met to be included in the filtered "
              "data. If not provided, all IDs in `metadata` that are "
