@@ -467,28 +467,36 @@ partition_param_descriptions = {
 # fmt: on
 
 filter_contigs_params = {
+    "ids": List[Str],
     "metadata": Metadata,
     "where": Str,
     "exclude_ids": Bool,
-    "remove_empty": Bool,
     "length_threshold": Int % Range(0, None),
 }
 # fmt: off
 filter_contigs_param_descriptions = {
-    "metadata": "Sample metadata indicating which sample ids to filter. "
-                "The optional `where` parameter may be used to filter ids "
+    "on": "Whether `ids` and `metadata` refer to sample or contig IDs. "
+          "'sample' selects sample files for SampleData[Contigs] and matches "
+          "sample prefixes for FeatureData[Contig % Properties('pooled')]. "
+          "Co-assembled contigs can only be filtered with 'contig'.",
+    "ids": "Sample or contig IDs (see `on`) used when selecting samples or "
+           "contigs to retain, or with `exclude_ids` when selecting them to "
+           "discard. Combined with the IDs selected from `metadata`.",
+    "metadata": "Metadata indicating which sample or contig IDs (see `on`) "
+                "to filter. The optional `where` parameter may be used to filter ids "
                 "based on specified conditions in the metadata. The "
                 "optional `exclude_ids` parameter may be used to exclude "
-                "the ids specified in the metadata from the filter.",
-    "where": "Optional SQLite WHERE clause specifying sample metadata "
+                "the ids specified in the metadata from the filter. "
+                "Metadata IDs absent from the contig data are ignored.",
+    "where": "Optional SQLite WHERE clause specifying metadata "
              "criteria that must be met to be included in the filtered "
-             "data. If not provided, all samples in `metadata` that are "
+             "data. If not provided, all IDs in `metadata` that are "
              "also in the contig data will be retained.",
-    "exclude_ids": "If True, the samples selected by "
-                   "the `metadata` and optional `where` parameter will be "
+    "exclude_ids": "If True, the IDs selected by `ids`, `metadata` and "
+                   "the optional `where` parameter will be "
                    "excluded from the filtered data.",
     "remove_empty": "If True, samples with no contigs will be removed from "
-                    "the filtered data.",
+                    "the filtered data. Only relevant for SampleData[Contigs].",
     "length_threshold": "Only keep contigs of the given length and longer."
 }
 # fmt: on
