@@ -471,15 +471,14 @@ filter_contigs_params = {
     "metadata": Metadata,
     "where": Str,
     "exclude_ids": Bool,
-    "remove_empty": Bool,
     "length_threshold": Int % Range(0, None),
 }
 # fmt: off
 filter_contigs_param_descriptions = {
     "on": "Whether `ids` and `metadata` refer to sample or contig IDs. "
-          "Defaults to 'sample': selects sample files for SampleData[Contigs] "
-          "and matches sample prefixes for pooled FeatureData[Contig%pooled]. "
-          "Co-assembled contigs require explicit on 'contig'selection.",
+          "'sample' selects sample files for SampleData[Contigs] and matches "
+          "sample prefixes for FeatureData[Contig % Properties('pooled')]. "
+          "Co-assembled contigs can only be filtered with 'contig'.",
     "ids": "Sample or contig IDs (see `on`) used when selecting samples or "
            "contigs to retain, or with `exclude_ids` when selecting them to "
            "discard. Combined with the IDs selected from `metadata`.",

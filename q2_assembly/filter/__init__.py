@@ -6,16 +6,6 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from .filter import (
-    _filter_contigs,
-    _match_contig_ids,
-    _match_sample_prefix_ids,
-    filter_contigs,
-)
+from .filter import filter_contigs
 
-__all__ = [
-    "filter_contigs",
-    "_filter_contigs",
-    "_match_contig_ids",
-    "_match_sample_prefix_ids",
-]
+__all__ = ["filter_contigs"]
