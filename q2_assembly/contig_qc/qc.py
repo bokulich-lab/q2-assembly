@@ -11,7 +11,7 @@ import shutil
 from importlib import resources
 from multiprocessing import Pool
 from pathlib import Path
-from typing import List, Optional
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -27,15 +27,16 @@ TEMPLATES = resources.files("q2_assembly") / "assets"
 MAX_CUMULATIVE_POINTS = 500
 
 
-def _process_single_fasta(fp: Path, sample_id: Optional[str] = None):
+def _process_single_fasta(fp: Path, sample_id: str):
     """
     Processes a single FASTA file to extract contig statistics.
 
     Args:
         fp (Path): Path to the input FASTA file.
+        sample_id (str): Sample ID supplied by the contig directory format.
 
     Returns:
-        tuple: A tuple containing the sample ID (derived from the filename)
+        tuple: A tuple containing the supplied sample ID
                and a dictionary with raw contig data:
                - "lengths": List of contig lengths.
                - "total_length": Sum of all contig lengths.
@@ -43,9 +44,6 @@ def _process_single_fasta(fp: Path, sample_id: Optional[str] = None):
                - "gc": List of GC content percentages for each contig.
                - "sorted_lengths": List of contig lengths, sorted in descending order.
     """
-    if sample_id is None:
-        sample_id = fp.stem.removesuffix("_contigs")
-
     gc_vals, lengths = [], []
 
     for seq in read(str(fp), format="fasta", constructor=DNA):

@@ -364,7 +364,7 @@ def _visualize_quast(
 
 
 def _create_tabular_results(
-    results_dir: str, contig_thresholds: list, sample_ids: dict = None
+    results_dir: str, contig_thresholds: list, sample_ids: dict
 ) -> pd.DataFrame:
     """
     This function will create the tabular results after QUAST has run.

@@ -789,10 +789,13 @@ class TestQuast(TestPluginBase):
         mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         p2.return_value = mock_df
 
-        _ = _create_tabular_results(self.temp_dir.name, [1000, 5000, 25000, 50000])
+        sample_ids = {"sample1_contigs": "sample1", "sample2_contigs": "sample2"}
+        _ = _create_tabular_results(
+            self.temp_dir.name, [1000, 5000, 25000, 50000], sample_ids
+        )
 
         p2.assert_called_once_with(report_path, sep="\t", header=0)
-        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000], None)
+        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000], sample_ids)
 
     @patch("pandas.read_csv")
     @patch("q2_assembly.quast.quast._parse_columns")
@@ -804,10 +807,13 @@ class TestQuast(TestPluginBase):
         mock_df = pd.DataFrame({"A": [1, 2, 3], "B": [4, 5, 6]})
         p2.return_value = mock_df
 
-        _ = _create_tabular_results(self.temp_dir.name, [1000, 5000, 25000, 50000])
+        sample_ids = {"sample1_contigs": "sample1", "sample2_contigs": "sample2"}
+        _ = _create_tabular_results(
+            self.temp_dir.name, [1000, 5000, 25000, 50000], sample_ids
+        )
 
         p2.assert_called_once_with(report_path, sep="\t", header=0)
-        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000], None)
+        p1.assert_called_once_with(mock_df, [1000, 5000, 25000, 50000], sample_ids)
 
     def test_evaluate_quast_pipeline_with_refs(self):
         def _copy_references(refs_dir, tmp):

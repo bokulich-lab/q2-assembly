@@ -6,6 +6,7 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import os
+import shutil
 
 import pandas as pd
 import qiime2 as q2
@@ -28,6 +29,38 @@ class TestFilterContigsBySample(FilterContigsTestBase):
             index=pd.Index(["sample1", "sample2", "sample3"], name="id"),
         )
         self.metadata = q2.Metadata(self.metadata_df)
+
+    def test_filter_mixed_contig_filenames(self):
+        contigs = ContigSequencesDirFmt()
+        shutil.copyfile(
+            self.sample_data_contigs.sample_dict()["sample1"],
+            contigs.path / "patient_contigs_A.fasta",
+        )
+        shutil.copyfile(
+            self.sample_data_contigs.sample_dict()["sample2"],
+            contigs.path / "sample2_contigs.fa",
+        )
+        obs = _filter_contigs(
+            contigs=contigs,
+            on="sample",
+            filter_samples=True,
+            ids=["patient_contigs_A", "sample2"],
+            length_threshold=320,
+        )
+        self.assertDictEqual(
+            obs.sample_dict(),
+            {
+                "patient_contigs_A": os.path.join(obs.path, "patient_contigs_A.fasta"),
+                "sample2": os.path.join(obs.path, "sample2_contigs.fa"),
+            },
+        )
+        self.assertDictEqual(
+            {
+                sample: len(self._read_contig_ids(fp))
+                for sample, fp in obs.sample_dict().items()
+            },
+            {"patient_contigs_A": 6, "sample2": 1},
+        )
 
     def test_filter_sample_metadata(self):
         obs = _filter_contigs(
