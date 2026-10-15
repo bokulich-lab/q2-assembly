@@ -24,7 +24,7 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Bool, Choices, Properties, Str, TypeMap, Visualization
-from qiime2.plugin import Citations, Int, List, Plugin, Range, Metadata
+from qiime2.plugin import Citations, Int, List, Metadata, Plugin, Range
 
 import q2_assembly
 from q2_assembly import __version__
@@ -68,7 +68,7 @@ plugin = Plugin(
 
 P_coassemble, T_coassembled_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembly")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -136,7 +136,7 @@ plugin.methods.register_function(
 
 P_spades_partition_coassemble, T_spades_partition_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembly")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -637,15 +637,39 @@ plugin.methods.register_function(
     description="Not to be called directly. Used by map_reads.",
 )
 
-plugin.methods.register_function(
+_sample_contigs = SampleData[Contigs]
+_pooled_contigs = FeatureData[Contig % Properties("pooled")]
+_coassembled_contigs = FeatureData[Contig % Properties("coassembly")]
+_combined_contigs = FeatureData[Contig % Properties("pooled", "coassembly")]
+_on_sample = Str % Choices(["sample"])
+_on_contig = Str % Choices(["contig"])
+_no_remove_empty = Bool % Choices(False)
+_contigs = FeatureData[Contig]
+T_filter_in, P_filter_on, P_filter_remove_empty, T_filter_out = TypeMap(
+    {
+        (_sample_contigs, _on_sample, Bool): _sample_contigs,
+        (_sample_contigs, _on_contig, Bool): _sample_contigs,
+        (_combined_contigs, _on_contig, _no_remove_empty): _combined_contigs,
+        (_pooled_contigs, _on_sample, _no_remove_empty): _pooled_contigs,
+        (_pooled_contigs, _on_contig, _no_remove_empty): _pooled_contigs,
+        (_coassembled_contigs, _on_contig, _no_remove_empty): _coassembled_contigs,
+        (_contigs, _on_contig, _no_remove_empty): _contigs,
+    }
+)
+plugin.pipelines.register_function(
     function=q2_assembly.filter.filter_contigs,
-    inputs={"contigs": SampleData[Contigs]},
-    parameters=filter_contigs_params,
-    outputs={"filtered_contigs": SampleData[Contigs]},
+    inputs={"contigs": T_filter_in},
+    parameters={
+        **filter_contigs_params,
+        "on": P_filter_on,
+        "remove_empty": P_filter_remove_empty,
+    },
+    outputs={"filtered_contigs": T_filter_out},
     input_descriptions={"contigs": "The contigs to filter."},
     parameter_descriptions=filter_contigs_param_descriptions,
     name="Filter contigs.",
-    description="Filter contigs based on metadata.",
+    description="Filter contigs by length and by sample or contig IDs, "
+    "provided directly or selected from metadata.",
 )
 
 plugin.methods.register_function(
