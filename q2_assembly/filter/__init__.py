@@ -8,6 +8,4 @@
 
 from .filter import filter_contigs
 
-__all__ = [
-    "filter_contigs",
-]
+__all__ = ["filter_contigs"]

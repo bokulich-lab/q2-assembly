@@ -508,7 +508,9 @@ class TestSpades(TestPluginBase):
         process_sample.assert_called_once()
         self.assertEqual(process_sample.call_args.args[0], "pooled")
         out.validate()
-        self.assertEqual(str(out.type), "FeatureData[Contig]")
+        self.assertEqual(
+            str(out.type), "FeatureData[Contig % Properties('coassembly')]"
+        )
 
     def test_assemble_spades_parallel_isolate(self):
         input_files = self.get_data_path("formatted-reads/paired-end")
