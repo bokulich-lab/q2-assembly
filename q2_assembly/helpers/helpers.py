@@ -62,11 +62,19 @@ def collate_alignments(alignment_maps: BAMDirFmt) -> BAMDirFmt:
 def sort_alignment_maps(
     alignment_maps: BAMDirFmt,
 ) -> BAMDirFmt:
-    file_dict = alignment_maps.file_dict()
+    file_dict = alignment_maps.file_dict(relative=True)
     out_dir = BAMDirFmt()
 
-    for samp_name, fp in file_dict.items():
-        sorted_bam = os.path.join(str(out_dir), f"{samp_name}.bam")
-        run_command(["samtools", "sort", str(fp), "-o", sorted_bam], verbose=True)
+    for fp in file_dict.values():
+        run_command(
+            [
+                "samtools",
+                "sort",
+                str(alignment_maps.path / fp),
+                "-o",
+                str(out_dir.path / fp),
+            ],
+            verbose=True,
+        )
 
     return out_dir
