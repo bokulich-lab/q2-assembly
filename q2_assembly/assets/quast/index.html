@@ -49,10 +49,11 @@
   </script>
 
   <script type="text/javascript">
+      var reportLabels = {{ report_labels }}
       var updateReportLink = function() {
           var currentSample = document.getElementById("sample-id").value
           var reportBtn = document.getElementById("sample-gc-btn")
-          reportBtn.setAttribute("href", `quast_data/combined_reference/basic_stats/${currentSample}_contigs_GC_content_plot.pdf`)
+          reportBtn.setAttribute("href", `quast_data/combined_reference/basic_stats/${encodeURIComponent(reportLabels[currentSample])}_GC_content_plot.pdf`)
       }
 
       var populateSampleNames = function() {
