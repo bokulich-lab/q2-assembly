@@ -66,7 +66,15 @@ def sort_alignment_maps(
     out_dir = BAMDirFmt()
 
     for fp in file_dict.values():
-        run_command(["samtools", "sort", str(alignment_maps.path / fp),
-                     "-o", str(out_dir.path / fp)], verbose=True)
+        run_command(
+            [
+                "samtools",
+                "sort",
+                str(alignment_maps.path / fp),
+                "-o",
+                str(out_dir.path / fp),
+            ],
+            verbose=True,
+        )
 
     return out_dir
