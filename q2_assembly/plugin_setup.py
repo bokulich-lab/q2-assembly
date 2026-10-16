@@ -69,7 +69,7 @@ plugin = Plugin(
 
 P_coassemble, T_coassembled_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig % Properties("coassembly")],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembled")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -137,7 +137,7 @@ plugin.methods.register_function(
 
 P_spades_partition_coassemble, T_spades_partition_seqs = TypeMap(
     {
-        Bool % Choices(True): FeatureData[Contig % Properties("coassembly")],
+        Bool % Choices(True): FeatureData[Contig % Properties("coassembled")],
         Bool % Choices(False): SampleData[Contigs],
     }
 )
@@ -742,8 +742,8 @@ plugin.methods.register_function(
 
 _sample_contigs = SampleData[Contigs]
 _pooled_contigs = FeatureData[Contig % Properties("pooled")]
-_coassembled_contigs = FeatureData[Contig % Properties("coassembly")]
-_combined_contigs = FeatureData[Contig % Properties("pooled", "coassembly")]
+_coassembled_contigs = FeatureData[Contig % Properties("coassembled")]
+_combined_contigs = FeatureData[Contig % Properties(["pooled", "coassembled"])]
 _on_sample = Str % Choices(["sample"])
 _on_contig = Str % Choices(["contig"])
 _no_remove_empty = Bool % Choices(False)

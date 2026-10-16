@@ -17,7 +17,6 @@ from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequenc
 from q2_assembly._utils import _process_common_input_params, run_command
 from q2_assembly.bowtie2.utils import (
     _assert_inputs_not_empty,
-    _get_subdir_from_path,
     _merge_mags,
     _process_bowtie2build_arg,
 )
@@ -39,7 +38,6 @@ def _index_seqs(
             will be created.
         common_args (list): List of common flags and their values for
             the bowtie2-build command.
-        input_type (str): Type of input sequences. Can be mags, mags-derep or contigs.
     """
     _assert_inputs_not_empty(list(fasta_fps.values()))
 
@@ -171,7 +169,7 @@ def _index_coassembled_contigs(
             "FeatureData[Contig] must contain exactly one co-assembled FASTA file."
         )
 
-    _index_seqs(contig_fps, str(result), common_args, "contigs-coassembled")
+    _index_seqs({"": contig_fps[0]}, str(result), common_args)
 
     return result
 

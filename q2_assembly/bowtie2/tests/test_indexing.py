@@ -12,6 +12,7 @@ from pathlib import Path
 from subprocess import CalledProcessError
 from unittest.mock import ANY, call, patch
 
+from parameterized import parameterized
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
@@ -274,7 +275,7 @@ class TestBowtie2Indexing(TestPluginBase):
             ]
         )
 
-    @patch("q2_assembly.bowtie2.indexing._index_seqs")
+    @patch("q2_assembly.bowtie2.indexing._index_seqs", autospec=True)
     def test_index_coassembled_contigs(self, p):
         input_contigs = ContigSequencesDirFmt(
             self.get_data_path("coassembled-contigs"), "r"
@@ -292,15 +293,37 @@ class TestBowtie2Indexing(TestPluginBase):
         )
 
         p.assert_called_once_with(
-            [f"{str(input_contigs)}/all_contigs.fa"],
+            {"": f"{str(input_contigs)}/all_contigs.fa"},
             ANY,
             self.test_params_list,
-            "contigs-coassembled",
         )
 
-    def test_index_coassembled_contigs_pipeline(self):
+    @patch("q2_assembly.bowtie2.indexing.run_command")
+    def test_index_coassembled_contigs_flat_index(self, run):
+        contigs = ContigSequencesDirFmt(self.get_data_path("coassembled-contigs"), "r")
+
+        result = _index_coassembled_contigs(contigs, large_index=True, bmax=11)
+
+        run.assert_called_once_with(
+            ["bowtie2-build"]
+            + self.test_params_list
+            + [f"{contigs}/all_contigs.fa", f"{result}/index"],
+            verbose=True,
+        )
+
+    @patch("q2_assembly.bowtie2.indexing.run_command")
+    def test_index_coassembled_contigs_rejects_multiple_fastas(self, run):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+
+        with self.assertRaisesRegex(ValueError, "exactly one"):
+            _index_coassembled_contigs(contigs)
+
+        run.assert_not_called()
+
+    @parameterized.expand(["coassembled", "pooled"])
+    def test_index_coassembled_contigs_pipeline(self, property_name):
         input_artifact = Artifact.import_data(
-            "FeatureData[Contig % Properties('coassembled')]",
+            f"FeatureData[Contig % Properties('{property_name}')]",
             self.get_data_path("coassembled-contigs"),
         )
 
@@ -310,7 +333,8 @@ class TestBowtie2Indexing(TestPluginBase):
         out.validate()
         self.assertEqual(
             str(out.type),
-            "FeatureData[SingleBowtie2Index % " "Properties('contigs', 'coassembled')]",
+            "FeatureData[SingleBowtie2Index % "
+            f"Properties('contigs', '{property_name}')]",
         )
         self.assertIs(out.format, Bowtie2IndexDirFmt)
         self.assertTrue(out.view(Bowtie2IndexDirFmt).get_basename())
