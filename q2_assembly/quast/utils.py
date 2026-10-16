@@ -5,7 +5,7 @@ from q2_assembly.quast.types import QUASTResultsFormat
 
 
 def _parse_columns(
-    report_df: pd.DataFrame, contig_thresholds: list = None
+    report_df: pd.DataFrame, contig_thresholds: list, sample_ids: dict
 ) -> pd.DataFrame:
     """
     This function will rename and select the needed columns of the QUAST
@@ -13,7 +13,8 @@ def _parse_columns(
 
     Args:
         - report_df(pd.Dataframe): Dataframe containing the QUAST results
-        - contig_thresholds(list): list of contig thresholds. Defaults to None.
+        - contig_thresholds(list): list of contig thresholds.
+        - sample_ids(dict): QUAST report labels mapped to sample IDs.
 
     Returns:
         a Pandas dataframe with the renamed columns.
@@ -35,7 +36,7 @@ def _parse_columns(
     # specify in the dicts in a certain order
     all_cols = QUASTResultsFormat.HEADER + optional_cols
     report_df_newcols = report_df_newcols[all_cols]
-    report_df_newcols["id"] = report_df_newcols["id"].str.replace("_contigs", "")
+    report_df_newcols["id"] = report_df_newcols["id"].map(sample_ids.__getitem__)
 
     report_df_newcols = report_df_newcols.set_index("id")
 

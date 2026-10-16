@@ -11,41 +11,41 @@ import tempfile
 from copy import deepcopy
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types.feature_data import DNAFASTAFormat
 from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
 
 from q2_assembly._utils import _process_common_input_params, run_command
 from q2_assembly.bowtie2.utils import (
     _assert_inputs_not_empty,
-    _get_subdir_from_path,
     _merge_mags,
     _process_bowtie2build_arg,
 )
 
 
 def _index_seqs(
-    fasta_fps: list, result_fp: str, common_args: list, input_type: str = "contigs"
+    fasta_fps: dict,
+    result_fp: str,
+    common_args: list,
 ):
     """Runs the indexing using bowtie2
 
     Constructs and runs the final bowtie2-build command.
 
     Args:
-        fasta_fps (list): List of FASTA files to be indexed.
+        fasta_fps (dict): Sample IDs mapped to FASTA paths. An empty ID
+            places the index directly in result_fp for dereplicated MAGs.
         result_fp (str): Path to the result file where the indices
             will be created.
         common_args (list): List of common flags and their values for
             the bowtie2-build command.
-        input_type (str): Type of input sequences. Can be mags, mags-derep or contigs.
     """
-    _assert_inputs_not_empty(fasta_fps)
+    _assert_inputs_not_empty(list(fasta_fps.values()))
 
     base_cmd = ["bowtie2-build"]
     base_cmd.extend(common_args)
 
-    for fp in fasta_fps:
-        sample_dp = os.path.join(result_fp, _get_subdir_from_path(fp, input_type))
+    for sample_id, fp in fasta_fps.items():
+        sample_dp = os.path.join(result_fp, sample_id)
         os.makedirs(sample_dp, exist_ok=True)
 
         cmd = deepcopy(base_cmd)
@@ -125,11 +125,7 @@ def _index_contigs(
     )
     result = Bowtie2IndexDirFmt()
 
-    contig_fps = sorted(
-        map(lambda v: str(v[1].path), contigs.sequences.iter_views(DNAFASTAFormat))
-    )
-
-    _index_seqs(contig_fps, str(result), common_args, "contigs")
+    _index_seqs(contigs.sample_dict(), str(result), common_args)
 
     return result
 
@@ -162,7 +158,7 @@ def index_mags(
 
     with tempfile.TemporaryDirectory() as temp_dir:
         merged_fps = _merge_mags(mags, temp_dir)
-        _index_seqs(merged_fps, str(result), common_args, "mags")
+        _index_seqs(merged_fps, str(result), common_args)
 
     return result
 
@@ -202,6 +198,6 @@ def index_derep_mags(
 
     with tempfile.TemporaryDirectory() as temp_dir:
         merged_fps = _merge_mags(mags, temp_dir)
-        _index_seqs(merged_fps, str(result), common_args, "mags-derep")
+        _index_seqs(merged_fps, str(result), common_args)
 
     return result

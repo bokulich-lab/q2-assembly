@@ -21,6 +21,7 @@
   </script>
 
   <script type="text/javascript">
+      var reportLabels = {{ report_labels }}
       var updateHTMLLink = function() {
           // Get the string representing the selection in the dropdown menu
           var currentOption = document.getElementById("sample-id").value
@@ -28,15 +29,10 @@
           // Get the HTML element to modify it
           var kronaHTML = document.getElementById("krona_plot")
 
-          // Check weather the chosen option is a sample of the summary
-          if (currentOption.includes("sample")) {
-              var filename = currentOption + "_contigs";
-          } else {
-              var filename = currentOption;
-          }
+          var filename = reportLabels[currentOption] || currentOption;
 
           // Change the attribute to the corresponding HTML file
-          kronaHTML.setAttribute("src", `quast_data/krona_charts/${filename}_taxonomy_chart.html`)
+          kronaHTML.setAttribute("src", `quast_data/krona_charts/${encodeURIComponent(filename)}_taxonomy_chart.html`)
       }
 
       var populateDropDownMenu = function() {

@@ -23,16 +23,12 @@ def rename_contigs(
     separator: str = ":",
 ) -> ContigSequencesDirFmt:
     renamed_contigs = ContigSequencesDirFmt()
+    sep = separator if include_sample_id else None
 
-    for contigs_fp in contigs.sample_dict().values():
-        shutil.copyfile(
-            contigs_fp,
-            os.path.join(renamed_contigs.path, os.path.basename(contigs_fp)),
-        )
-
-    for sample_id, contigs_fp in renamed_contigs.sample_dict().items():
-        sep = separator if include_sample_id else None
-        modify_contig_ids(contigs_fp, sample_id, uuid_type, sep)
+    for sample_id, contigs_fp in contigs.sample_dict().items():
+        out_fp = os.path.join(renamed_contigs.path, os.path.basename(contigs_fp))
+        shutil.copyfile(contigs_fp, out_fp)
+        modify_contig_ids(out_fp, sample_id, uuid_type, sep)
 
     return renamed_contigs
 

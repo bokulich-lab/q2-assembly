@@ -27,15 +27,16 @@ TEMPLATES = resources.files("q2_assembly") / "assets"
 MAX_CUMULATIVE_POINTS = 500
 
 
-def _process_single_fasta(fp: Path):
+def _process_single_fasta(fp: Path, sample_id: str):
     """
     Processes a single FASTA file to extract contig statistics.
 
     Args:
         fp (Path): Path to the input FASTA file.
+        sample_id (str): Sample ID supplied by the contig directory format.
 
     Returns:
-        tuple: A tuple containing the sample ID (derived from the filename)
+        tuple: A tuple containing the supplied sample ID
                and a dictionary with raw contig data:
                - "lengths": List of contig lengths.
                - "total_length": Sum of all contig lengths.
@@ -43,8 +44,6 @@ def _process_single_fasta(fp: Path):
                - "gc": List of GC content percentages for each contig.
                - "sorted_lengths": List of contig lengths, sorted in descending order.
     """
-    sample_id = fp.stem.replace("_contigs", "")
-
     gc_vals, lengths = [], []
 
     for seq in read(str(fp), format="fasta", constructor=DNA):
@@ -301,7 +300,9 @@ def generate_plotting_data(
               - "cumulative_df": DataFrame for cumulative length plots.
               - "nx_df": DataFrame for N(x) plots.
     """
-    fasta_files = [Path(x) for x in contigs_dir.sample_dict().values()]
+    samples = [
+        (Path(fp), sample_id) for sample_id, fp in contigs_dir.sample_dict().items()
+    ]
 
     all_seq_gc_rows = []
     all_seq_len_rows = []
@@ -310,7 +311,7 @@ def generate_plotting_data(
 
     with Pool(processes=n_cpus) as pool:
         # Step 1: Process individual FASTA files to get raw data
-        raw_sample_results = pool.map(_process_single_fasta, fasta_files)
+        raw_sample_results = pool.starmap(_process_single_fasta, samples)
 
         # Step 2: Calculate all derived metrics per sample in parallel
         args_for_derived_metrics = [

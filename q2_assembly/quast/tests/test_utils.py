@@ -34,6 +34,7 @@ class TestQuastUtils(TestPluginBase):
             self.addCleanup(stack.pop_all().close)
         self.all_cols_contig_thresholds = [1000, 5000, 10000, 25000, 50000]
         self.some_cols_contig_thresholds = [1000, 5000]
+        self.sample_ids = {"sample1_contigs": "sample1", "sample2_contigs": "sample2"}
 
     def test_parse_columns_some_cols(self):
         quast_results_path = self.get_data_path("quast-results")
@@ -42,7 +43,7 @@ class TestQuastUtils(TestPluginBase):
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
         refined_report = _parse_columns(
-            transposed_report, self.some_cols_contig_thresholds
+            transposed_report, self.some_cols_contig_thresholds, self.sample_ids
         )
         refined_reports_cols = refined_report.columns.tolist()
         true_columns = QUASTResultsFormat.HEADER + [
@@ -58,6 +59,29 @@ class TestQuastUtils(TestPluginBase):
 
         assert set(true_columns) == set(refined_reports_cols)
 
+    def test_parse_columns_preserves_sample_ids(self):
+        report = pd.read_csv(
+            self.get_data_path("quast-results/transposed_report_sample_ids.tsv"),
+            sep="\t",
+        )
+        result = _parse_columns(
+            report,
+            [],
+            {
+                "patient_contigs_A": "patient_contigs_A",
+                "patient_A_contigs": "patient_A",
+            },
+        )
+        self.assertListEqual(result.index.tolist(), ["patient_contigs_A", "patient_A"])
+
+    def test_parse_columns_unknown_label(self):
+        report = pd.read_csv(
+            self.get_data_path("quast-results/transposed_report_sample_ids.tsv"),
+            sep="\t",
+        )
+        with self.assertRaises(KeyError):
+            _parse_columns(report, [], {})
+
     def test_parse_columns_all_cols(self):
         quast_results_path = self.get_data_path("quast-results")
         transposed_report_path = os.path.join(
@@ -65,7 +89,7 @@ class TestQuastUtils(TestPluginBase):
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
         refined_report = _parse_columns(
-            transposed_report, self.all_cols_contig_thresholds
+            transposed_report, self.all_cols_contig_thresholds, self.sample_ids
         )
         refined_reports_cols = refined_report.columns.tolist()
         optional_cols_map = initialize_optional_cols_map(
@@ -83,7 +107,7 @@ class TestQuastUtils(TestPluginBase):
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
         refined_report = _parse_columns(
-            transposed_report, self.all_cols_contig_thresholds
+            transposed_report, self.all_cols_contig_thresholds, self.sample_ids
         )
         refined_reports_cols = refined_report.columns.tolist()
         true_columns = QUASTResultsFormat.HEADER.copy()
@@ -98,13 +122,9 @@ class TestQuastUtils(TestPluginBase):
         )
         transposed_report = pd.read_csv(transposed_report_path, sep="\t", header=0)
         refined_report = _parse_columns(
-            transposed_report, self.all_cols_contig_thresholds
+            transposed_report, self.all_cols_contig_thresholds, self.sample_ids
         )
-        id_col = refined_report.index
-
-        assert not any(
-            "_contig" in value for value in id_col
-        ), "Values in the id column contain '_contig'"
+        self.assertListEqual(refined_report.index.tolist(), ["sample1", "sample2"])
 
 
 if __name__ == "__main__":

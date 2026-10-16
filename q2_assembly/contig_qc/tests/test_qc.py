@@ -45,8 +45,8 @@ class TestCoreCalculations(TestPluginBase):
 
     def test_process_single_fasta_ok(self):
         fp = Path(self.get_data_path("sampleA_ok.fa"))
-        sample_id, data = _process_single_fasta(fp)
-        self.assertEqual(sample_id, "sampleA_ok")
+        sample_id, data = _process_single_fasta(fp, "sample_contigs_name")
+        self.assertEqual(sample_id, "sample_contigs_name")
         expected_data = {
             "lengths": [4, 2, 5],
             "total_length": 11,
@@ -58,7 +58,7 @@ class TestCoreCalculations(TestPluginBase):
 
     def test_process_single_fasta_empty_file(self):
         sample_id, data = _process_single_fasta(
-            Path(self.get_data_path("sampleB_empty.fa"))
+            Path(self.get_data_path("sampleB_empty.fa")), "sampleB_empty"
         )
         self.assertEqual(sample_id, "sampleB_empty")
         expected_data = {
