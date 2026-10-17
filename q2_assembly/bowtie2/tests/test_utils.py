@@ -55,6 +55,12 @@ class TestBowtie2Utils(TestPluginBase):
         exp = ""
         self.assertEqual(obs, exp)
 
+    def test_get_subdir_from_path_coassembled_contigs(self):
+        obs = _get_subdir_from_path(
+            "/path/to/dir/coassembly.fasta", "contigs-coassembled"
+        )
+        self.assertEqual(obs, "")
+
     def test_get_subdir_from_path_unknown_type(self):
         with self.assertRaisesRegex(NotImplementedError, r'"unicorn" is not supported'):
             _ = _get_subdir_from_path("/path/to/dir/mag1.fa", "unicorn")

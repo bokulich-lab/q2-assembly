@@ -100,6 +100,8 @@ def map_reads(
 
     if index.type <= SampleData[SingleBowtie2Index % Properties("contigs")]:
         _map_reads = ctx.get_action("assembly", "_map_reads_to_contigs")
+    elif index.type <= FeatureData[SingleBowtie2Index % Properties("contigs")]:
+        _map_reads = ctx.get_action("assembly", "_map_reads_to_contigs")
     elif index.type <= SampleData[SingleBowtie2Index % Properties("mags")]:
         _map_reads = ctx.get_action("assembly", "_map_reads_to_mags")
     elif index.type <= FeatureData[SingleBowtie2Index % Properties("mags")]:
@@ -196,7 +198,10 @@ def _map_reads_to_contigs(
     paired = isinstance(reads, SingleLanePerSamplePairedEndFastqDirFmt)
     manifest = reads.manifest.view(pd.DataFrame)
 
-    full_sample_set = _gather_sample_data(index, manifest, paired)
+    if _is_flat_dir(str(index)):
+        full_sample_set = _gather_feature_data(index, manifest, paired)
+    else:
+        full_sample_set = _gather_sample_data(index, manifest, paired)
 
     result = BAMDirFmt()
     for samp, props in full_sample_set.items():

@@ -509,7 +509,7 @@ class TestSpades(TestPluginBase):
         self.assertEqual(process_sample.call_args.args[0], "pooled")
         out.validate()
         self.assertEqual(
-            str(out.type), "FeatureData[Contig % Properties('coassembly')]"
+            str(out.type), "FeatureData[Contig % Properties('coassembled')]"
         )
 
     def test_assemble_spades_parallel_isolate(self):
