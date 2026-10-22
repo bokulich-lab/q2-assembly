@@ -474,6 +474,13 @@ class TestMegahit(TestPluginBase):
         out.validate()
         self.assertIs(out.format, ContigSequencesDirFmt)
 
+    def test_assemble_megahit_coassembled_output_type(self):
+        output_type = str(self.assemble_megahit.signature.outputs["contigs"].qiime_type)
+
+        self.assertIn(
+            "FeatureData[Contig % Properties('coassembled')]", output_type
+        )
+
     def test_assemble_megahit_parallel_single(self):
         input_files = self.get_data_path("formatted-reads/single-end")
         _input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
