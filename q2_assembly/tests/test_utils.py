@@ -20,12 +20,14 @@ from bs4 import BeautifulSoup as BS
 from parameterized import parameterized
 from qiime2.plugin.testing import TestPluginBase
 
+from q2_assembly._action_params import ALLOWED_SEPARATORS
 from q2_assembly._utils import (
     _construct_param,
     _get_sample_from_path,
     _modify_links,
     _process_common_input_params,
     _remove_html_element,
+    _split_contig_id,
     concatenate_files,
     get_file_extension,
     modify_contig_ids,
@@ -237,6 +239,32 @@ class TestUtils(TestPluginBase):
             self.assertEqual(
                 len(set(new_ids["sample1"]).intersection(set(new_ids["sample2"]))), 0
             )
+
+    def test_split_contig_id_supported_separators_and_uuid_formats(self):
+        sample_id = "my_sample:C.1"
+        uuids = (
+            "mtjebimcR24S9DZ62TY6Fh",
+            "2f1f2fae-d96e-3481-adab-21285b467f10",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "fbf870ed-9777-513b-851c-3bbd7b3a10f8",
+        )
+
+        for separator in ALLOWED_SEPARATORS:
+            for contig_uuid in uuids:
+                contig_id = f"{sample_id}{separator}{contig_uuid}"
+                with self.subTest(separator=separator, contig_uuid=contig_uuid):
+                    self.assertEqual(
+                        _split_contig_id(contig_id), (sample_id, contig_uuid)
+                    )
+
+    def test_split_contig_id_rejects_malformed_ids(self):
+        for contig_id in (
+            "sample1",
+            "sample1:not-a-uuid",
+            "sample1:dPj72SpWBxMXAVyPtYqJGAx?",
+        ):
+            with self.subTest(contig_id=contig_id):
+                self.assertIsNone(_split_contig_id(contig_id))
 
     def test_get_sample_from_path(self):
         obs = _get_sample_from_path("test/path/sample_1_contigs.fa")

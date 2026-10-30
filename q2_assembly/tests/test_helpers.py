@@ -20,10 +20,18 @@ from unittest.mock import ANY, call, patch
 import shortuuid
 import skbio
 from parameterized import parameterized
+from q2_types.feature_data import FeatureData
+from q2_types.feature_data_mag import Contig
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
+from qiime2 import Artifact
+from qiime2.core.type import Properties
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.helpers.helpers import rename_contigs, sort_alignment_maps
+from q2_assembly.helpers.helpers import (
+    pool_contigs,
+    rename_contigs,
+    sort_alignment_maps,
+)
 
 
 class TestUtils(TestPluginBase):
@@ -159,6 +167,53 @@ class TestUtils(TestPluginBase):
 
             p1.assert_has_calls(calls, any_order=True)
             self.assertTrue(os.path.exists(str(out_dir)))
+
+    def test_pool_contigs(self):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs-renamed"), "r")
+
+        pooled = pool_contigs(contigs)
+
+        pooled_fp = os.path.join(pooled.path, "pooled.fa")
+        self.assertDictEqual(pooled.sample_dict(), {"pooled": pooled_fp})
+        exp_fp = self.get_data_path("pooled/pooled.fa")
+        self.assertEqual(Path(pooled_fp).read_text(), Path(exp_fp).read_text())
+
+    def test_pool_contigs_action(self):
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs-renamed")
+        )
+
+        (pooled,) = self.plugin.methods["pool_contigs"](contigs)
+
+        self.assertEqual(pooled.type, FeatureData[Contig % Properties("pooled")])
+
+    def test_pool_contigs_missing_trailing_newline(self):
+        contigs = ContigSequencesDirFmt(
+            self.get_data_path("contigs-no-trailing-newline"), "r"
+        )
+
+        pooled = pool_contigs(contigs)
+
+        obs_fp = pooled.sample_dict()["pooled"]
+        exp_fp = self.get_data_path("pooled-no-trailing-newline/pooled.fa")
+        self.assertEqual(Path(obs_fp).read_text(), Path(exp_fp).read_text())
+
+    def test_pool_contigs_unprefixed_ids(self):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+
+        with self.assertRaisesRegex(
+            ValueError, 'Contig ID "k141_9" in sample "sample1" is not of the form'
+        ):
+            pool_contigs(contigs)
+
+    def test_pool_contigs_wrong_sample_prefix(self):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs-wrong-prefix"), "r")
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r'in sample "sample2" is prefixed with a different sample ID \("sample1"\)',
+        ):
+            pool_contigs(contigs)
 
 
 if __name__ == "__main__":

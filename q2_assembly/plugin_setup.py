@@ -134,6 +134,22 @@ plugin.methods.register_function(
     ),
 )
 
+plugin.methods.register_function(
+    function=q2_assembly.helpers.pool_contigs,
+    inputs={"contigs": SampleData[Contigs]},
+    parameters={},
+    outputs={"pooled_contigs": FeatureData[Contig % Properties("pooled")]},
+    input_descriptions={
+        "contigs": "Contigs from one or more samples to pool."
+    },
+    parameter_descriptions={},
+    output_descriptions={
+        "pooled_contigs": "Contigs from one or more samples joined into one pooled set."
+    },
+    name="Pool contigs from multiple samples.",
+    description="Pools sample contigs with IDs prefixed by their sample IDs.",
+)
+
 P_spades_partition_coassemble, T_spades_partition_seqs = TypeMap(
     {
         Bool % Choices(True): FeatureData[Contig % Properties("coassembly")],

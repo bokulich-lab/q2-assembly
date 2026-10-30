@@ -13,7 +13,7 @@ from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
-from q2_assembly._utils import modify_contig_ids, run_command
+from q2_assembly._utils import _split_contig_id, modify_contig_ids, run_command
 
 
 def rename_contigs(
@@ -31,6 +31,39 @@ def rename_contigs(
         modify_contig_ids(out_fp, sample_id, uuid_type, sep)
 
     return renamed_contigs
+
+
+def _check_contig_id(contig_id: str, sample_id: str):
+    parsed_id = _split_contig_id(contig_id)
+    if parsed_id is None:
+        raise ValueError(
+            f'Contig ID "{contig_id}" in sample "{sample_id}" is not of the form '
+            f'"{sample_id}<separator><uuid>". Please run rename-contigs with '
+            "include_sample_id enabled before pooling."
+        )
+    if parsed_id[0] != sample_id:
+        raise ValueError(
+            f'Contig ID "{contig_id}" in sample "{sample_id}" is prefixed with '
+            f'a different sample ID ("{parsed_id[0]}").'
+        )
+
+
+def pool_contigs(contigs: ContigSequencesDirFmt) -> ContigSequencesDirFmt:
+    """Pool contigs from all samples into a single FASTA file.
+    """
+    pooled_contigs = ContigSequencesDirFmt()
+    out_fp = os.path.join(pooled_contigs.path, "pooled.fa")
+
+    with open(out_fp, "w") as f_out:
+        for sample_id, contigs_fp in contigs.sample_dict().items():
+            with open(contigs_fp) as f_in:
+                for line in f_in:
+                    if line.startswith(">"):
+                        contig_id = (line[1:].split() or [""])[0]
+                        _check_contig_id(contig_id, sample_id)
+                    f_out.write(line if line.endswith("\n") else line + "\n")
+
+    return pooled_contigs
 
 
 def collate_indices(indices: Bowtie2IndexDirFmt) -> Bowtie2IndexDirFmt:

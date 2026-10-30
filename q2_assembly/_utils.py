@@ -7,6 +7,7 @@
 # ----------------------------------------------------------------------------
 import importlib
 import os
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -219,3 +220,24 @@ def modify_contig_ids(
         all_contigs = io.read(contigs_mod_fp, format="fasta")
         with io.open(contig_file, "w") as contigs_file:
             io.write(all_contigs, format="fasta", into=contigs_file)
+
+
+_UUID_PATTERN = r"[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}"
+_SHORTUUID_PATTERN = (
+    rf"[{re.escape(shortuuid.get_alphabet())}]"
+    rf"{{{shortuuid.ShortUUID().encoded_length()}}}"
+)
+_PREFIXED_CONTIG_ID = re.compile(
+    # sample ID, any single-character separator, then a UUID
+    r"(?P<sample>.+)."
+    rf"(?P<uuid>{_UUID_PATTERN}|{_SHORTUUID_PATTERN})"
+)
+
+
+def _split_contig_id(contig_id: str) -> tuple[str, str] | None:
+    """Splits a contig ID into its sample ID and UUID parts.
+    """
+    match = _PREFIXED_CONTIG_ID.fullmatch(contig_id)
+    if match is None:
+        return None
+    return match.group("sample"), match.group("uuid")
