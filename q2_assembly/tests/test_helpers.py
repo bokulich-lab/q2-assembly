@@ -20,7 +20,10 @@ from unittest.mock import ANY, call, patch
 import shortuuid
 import skbio
 from parameterized import parameterized
-from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
+from q2_types.per_sample_sequences import AlignmentMap, BAMDirFmt, ContigSequencesDirFmt
+from q2_types.sample_data import SampleData
+from qiime2 import Artifact
+from qiime2.plugin import Properties
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.helpers.helpers import rename_contigs, sort_alignment_maps
@@ -159,6 +162,33 @@ class TestUtils(TestPluginBase):
 
             p1.assert_has_calls(calls, any_order=True)
             self.assertTrue(os.path.exists(str(out_dir)))
+
+    @parameterized.expand(
+        [
+            ("dereplicated", ("mags", "dereplicated")),
+            ("pooled", ("contigs", "pooled")),
+            ("combined", ("contigs", "mags", "coassembled", "dereplicated")),
+        ]
+    )
+    @patch("q2_assembly.helpers.helpers.run_command")
+    def test_sort_and_collate_preserve_properties(self, name, properties, command):
+        # Materialize a valid output while keeping samtools outside this unit test.
+        command.side_effect = lambda args, **kwargs: shutil.copyfile(args[2], args[4])
+        maps = Artifact.import_data(
+            SampleData[AlignmentMap % Properties(properties)],
+            self.get_data_path("alignment_map"),
+        )
+        collate = self.plugin.methods["collate_alignments"]
+        sort = self.plugin.methods["sort_alignment_maps"]
+
+        (unsorted,) = collate([maps])
+        self.assertEqual(unsorted.type, maps.type)
+        (sorted_maps,) = sort(unsorted)
+        expected = SampleData[AlignmentMap % Properties((*properties, "sorted"))]
+        self.assertEqual(sorted_maps.type, expected)
+        (collated,) = collate([sorted_maps])
+        self.assertEqual(collated.type, expected)
+        collated.validate()
 
 
 if __name__ == "__main__":
