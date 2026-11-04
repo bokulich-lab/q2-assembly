@@ -293,7 +293,7 @@ class TestBowtie2Indexing(TestPluginBase):
         )
 
         p.assert_called_once_with(
-            {"": f"{str(input_contigs)}/all_contigs.fa"},
+            {"": f"{str(input_contigs)}/pooled.fa"},
             ANY,
             self.test_params_list,
         )
@@ -307,7 +307,7 @@ class TestBowtie2Indexing(TestPluginBase):
         run.assert_called_once_with(
             ["bowtie2-build"]
             + self.test_params_list
-            + [f"{contigs}/all_contigs.fa", f"{result}/index"],
+            + [f"{contigs}/pooled.fa", f"{result}/index"],
             verbose=True,
         )
 
