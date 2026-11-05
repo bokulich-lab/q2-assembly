@@ -139,9 +139,7 @@ plugin.methods.register_function(
     inputs={"contigs": SampleData[Contigs]},
     parameters={},
     outputs={"pooled_contigs": FeatureData[Contig % Properties("pooled")]},
-    input_descriptions={
-        "contigs": "Contigs from one or more samples to pool."
-    },
+    input_descriptions={"contigs": "Contigs from one or more samples to pool."},
     parameter_descriptions={},
     output_descriptions={
         "pooled_contigs": "Contigs from one or more samples joined into one pooled set."

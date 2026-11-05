@@ -235,8 +235,7 @@ _PREFIXED_CONTIG_ID = re.compile(
 
 
 def _split_contig_id(contig_id: str) -> tuple[str, str] | None:
-    """Splits a contig ID into its sample ID and UUID parts.
-    """
+    """Splits a contig ID into its sample ID and UUID parts."""
     match = _PREFIXED_CONTIG_ID.fullmatch(contig_id)
     if match is None:
         return None
