@@ -49,7 +49,7 @@ def _check_contig_id(contig_id: str, sample_id: str):
 
 
 def pool_contigs(contigs: ContigSequencesDirFmt) -> ContigSequencesDirFmt:
-    """Pool contigs from all samples into a single FASTA file."""
+    """Join contigs from one or more samples into one pooled set."""
     pooled_contigs = ContigSequencesDirFmt()
     out_fp = os.path.join(pooled_contigs.path, "pooled.fa")
 

@@ -23,7 +23,7 @@ sequencing reads:
 | index-derep-mags       | Index dereplicated MAGs using Bowtie2.                     | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
 | index-mags             | Index MAGs using Bowtie 2.                                 | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
 | map-reads              | Map reads to contigs/MAGs using Bowtie 2.                  | [Bowtie 2](https://github.com/BenLangmead/bowtie2)     |
-| pool-contigs           | Pool contigs from multiple samples.                        | -                                                      |
+| pool-contigs           | Pool contigs from one or more samples.                     | -                                                      |
 | rename-contigs         | Rename contigs using unique IDs.                           | -                                                      |
 | simulate-reads-mason   | Simulate short reads using Mason.                          | [Mason](https://www.seqan.de/apps/mason.html)          |
 

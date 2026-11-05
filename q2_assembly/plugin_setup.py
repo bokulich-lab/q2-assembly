@@ -145,7 +145,7 @@ plugin.methods.register_function(
     output_descriptions={
         "pooled_contigs": "Contigs from one or more samples joined into one pooled set."
     },
-    name="Pool contigs from multiple samples.",
+    name="Pool contigs from one or more samples.",
     description="Pools sample contigs with IDs prefixed by their sample IDs.",
 )
 
