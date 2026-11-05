@@ -188,7 +188,7 @@ class TestFilterFeatureDataContigsPipeline(FilterContigsTestBase):
         super().setUp()
         self.filter_contigs = self.plugin.pipelines["filter_contigs"]
         self.coassembled_contigs = q2.Artifact.import_data(
-            "FeatureData[Contig % Properties('coassembly')]",
+            "FeatureData[Contig % Properties('coassembled')]",
             self.get_data_path("coassembled"),
         )
         self.pooled_contigs = q2.Artifact.import_data(
@@ -221,6 +221,17 @@ class TestFilterFeatureDataContigsPipeline(FilterContigsTestBase):
         )
 
         self.assertEqual(obs.type, self.coassembled_contigs.type)
+        self.assertListEqual(self._read_all_contig_ids(obs), ["k141_0"])
+
+    def test_combined_properties_preserved(self):
+        contigs = q2.Artifact.import_data(
+            "FeatureData[Contig % Properties('pooled', 'coassembled')]",
+            self.get_data_path("coassembled"),
+        )
+
+        (obs,) = self.filter_contigs(contigs=contigs, on="contig", ids=["k141_0"])
+
+        self.assertEqual(obs.type, contigs.type)
         self.assertListEqual(self._read_all_contig_ids(obs), ["k141_0"])
 
     def test_pooled_contigs_on_contig(self):
