@@ -7,13 +7,14 @@
 # ----------------------------------------------------------------------------
 
 import os
+import re
 import shutil
 
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
-from q2_assembly._utils import modify_contig_ids, run_command
+from q2_assembly._utils import _split_contig_id, modify_contig_ids, run_command
 
 
 def rename_contigs(
@@ -31,6 +32,71 @@ def rename_contigs(
         modify_contig_ids(out_fp, sample_id, uuid_type, sep)
 
     return renamed_contigs
+
+
+def _normalize_contig_id(contig_id: str, sample_id: str, separator: str) -> str:
+    parsed_id = _split_contig_id(contig_id)
+    if parsed_id is None:
+        new_id = f"{sample_id}{separator}{contig_id}"
+        if _split_contig_id(new_id) is None:
+            raise ValueError(
+                f'Contig ID "{contig_id}" in sample "{sample_id}" is neither a '
+                f'UUID nor of the form "{sample_id}<separator><uuid>". Please '
+                "run rename-contigs before pooling."
+            )
+        return new_id
+    if parsed_id[0] != sample_id:
+        raise ValueError(
+            f'Contig ID "{contig_id}" in sample "{sample_id}" is prefixed with '
+            f'a different sample ID ("{parsed_id[0]}").'
+        )
+    return f"{sample_id}{separator}{parsed_id[1]}"
+
+
+_CONTIG_HEADER = re.compile(r">(?P<id>\S*)(?P<description>.*)")
+
+
+def _write_contigs(contigs_fp: str, sample_id: str, separator: str, f_out):
+    with open(contigs_fp) as f_in:
+        for line in f_in:
+            if line.startswith(">"):
+                contig_id, description = _CONTIG_HEADER.match(line).groups()
+                contig_id = _normalize_contig_id(contig_id, sample_id, separator)
+                line = f">{contig_id}{description}"
+            f_out.write(line if line.endswith("\n") else line + "\n")
+
+
+def _check_unique_samples(contigs: list):
+    seen, duplicated = set(), set()
+    for artifact in contigs:
+        for sample_id in artifact.sample_dict():
+            if sample_id in seen:
+                duplicated.add(sample_id)
+            else:
+                seen.add(sample_id)
+    if duplicated:
+        raise ValueError(
+            "The following sample IDs are present in more than one input "
+            f"artifact: {', '.join(sorted(duplicated))}. Sample IDs must be "
+            "unique across all artifacts to be pooled."
+        )
+
+
+def pool_contigs(
+    contigs: ContigSequencesDirFmt, separator: str = ":"
+) -> ContigSequencesDirFmt:
+    """Joins contigs from one or more samples into one pooled set."""
+    _check_unique_samples(contigs)
+
+    pooled_contigs = ContigSequencesDirFmt()
+    out_fp = os.path.join(pooled_contigs.path, "pooled.fa")
+
+    with open(out_fp, "w") as f_out:
+        for artifact in contigs:
+            for sample_id, contigs_fp in artifact.sample_dict().items():
+                _write_contigs(contigs_fp, sample_id, separator, f_out)
+
+    return pooled_contigs
 
 
 def collate_indices(indices: Bowtie2IndexDirFmt) -> Bowtie2IndexDirFmt:

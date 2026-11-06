@@ -9,9 +9,11 @@
 from .helpers import (
     collate_alignments,
     collate_indices,
+    pool_contigs,
 )
 
 __all__ = [
     "collate_indices",
     "collate_alignments",
+    "pool_contigs",
 ]
