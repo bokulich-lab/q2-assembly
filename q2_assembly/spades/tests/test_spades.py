@@ -22,6 +22,7 @@ from q2_types.per_sample_sequences import (
 )
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly.spades.spades import (
     _assemble_spades,
@@ -468,7 +469,12 @@ class TestSpades(TestPluginBase):
             "q2_assembly.spades.spades._process_sample",
             side_effect=self.mock_process_sample,
         ):
-            with self.test_config:
+            # Run _assemble_spades on the in-process 'tpool' executor. The
+            # default executor runs tasks in separate worker processes, where the
+            # patch of _process_sample above does not apply.
+            with ParallelConfig(
+                action_executor_mapping={"assembly": {"_assemble_spades": "tpool"}}
+            ):
                 (out,) = self.assemble_spades.parallel(samples)._result()
 
         out.validate()
@@ -483,7 +489,12 @@ class TestSpades(TestPluginBase):
             "q2_assembly.spades.spades._process_sample",
             side_effect=self.mock_process_sample,
         ):
-            with self.test_config:
+            # Run _assemble_spades on the in-process 'tpool' executor. The
+            # default executor runs tasks in separate worker processes, where the
+            # patch of _process_sample above does not apply.
+            with ParallelConfig(
+                action_executor_mapping={"assembly": {"_assemble_spades": "tpool"}}
+            ):
                 (out,) = self.assemble_spades.parallel(samples)._result()
 
         out.validate()
@@ -500,7 +511,12 @@ class TestSpades(TestPluginBase):
             "q2_assembly.spades.spades._process_sample",
             side_effect=self.mock_process_sample,
         ) as process_sample:
-            with self.test_config:
+            # Run _assemble_spades on the in-process 'tpool' executor. The
+            # default executor runs tasks in separate worker processes, where the
+            # patch of _process_sample above does not apply.
+            with ParallelConfig(
+                action_executor_mapping={"assembly": {"_assemble_spades": "tpool"}}
+            ):
                 (out,) = self.assemble_spades.parallel(
                     samples, coassemble=True
                 )._result()
@@ -526,7 +542,14 @@ class TestSpades(TestPluginBase):
             "q2_assembly.spades.spades._process_sample",
             side_effect=self.mock_process_sample,
         ):
-            with self.test_config:
+            # Run _assemble_spades_isolate on the in-process 'tpool' executor. The
+            # default executor runs tasks in separate worker processes, where the
+            # patch of _process_sample above does not apply.
+            with ParallelConfig(
+                action_executor_mapping={
+                    "assembly": {"_assemble_spades_isolate": "tpool"}
+                }
+            ):
                 (out,) = self.assemble_spades.parallel(
                     samples,
                     trusted_contigs=trusted_contigs,
