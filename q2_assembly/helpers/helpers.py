@@ -14,7 +14,14 @@ from q2_types.bowtie2 import Bowtie2IndexDirFmt
 from q2_types.per_sample_sequences import BAMDirFmt, ContigSequencesDirFmt
 from qiime2.util import duplicate
 
-from q2_assembly._utils import _split_contig_id, modify_contig_ids, run_command
+from q2_assembly._utils import (
+    _is_uuid,
+    _split_contig_id,
+    modify_contig_ids,
+    run_command,
+)
+
+_CONTIG_HEADER = re.compile(r">(?P<id>\S*)(?P<description>.*)")
 
 
 def rename_contigs(
@@ -35,28 +42,37 @@ def rename_contigs(
 
 
 def _normalize_contig_id(contig_id: str, sample_id: str, separator: str) -> str:
-    parsed_id = _split_contig_id(contig_id)
-    if parsed_id is None:
-        new_id = f"{sample_id}{separator}{contig_id}"
-        if _split_contig_id(new_id) is None:
+    """Validates a contig ID and prefixes it with the sample ID if needed.
+
+    Accepts a bare UUID/shortuuid or <sample_id><any separator><uuid>.
+    Bare IDs are prefixed with the sample ID and separator;
+    prefixed IDs have their separator replaced by `separator`.
+
+    Raises:
+        ValueError: If the ID is neither form, or is prefixed with an incorrect
+            sample ID.
+    """
+    if _is_uuid(contig_id):
+        uuid = contig_id
+    else:
+        parsed_id = _split_contig_id(contig_id)
+        if parsed_id is None:
             raise ValueError(
                 f'Contig ID "{contig_id}" in sample "{sample_id}" is neither a '
                 f'UUID nor of the form "{sample_id}<separator><uuid>". Please '
                 "run rename-contigs before pooling."
             )
-        return new_id
-    if parsed_id[0] != sample_id:
-        raise ValueError(
-            f'Contig ID "{contig_id}" in sample "{sample_id}" is prefixed with '
-            f'a different sample ID ("{parsed_id[0]}").'
-        )
-    return f"{sample_id}{separator}{parsed_id[1]}"
-
-
-_CONTIG_HEADER = re.compile(r">(?P<id>\S*)(?P<description>.*)")
+        if parsed_id[0] != sample_id:
+            raise ValueError(
+                f'Contig ID "{contig_id}" in sample "{sample_id}" is prefixed '
+                f'with a different sample ID ("{parsed_id[0]}").'
+            )
+        uuid = parsed_id[1]
+    return f"{sample_id}{separator}{uuid}"
 
 
 def _write_contigs(contigs_fp: str, sample_id: str, separator: str, f_out):
+    """Appends one sample's contigs to f_out, normalizing their IDs."""
     with open(contigs_fp) as f_in:
         for line in f_in:
             if line.startswith(">"):
@@ -66,7 +82,8 @@ def _write_contigs(contigs_fp: str, sample_id: str, separator: str, f_out):
             f_out.write(line if line.endswith("\n") else line + "\n")
 
 
-def _check_unique_samples(contigs: list):
+def _check_unique_samples(contigs: list[ContigSequencesDirFmt]):
+    """Checks that all sample IDs across the given contig artifacts are unique."""
     seen, duplicated = set(), set()
     for artifact in contigs:
         for sample_id in artifact.sample_dict():

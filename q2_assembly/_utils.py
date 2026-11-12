@@ -227,11 +227,16 @@ _SHORTUUID_PATTERN = (
     rf"[{re.escape(shortuuid.get_alphabet())}]"
     rf"{{{shortuuid.ShortUUID().encoded_length()}}}"
 )
+_BARE_UUID = re.compile(rf"{_UUID_PATTERN}|{_SHORTUUID_PATTERN}")
 _PREFIXED_CONTIG_ID = re.compile(
     # sample ID, any single-character separator, then a UUID
     r"(?P<sample>.+)."
     rf"(?P<uuid>{_UUID_PATTERN}|{_SHORTUUID_PATTERN})"
 )
+
+
+def _is_uuid(contig_id: str) -> bool:
+    return _BARE_UUID.fullmatch(contig_id) is not None
 
 
 def _split_contig_id(contig_id: str) -> tuple[str, str] | None:
