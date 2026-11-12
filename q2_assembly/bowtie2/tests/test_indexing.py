@@ -18,6 +18,7 @@ from q2_types.feature_data_mag import MAGSequencesDirFmt
 from q2_types.per_sample_sequences import ContigSequencesDirFmt, MultiMAGSequencesDirFmt
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly.bowtie2.indexing import (
     _index_coassembled_contigs,
@@ -327,7 +328,7 @@ class TestBowtie2Indexing(TestPluginBase):
             self.get_data_path("coassembled-contigs"),
         )
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.index_contigs(input_artifact)
 
         out.validate()
@@ -343,7 +344,7 @@ class TestBowtie2Indexing(TestPluginBase):
         input_contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
         input_artifact = Artifact.import_data("SampleData[Contigs]", input_contigs)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.index_contigs.parallel(
                 input_artifact,
                 large_index=True,
@@ -370,7 +371,12 @@ class TestBowtie2Indexing(TestPluginBase):
         with self.assertWarnsRegex(
             UserWarning, f"You have requested.*{A_MODEST_NUMBER_OF_PARTITIONS}.*2"
         ):
-            with self.test_config:
+            # Run partition_contigs on the in-process 'tpool' executor. The
+            # default executor runs tasks in separate worker processes, and
+            # assertWarnsRegex cannot see warnings raised in another process.
+            with ParallelConfig(
+                action_executor_mapping={"types": {"partition_contigs": "tpool"}}
+            ):
                 (out,) = self.index_contigs.parallel(
                     input_artifact,
                     large_index=True,

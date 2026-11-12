@@ -21,6 +21,7 @@ from q2_types.per_sample_sequences import (
 )
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly.megahit.megahit import (
     _assemble_megahit,
@@ -268,23 +269,19 @@ class TestMegahit(TestPluginBase):
             coassemble=False,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
-            separator=":"
+            separator=":",
         )
         exp_calls = self.generate_exp_calls_coassembly(
             sample_ids=(1, 2), kind="paired", coassemble=False
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([
-            call(
-                os.path.join(str(obs), "sample1.fa"),
-                "sample1", "shortuuid", ":"
-            ),
-            call(
-                os.path.join(str(obs), "sample2.fa"),
-                "sample2", "shortuuid", ":"
-            )
-        ])
+        p2.assert_has_calls(
+            [
+                call(os.path.join(str(obs), "sample1.fa"), "sample1", "shortuuid", ":"),
+                call(os.path.join(str(obs), "sample2.fa"), "sample2", "shortuuid", ":"),
+            ]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -298,7 +295,7 @@ class TestMegahit(TestPluginBase):
             coassemble=False,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
-            separator=":"
+            separator=":",
         )
         exp_calls = self.generate_exp_calls_coassembly(
             sample_ids=(1, 2), kind="single", coassemble=False
@@ -307,14 +304,8 @@ class TestMegahit(TestPluginBase):
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls(
             [
-                call(
-                    os.path.join(str(obs), "sample1.fa"),
-                    "sample1", "shortuuid", ":"
-                ),
-                call(
-                    os.path.join(str(obs), "sample2.fa"),
-                    "sample2", "shortuuid", ":"
-                )
+                call(os.path.join(str(obs), "sample1.fa"), "sample1", "shortuuid", ":"),
+                call(os.path.join(str(obs), "sample2.fa"), "sample2", "shortuuid", ":"),
             ]
         )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
@@ -330,17 +321,16 @@ class TestMegahit(TestPluginBase):
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
-            separator=":"
+            separator=":",
         )
         exp_calls = self.generate_exp_calls_coassembly(
             sample_ids=(1, 2), kind="paired", coassemble=True, uuid_type="shortuuid"
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled.fa"),
-                 "pooled", "shortuuid", ":")
-        ])
+        p2.assert_has_calls(
+            [call(os.path.join(str(obs), "pooled.fa"), "pooled", "shortuuid", ":")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -354,17 +344,16 @@ class TestMegahit(TestPluginBase):
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
-            separator=":"
+            separator=":",
         )
         exp_calls = self.generate_exp_calls_coassembly(
             sample_ids=(1, 2), kind="single", coassemble=True
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled.fa"),
-                 "pooled", "shortuuid", ":")
-        ])
+        p2.assert_has_calls(
+            [call(os.path.join(str(obs), "pooled.fa"), "pooled", "shortuuid", ":")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -378,17 +367,16 @@ class TestMegahit(TestPluginBase):
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
-            separator=":"
+            separator=":",
         )
         exp_calls = self.generate_exp_calls_coassembly(
             sample_ids=(1,), kind="paired", coassemble=True, is_single_sample=True
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled.fa"),
-                 "pooled", "shortuuid", ":")
-        ])
+        p2.assert_has_calls(
+            [call(os.path.join(str(obs), "pooled.fa"), "pooled", "shortuuid", ":")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")
@@ -402,17 +390,16 @@ class TestMegahit(TestPluginBase):
             coassemble=True,
             uuid_type="shortuuid",
             common_args=self.test_params_list,
-            separator=":"
+            separator=":",
         )
         exp_calls = self.generate_exp_calls_coassembly(
             sample_ids=(1,), kind="single", coassemble=True, is_single_sample=True
         )
 
         p1.assert_has_calls(exp_calls, any_order=False)
-        p2.assert_has_calls([
-            call(os.path.join(str(obs), "pooled.fa"),
-                 "pooled", "shortuuid", ":")
-        ])
+        p2.assert_has_calls(
+            [call(os.path.join(str(obs), "pooled.fa"), "pooled", "shortuuid", ":")]
+        )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
     @patch("q2_assembly.megahit.megahit.assemble_megahit_helper")
@@ -457,8 +444,11 @@ class TestMegahit(TestPluginBase):
             "200",
         ]
         p1.assert_called_with(
-            reads=input, coassemble=False, uuid_type="shortuuid",
-            separator=":", common_args=exp_args
+            reads=input,
+            coassemble=False,
+            uuid_type="shortuuid",
+            separator=":",
+            common_args=exp_args,
         )
 
     def test_assemble_megahit_parallel_paired(self):
@@ -468,7 +458,7 @@ class TestMegahit(TestPluginBase):
             "SampleData[PairedEndSequencesWithQuality]", _input
         )
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.assemble_megahit.parallel(samples)._result()
 
         out.validate()
@@ -477,16 +467,14 @@ class TestMegahit(TestPluginBase):
     def test_assemble_megahit_coassembled_output_type(self):
         output_type = str(self.assemble_megahit.signature.outputs["contigs"].qiime_type)
 
-        self.assertIn(
-            "FeatureData[Contig % Properties('coassembled')]", output_type
-        )
+        self.assertIn("FeatureData[Contig % Properties('coassembled')]", output_type)
 
     def test_assemble_megahit_parallel_single(self):
         input_files = self.get_data_path("formatted-reads/single-end")
         _input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
         samples = Artifact.import_data("SampleData[SequencesWithQuality]", _input)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.assemble_megahit.parallel(samples)._result()
 
         out.validate()
@@ -504,18 +492,14 @@ class TestMegahit(TestPluginBase):
             coassemble=False,
             uuid_type=uuid_type,
             common_args=self.test_params_list,
-            separator=":"
+            separator=":",
         )
 
         p2.assert_has_calls(
-              [
-                  call(os.path.join(str(obs), "sample1.fa"),
-                       "sample1", uuid_type, ":"
-                       ),
-                  call(os.path.join(str(obs), "sample2.fa"),
-                       "sample2", uuid_type, ":"
-                       )
-              ]
+            [
+                call(os.path.join(str(obs), "sample1.fa"), "sample1", uuid_type, ":"),
+                call(os.path.join(str(obs), "sample2.fa"), "sample2", uuid_type, ":"),
+            ]
         )
 
     @patch("q2_assembly.megahit.megahit.modify_contig_ids")

@@ -20,16 +20,13 @@ repos:
           - --quiet
         files: ^(.+)(?<!\_version)\.py$
   - repo: https://github.com/PyCQA/flake8
-    rev: 4.0.1
+    rev: 7.1.1
     hooks:
       - id: flake8
         additional_dependencies:
-          - pycodestyle==2.8.0
-          - pyflakes==2.4.0
           - pydocstyle==6.1.1
           - flake8-comprehensions==3.8.0
-          - flake8-noqa==1.2.1
-          - mccabe==0.6.1
+          - flake8-noqa==1.4.0
         files: ^(.+)(?<!\_version)\.py$
   - repo: local
     hooks:

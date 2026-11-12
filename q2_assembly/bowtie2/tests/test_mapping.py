@@ -22,6 +22,7 @@ from q2_types.per_sample_sequences import (
 )
 from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
+from qiime2.sdk.parallel_config import ParallelConfig
 
 from q2_assembly._utils import get_relative_data_path
 from q2_assembly.bowtie2.mapping import (
@@ -417,7 +418,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -450,7 +451,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -485,7 +486,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads(index=index, reads=reads)._result()
 
         out.validate()
@@ -513,7 +514,7 @@ class TestBowtie2Mapping(TestPluginBase):
             SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r"),
         )
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads(index=index, reads=reads, sort=False)._result()
 
         out.validate()
@@ -601,7 +602,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -634,7 +635,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -731,7 +732,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -764,7 +765,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -797,7 +798,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSamplePairedEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[PairedEndSequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
@@ -826,7 +827,7 @@ class TestBowtie2Mapping(TestPluginBase):
         reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
         reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
 
-        with self.test_config:
+        with ParallelConfig():
             (out,) = self.map_reads.parallel(
                 index=index,
                 reads=reads,
