@@ -14,7 +14,7 @@ from q2_types.per_sample_sequences import ContigSequencesDirFmt
 from q2_assembly.filter.filter import _filter_contigs
 from q2_assembly.filter.tests._utils import FilterContigsTestBase
 
-# contig IDs in tests/data/pooled/pooled_contigs.fa, in file order
+# contig IDs in tests/data/pooled/pooled.fa, in file order
 POOLED_SAMPLE1_IDS = [
     f"sample1:dPj72SpWBxMXAVyPtYqJG{i}" for i in ["A", 2, 3, 4, 5, 6, 7, 8, 9, "B"]
 ]
@@ -37,7 +37,7 @@ class TestFilterFeatureDataContigsByContig(FilterContigsTestBase):
             ids=["sample1:dPj72SpWBxMXAVyPtYqJGA", "2Ta5AWdPGsJiCUZJ4NeP92"],
         )
         self.assertDictEqual(
-            obs.sample_dict(), {"pooled": os.path.join(obs.path, "pooled_contigs.fa")}
+            obs.sample_dict(), {"pooled": os.path.join(obs.path, "pooled.fa")}
         )
         self.assertListEqual(
             self._read_all_contig_ids(obs),

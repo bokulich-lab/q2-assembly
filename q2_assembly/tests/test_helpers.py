@@ -20,13 +20,20 @@ from unittest.mock import ANY, call, patch
 import shortuuid
 import skbio
 from parameterized import parameterized
+from q2_types.feature_data import FeatureData
+from q2_types.feature_data_mag import Contig
 from q2_types.per_sample_sequences import AlignmentMap, BAMDirFmt, ContigSequencesDirFmt
 from q2_types.sample_data import SampleData
 from qiime2 import Artifact
 from qiime2.plugin import Properties
 from qiime2.plugin.testing import TestPluginBase
 
-from q2_assembly.helpers.helpers import rename_contigs, sort_alignment_maps
+from q2_assembly.helpers.helpers import (
+    _normalize_contig_id,
+    pool_contigs,
+    rename_contigs,
+    sort_alignment_maps,
+)
 
 
 class TestUtils(TestPluginBase):
@@ -162,6 +169,138 @@ class TestUtils(TestPluginBase):
 
             p1.assert_has_calls(calls, any_order=True)
             self.assertTrue(os.path.exists(str(out_dir)))
+
+    @parameterized.expand(
+        [
+            (
+                "prefixed",
+                "s1:dPj72SpWBxMXAVyPtYqJGA",
+                ":",
+                "s1:dPj72SpWBxMXAVyPtYqJGA",
+            ),
+            (
+                "bare_shortuuid",
+                "dPj72SpWBxMXAVyPtYqJGA",
+                ":",
+                "s1:dPj72SpWBxMXAVyPtYqJGA",
+            ),
+            (
+                "bare_uuid",
+                "0196f161-8053-5ff2-827b-6c454fc3c449",
+                "_",
+                "s1_0196f161-8053-5ff2-827b-6c454fc3c449",
+            ),
+            (
+                "replaces_separator",
+                "s1|dPj72SpWBxMXAVyPtYqJGA",
+                ":",
+                "s1:dPj72SpWBxMXAVyPtYqJGA",
+            ),
+        ]
+    )
+    def test_normalize_contig_id(self, name, contig_id, separator, exp):
+        self.assertEqual(_normalize_contig_id(contig_id, "s1", separator), exp)
+
+    @parameterized.expand(
+        [
+            ("raw_id", "k141_9", "is neither a UUID"),
+            ("prefixed_raw_id", "s1:k141_9", "is neither a UUID"),
+            ("empty_id", "", "is neither a UUID"),
+            (
+                "wrong_sample",
+                "s2:dPj72SpWBxMXAVyPtYqJGA",
+                r'prefixed with a different sample ID \("s2"\)',
+            ),
+        ]
+    )
+    def test_normalize_contig_id_errors(self, name, contig_id, msg):
+        with self.assertRaisesRegex(ValueError, msg):
+            _normalize_contig_id(contig_id, "s1", ":")
+
+    def test_pool_contigs(self):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs-renamed"), "r")
+
+        pooled = pool_contigs([contigs])
+
+        pooled_fp = os.path.join(pooled.path, "pooled.fa")
+        self.assertDictEqual(pooled.sample_dict(), {"pooled": pooled_fp})
+        exp_fp = self.get_data_path("pooled/pooled.fa")
+        self.assertEqual(Path(pooled_fp).read_text(), Path(exp_fp).read_text())
+
+    def test_pool_contigs_action(self):
+        contigs = Artifact.import_data(
+            "SampleData[Contigs]", self.get_data_path("contigs-renamed")
+        )
+
+        (pooled,) = self.plugin.methods["pool_contigs"]([contigs])
+
+        self.assertEqual(pooled.type, FeatureData[Contig % Properties("pooled")])
+
+    def test_pool_contigs_missing_trailing_newline(self):
+        contigs = ContigSequencesDirFmt(
+            self.get_data_path("contigs-no-trailing-newline"), "r"
+        )
+
+        pooled = pool_contigs([contigs])
+
+        obs_fp = pooled.sample_dict()["pooled"]
+        exp_fp = self.get_data_path("pooled-no-trailing-newline/pooled.fa")
+        self.assertEqual(Path(obs_fp).read_text(), Path(exp_fp).read_text())
+
+    def test_pool_contigs_multiple_artifacts(self):
+        contigs = [
+            ContigSequencesDirFmt(self.get_data_path("contigs-renamed"), "r"),
+            ContigSequencesDirFmt(self.get_data_path("contigs-bare-uuid"), "r"),
+        ]
+
+        pooled = pool_contigs(contigs)
+
+        obs_fp = pooled.sample_dict()["pooled"]
+        exp_fp = self.get_data_path("pooled-two-artifacts/pooled.fa")
+        self.assertEqual(Path(obs_fp).read_text(), Path(exp_fp).read_text())
+
+    def test_pool_contigs_custom_separator(self):
+        contigs = [
+            ContigSequencesDirFmt(self.get_data_path("contigs-renamed"), "r"),
+            ContigSequencesDirFmt(self.get_data_path("contigs-bare-uuid"), "r"),
+        ]
+
+        pooled = pool_contigs(contigs, separator="_")
+
+        obs_fp = pooled.sample_dict()["pooled"]
+        exp_fp = self.get_data_path("pooled-custom-separator/pooled.fa")
+        self.assertEqual(Path(obs_fp).read_text(), Path(exp_fp).read_text())
+
+    def test_pool_contigs_duplicated_samples(self):
+        contigs = [
+            ContigSequencesDirFmt(self.get_data_path("contigs-renamed"), "r"),
+            ContigSequencesDirFmt(
+                self.get_data_path("contigs-no-trailing-newline"), "r"
+            ),
+        ]
+
+        with self.assertRaisesRegex(
+            ValueError, "more than one input artifact: sample1, sample2"
+        ):
+            pool_contigs(contigs)
+
+    def test_pool_contigs_non_uuid_ids(self):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+
+        with self.assertRaisesRegex(
+            ValueError,
+            'Contig ID "k141_9" in sample "sample1" is neither a UUID',
+        ):
+            pool_contigs([contigs])
+
+    def test_pool_contigs_wrong_sample_prefix(self):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs-wrong-prefix"), "r")
+
+        with self.assertRaisesRegex(
+            ValueError,
+            r'in sample "sample2" is prefixed with a different sample ID \("sample1"\)',
+        ):
+            pool_contigs([contigs])
 
     @parameterized.expand(
         [

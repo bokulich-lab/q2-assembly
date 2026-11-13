@@ -6,15 +6,15 @@
 # The full license is in the file LICENSE, distributed with this software.
 # ----------------------------------------------------------------------------
 import os
-import re
 import warnings
 
-import shortuuid
 import skbio
 from q2_types.per_sample_sequences import Contigs, ContigSequencesDirFmt
 from q2_types.sample_data import SampleData
 from qiime2 import Metadata
 from qiime2.util import duplicate
+
+from q2_assembly._utils import _split_contig_id
 
 
 def _get_metadata_ids(metadata: Metadata = None, where: str = None) -> set:
@@ -33,25 +33,6 @@ def _check_missing_ids(ids: set[str], present_ids: set[str]):
             "The following IDs are not present in the contig data: "
             f"{', '.join(sorted(missing_ids))}"
         )
-
-
-_UUID_PATTERN = r"[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}"
-_SHORTUUID_PATTERN = (
-    rf"[{re.escape(shortuuid.get_alphabet())}]"
-    rf"{{{shortuuid.ShortUUID().encoded_length()}}}"
-)
-_PREFIXED_CONTIG_ID = re.compile(
-    # sample ID, any single-character separator, then a UUID
-    r"(?P<sample>.+)."
-    rf"(?P<uuid>{_UUID_PATTERN}|{_SHORTUUID_PATTERN})"
-)
-
-
-def _split_contig_id(contig_id: str) -> tuple[str, str] | None:
-    match = _PREFIXED_CONTIG_ID.fullmatch(contig_id)
-    if match is None:
-        return None
-    return match.group("sample"), match.group("uuid")
 
 
 def _match_contig_ids(contig_id: str, selected_ids: set[str]) -> set[str]:
